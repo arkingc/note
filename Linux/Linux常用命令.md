@@ -14,8 +14,8 @@
     * [6.切分文本：cut](#6切分文本cut)
     * [7.拼接文本：paste](#7拼接文本paste)
     * [8.统计：wc](#8统计wc)
-    * [9.文本替换：sed](#9文本替换sed)
-    * [10.数据流处理：awk](#10数据流处理awk)
+    * [9.数据处理：sed](#9数据处理sed)
+    * [10.数据处理：awk](#10数据处理awk)
 * [二.性能分析](#二性能分析)
     * [1.进程查询：ps](#1进程查询ps)
     * [2.进程监控：top](#2进程监控top)
@@ -149,7 +149,7 @@ sort [选项] 文件
 cat /etc/passwd | tr -d ':'
 
 #2.将小写字母替换成大写字母
-last | tr '[a-z]'  'A-Z'
+last | tr '[a-z]' 'A-Z'
 
 #3.将'a'、'b'、'c'替换成'z'
 #cat test | tr “abc” 'z'
@@ -207,7 +207,7 @@ wc [选项] 文件
     -l：统计行数
 ```
 
-## 9.文本替换：sed
+## 9.数据处理：sed
 
 #### 使用方法
 
@@ -249,7 +249,7 @@ nl /etc/passwd | sed '2s/daemon/root/g' #将第二行的daemon替换成root
 ifconfig | grep 'inet addr' | sed 's/^.*addr://g' #将所有开头的“inet addr:”删除
 ```
 
-## 10.数据流处理：awk
+## 10.数据处理：awk
 
 # 二.性能分析
 
