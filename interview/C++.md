@@ -4,8 +4,8 @@
 * 二.类
     * 1）虚函数继承的原理？ 
 * 三.容器
-    * 1）new和malloc的区别？
-    * 2）malloc的实现？
-* 四.内存管理
     * 1）vector底层的实现？insert具体做了哪些事？resize()调用的是什么？
     * 2）map、set的实现原理（红黑树）
+* 四.内存管理
+    * 1）new和malloc的区别？
+    * 2）malloc的实现？
