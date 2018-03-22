@@ -321,6 +321,7 @@ ps -lA    #输出格式同ps -l
 * **F**：进程标志，说明进程的权限
     - 4：root权限
     - 1：仅能fork而不能exec
+    - 0：既非4也非1
 * **S**：进程的状态
     - R(running)：正在运行
     - S(Sleep)：可被唤醒的睡眠
@@ -333,7 +334,7 @@ ps -lA    #输出格式同ps -l
 * **TTY**：进程运行的终端机
 * **TIME**：进程用掉的CPU时间
 
-![](../pic/linux-ps-1.png)
+![](../pic/linux-ps-2.png)
 
 * **USER**：进程所属用户
 * **%CPU/%MEM**：进程销毁的CPU百分比和内存百分比
