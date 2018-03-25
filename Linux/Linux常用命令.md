@@ -424,7 +424,7 @@ free [选项]
     -t：列出物理内存与swap的汇总情况    
 ```
 
-![](../pic/linux-ps-2.png)
+![](../pic/linux-free-1.png)
 
 * **buffers**：主要缓存dentry和inode等元数据
 * **cached**：主要缓存文件内容，即page cache
