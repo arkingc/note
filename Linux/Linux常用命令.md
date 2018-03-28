@@ -440,6 +440,32 @@ free [选项]
 
 ## 2.查看当前网络连接：netstat
 
+```bash
+netstat [选项]
+
+选项：
+    -a：将所有的连接、监听、Socket数据都列出来（如，默认情况下，不会列出监听状态的连接）
+    -t：列出tcp连接
+    -u：列出udp连接
+    -n：将连接的进程服务名称以端口号显示（如下图中Local Address会换成10.0.2.15:22）
+    -l：列出处于监听状态的连接
+    -p：添加一列，显示网络服务进程的PID（需要root权限）
+```
+
+![](../pic/linux-netstat-1.png)
+
+* **Active Internet connections（only servers）：网络相关的连接**
+    - **Recv-Q**：接收队列(已接收还未递交给应用)
+    - **Send-Q**：发送队列(接收方未确认的数据)
+    - **Local Address**：本地IP(主机):端口(服务名)
+    - **Foreign Address**：远端IP:端口
+    - >Recv-Q和Send-Q通常应该为0，如果长时间不为0可能存在问题
+* **Active UNIX domain sockets（only servers）：本地相关的套接字**
+    - **RefCnt**：连接到此socket的进程数
+    - **Flags**：连接标识
+    - **Type**：socket访问的类型
+    - **Path**：连接到此socket的相关程序的路径
+
 ## 3.查看路由表：route
 
 ## 4.检查网络连通性：ping
