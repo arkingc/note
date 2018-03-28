@@ -454,13 +454,13 @@ netstat [选项]
 
 ![](../pic/linux-netstat-1.png)
 
-* **Active Internet connections（only servers）：网络相关的连接**
+* **Active Internet connections（w/o servers）：网络相关的连接**
     - **Recv-Q**：接收队列(已接收还未递交给应用)
     - **Send-Q**：发送队列(接收方未确认的数据)
     - **Local Address**：本地IP(主机):端口(服务名)
     - **Foreign Address**：远端IP:端口
     - >Recv-Q和Send-Q通常应该为0，如果长时间不为0可能存在问题
-* **Active UNIX domain sockets（only servers）：本地相关的套接字**
+* **Active UNIX domain sockets（w/o servers）：本地相关的套接字**
     - **RefCnt**：连接到此socket的进程数
     - **Flags**：连接标识
     - **Type**：socket访问的类型
