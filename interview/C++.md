@@ -48,8 +48,10 @@
     * 18）浅拷贝与深拷贝（安全性、行为像值的类与行为像指针的类）
 * **四.容器**
     * 1）vector底层的实现？insert具体做了哪些事？resize()调用的是什么？
-    * 2）map、set的实现原理（红黑树）
-    * 3）map与unordered_map的区别？
+    * 2）map、set的实现原理（红黑树、对于set来说key和value合一，value就是key，map的元素是一个pair，包括key和value、set不支持[]，map(不包括multimap)支持[]）
+    * 3）set(map)和multiset(multimap)的区别？（set不允许key重复,其insert操作调用rb_tree的insert_unique函数，multiset允许key重复,其insert操作调用rb_tree的insert_equal函数）
+    * 4）set(multiset)和map(multimap)的迭代器（由于set(multiset)key和value合一，迭代器不允许修改key、map(multimap)除了key有data，迭代器允许修改data不允许修改key）
+    * 5）map与unordered_map的区别？
 * **五.内存管理**
     * 1）内存管理有几种方式？（new、delete、malloc、free、allocators）
     * 2）new和malloc的区别？（函数，运算符、类型安全、计算空间、步骤）
