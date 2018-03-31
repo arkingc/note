@@ -360,7 +360,7 @@ ps -lA    #输出格式同ps -l
     - Z(Zombie)：僵尸进程
 * **C**：CPU使用率
 * **PRI/NI**：Priority/Nice的缩写，CPU优先级(越小越高)
-* **ADDR/SZ/WCHAN**：内存相关，ADDR指出进程在内存的哪个部分，running进程一般显示'-'。SZ为进程使用的内存。WCHAN表示进程当前是否运行中'-'
+* **ADDR/SZ/WCHAN**：内存相关，ADDR指出进程在内存的哪个部分，running进程一般显示'-'。SZ为进程使用的内存。WCHAN表示进程当前是否运行中'-'，当进程睡眠时，指出进程等待的事件
 * **TTY**：进程运行的终端机
 * **TIME**：进程用掉的CPU时间
 
