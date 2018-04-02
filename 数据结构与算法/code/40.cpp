@@ -1,3 +1,8 @@
+/*
+ *   1）基于partition函数的方法（不适合海量数据）；
+ *   2）使用容器(最大堆)存储最小的k个数，遍历数组，当有更小的数时替换掉原容器中最大的
+ *     （适合处理海量数据，数组不能一次载入内存）​
+ */
 class Solution {
 public:
     int partition(vector<int> &input,int l,int r){

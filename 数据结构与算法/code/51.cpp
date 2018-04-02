@@ -1,3 +1,8 @@
+/*
+ * 1）遍历每个元素，在这个元素的后面剩余元素中查找比该元素小的元素，每找到一个组成一个逆序对；（O(n^2)）
+ * 2）基于归并排序的方法；（O(nlogn)）
+ */
+
 class Solution {
 public:
     int InversePairs(vector<int> data) {

@@ -1,3 +1,9 @@
+/*
+ * 选取右上角或左下角的元素，以左下角为例：
+ * 1）如果左下角元素大于查找元素，则删除所在行；
+ * 2）如果左上角元素小于查找元素，则删除所在列；
+ */
+
 class Solution {
 public:
     bool Find(int target, vector<vector<int> > array) {

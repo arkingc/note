@@ -16,6 +16,7 @@ public:
                 break;
             }
             mid = (l + r) >> 1;
+            //如果首尾元素以及中间元素相等，那么没有办法判断中间元素到底是在左半部分还是右半部分，这时只能用顺序查找
             if(rotateArray[l] == rotateArray[r] && rotateArray[l] == rotateArray[mid]){
                 int min = rotateArray[0];
                 for(int i = 1;i < sz;i++){
