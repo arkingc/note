@@ -1,5 +1,5 @@
 ```c++
-#实际上是memmove，实际的memcpy是不考虑重叠的
+//实际上是memmove，实际的memcpy是不考虑重叠的
 void* memcpy(void *dst,const void *src,size_t size)
 {
     if(dst == NULL || src == NULL){
