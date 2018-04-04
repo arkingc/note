@@ -16,12 +16,13 @@ int strcmp(const char *str1,const char *str2)
 {
     assert(str1 && str2);
 
-    int ret = 0;
-    while(!(ret = *(unsigned char *)str1 - *(unsigned char *)str2) && *str1){
+    //128种扩展ascii码使用最高位来标识
+    while((*(unsigned char *)str1 == *(unsigned char *)str2) && *str1){
         str1++;
         str2++;
     }
 
+    int ret = *(unsigned char*)str1 - *(unsigned char*)str2;
     if(ret < 0) ret = -1;
     else if(ret > 0) ret = 1;
     return ret;
@@ -44,7 +45,7 @@ char* strcpy(char *strDest,const char *strSrc)
 {
     assert(strDest && strSrc);
 
-    char *p;
+    char *p = strDest;
     while(*p++ = *strSrc++);
     return strDest;
 }
