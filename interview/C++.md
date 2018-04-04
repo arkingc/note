@@ -47,7 +47,7 @@
     * 17）纯虚函数与抽象基类（关系、”=0“、必须在类内申明）
     * 18）静态类型与动态类型（引用是否可实现动态绑定）
     * 19）浅拷贝与深拷贝（安全性、行为像值的类与行为像指针的类）
-    * 20）[如何定义类内常量](#类内常量)
+    * 20）如何定义类内常量？（enum而不是static const 《Effective C++:条款3》）
 * **四.容器**
     * 1）vector底层的实现？insert具体做了哪些事？resize()调用的是什么？
     * 2）map、set的实现原理（红黑树、对于set来说key和value合一，value就是key，map的元素是一个pair，包括key和value、set不支持[]，map(不包括multimap)支持[]）
@@ -82,7 +82,7 @@
     * 9）using？（用于命名空间？、用于类中？）
     * 10）final？（修饰类？、修饰成员函数？）
     * 11）auto？(类型推导、初始化、不能用于函数及模板)
-    * 12）volatile?（[作用](#volatile)、volatile[与const](#volatile)）
+    * 12）volatile?（对象的值可能在程序的控制外被改变时，应将变量申明为volatile，告诉编译器不应对这样的对象进行优化，如果优化，从内存读取后CPU会优先访问数据在寄存器中的结果，但是内存中的数据可能在程序之外被改变、可以既是const又是volatile，const只是告诉程序不能试图去修改它.volatile是告诉编译器不要优化，因为变量可能在程序外部被改变）
 * **七.其它**
     * 1）调试程序的方法?
     * 2）遇到coredump要怎么调试？
@@ -98,56 +98,3 @@
     * 12）[C字符串处理函数](../C++/C字符串处理函数.md)
     * 13）[C内存操作函数](../C++/C内存操作函数.md)
     * 14）[运行时类型识别实现对象比较函数](https://github.com/arkingc/llc/blob/master/cpp/RTTI.cpp#L9)
-
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-
-[TOC]
-
-## 一.变量
-
-## 二.函数
-
-## 三.类
-
-### 类内常量
-
-如果需要在**类内定义常量**，不能使用如下方式：
-
-```c++
-class GamePlayer{
-private:
-    static const int NumTurns = 5;  //常量申明式
-    int scores[NumTurns];           //使用该常量
-}
-```
-
-因为上述NumTurns实际是声明式而非定义式，类内static成员需要在类外定义。可以使用枚举定义**类内常量**：
-
-```c++
-class GamePlayer{
-private:
-    enum { NumTurns = 5};   //"the enum hack"——令NumTurns成为5的一个记号名称
-    int scores[NumTurns];   //使用该常量
-}
-```
-
-## 四.容器
-
-## 五.内存管理
-
-## 六.关键字
-
-### volatile
-
-当对象的值可能在程序的控制或检测之外被改变时(比方说由系统时钟)，应将变量申明为volatile，告诉编译器不应对这样的对象进行优化，如果优化，从内存读取后CPU会优先访问数据在寄存器中的结果，但是内存中的数据可能在程序之外被改变
-
-可以既是const又是volatile，const只是告诉程序不能试图去修改它.volatile是告诉编译器不要优化，因为变量可能在程序外部被改变
-
-## 七.其它
