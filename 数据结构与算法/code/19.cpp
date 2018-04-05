@@ -1,3 +1,12 @@
+/*
+ * '.':
+ *     match[i,j] = match[i - 1,j - 1];
+ * '*':
+ *     match[i,j] = match[i,j - 2] || (str[i] == pattern[j - 1] && match[i-1,j]);
+ * else:
+ *     match[i,j] = match[i-1,j-1] && str[i] == pattern[j]
+ */
+
 class Solution {
 public:
     bool match(char *str,char *pattern,int idx1,int idx2){
@@ -26,14 +35,6 @@ public:
         if(!str || !pattern)
             return false;
         
-        /*
-         * '.':
-         *     match[i,j] = match[i - 1,j - 1];
-         * '*':
-         *     match[i,j] = match[i,j - 2] || (str[i] == pattern[j - 1] && match[i-1,j]);
-         * else:
-         *     match[i,j] = match[i-1,j-1] && str[i] == pattern[j]
-         */
         int sz1 = 0,sz2 = 0;
         while(str[sz1] != '\0')
             sz1++;

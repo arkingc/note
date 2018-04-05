@@ -1,3 +1,7 @@
+/*
+ * 两次翻转字符串（先翻转所有，再翻转每个单词或先翻转每个单词，再翻转所有）
+ */
+
 class Solution {
 public:
     string ReverseSentence(string str) {

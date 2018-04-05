@@ -1,3 +1,8 @@
+/*
+ * 1）求所有可能出现在第一个位置的字符，即把第一个字符和后面所有的字符交换；
+ * 2）固定第一个字符，求后面所有字符的排列； 
+ */
+
 class Solution {
 public:
     vector<string> Permutation(string str) {
@@ -6,6 +11,7 @@ public:
             return res;
         
         Permutation(str,0,res);
+        //为了按字典序输出，需要排序
         sort(res.begin(),res.end());
         return res;
     }
@@ -17,9 +23,10 @@ public:
             return;
         }
         
-        set<char> swaped;
+        set<char> swaped;//为了处理相同的字符
         for(int i = idx;i < sz;i++){
             char c = s[i];
+            //说明遇到了相同的字符
             if(swaped.find(c) != swaped.end()){
                 continue;
             }
