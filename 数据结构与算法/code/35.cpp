@@ -1,4 +1,12 @@
 /*
+ * 两步
+ * 1）复制原始链表上的每个节点，用m_pNext链接起来；
+ * 2）设置复制链表每个节点的random成员；
+ * 
+ * 不用辅助空间实现：复制的节点链接在原节点之后；​​​​​​
+ */
+
+/*
 struct RandomListNode {
     int label;
     struct RandomListNode *next, *random;

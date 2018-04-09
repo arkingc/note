@@ -1,4 +1,11 @@
 /*
+ * 鲁棒性：
+ * 1）输入的链表头为nullptr；
+ * 2）​​k比链表节点总数大时；
+ * 3）k为0时；​
+ */
+
+/*
 struct ListNode {
 	int val;
 	struct ListNode *next;
