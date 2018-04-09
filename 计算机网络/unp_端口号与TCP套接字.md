@@ -9,6 +9,8 @@ IANA(因特网已分配数值权威机构)维护着一个端口号分配状况�
 
 ![](../pic/unp-2-1.png)
 
+<div align="center"> <img src="../pic/unp-2-1.png"/> </div>
+
 ## 套接字
 
 一个**TCP套接字对**是一个定义该连接的两个端点的四元组
