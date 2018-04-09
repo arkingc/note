@@ -1,3 +1,8 @@
+/*
+ * 按圈打印，每圈左上角的坐标中行标和列标总是相同的；
+ * 循环继续的条件是columns > startX * 2且rows > startY * 2；
+ */
+
 class Solution {
 public:
     vector<int> printMatrix(vector<vector<int> > matrix) {

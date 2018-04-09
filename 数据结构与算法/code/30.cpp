@@ -1,3 +1,7 @@
+/*
+ * 压入新值时，如果最小值不变，继续向辅助栈中压入旧min值，否则压入新值；
+ */
+
 class Solution {
 public:
     void push(int value) {

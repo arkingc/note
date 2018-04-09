@@ -1,3 +1,8 @@
+/*
+ * 入队：插入stack1；
+ * 出队：如果stack2为空，从stack1弹出并压入stack2，最后弹出stack2栈顶。如果stack2不为空，直接弹出​stack2栈顶；
+ */
+
 class Solution
 {
 public:

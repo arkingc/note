@@ -1,3 +1,7 @@
+/*
+ * 首尾两个下标，向中间靠拢，如果和小于s，则移动首下标，大于s，则移动尾下标；
+ */
+
 class Solution {
 public:
     vector<int> FindNumbersWithSum(vector<int> array,int sum) {

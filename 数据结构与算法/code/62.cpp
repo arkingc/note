@@ -1,3 +1,7 @@
+/*
+ * 构造一个环状链表，或者直接使用C++ STL中的链表，时间代价为O(mn),空间代价为O(n)；
+ */
+
 class Solution {
 public:
     int LastRemaining_Solution(int n, int m)
