@@ -1,3 +1,10 @@
+/*
+ * 左->右->根  ---> 小->大->中
+ * 首先判断序列是否满足这种大小关系，然后递归处理子树；
+ *
+ * 扩展：判断数组是不是某二叉搜索树的前序遍历结果；
+ */
+
 class Solution {
 public:
     bool VerifySquenceOfBST(vector<int> sequence) {
