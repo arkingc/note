@@ -88,6 +88,8 @@ IANA(因特网已分配数值权威机构)维护着一个端口号分配状况�
     - sockaddr_storage足够大，能够容纳系统支持的任何套接字地址结构
 * **sockaddr_storage**结构中除了上图中的两个字段，其它字段都是透明的，必须强制转换成其它类型套接字地址结构才能访问其它字段
 
+[套接字地址结构所在头文件](https://github.com/arkingc/note/blob/master/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E6%8E%A5%E5%8F%A3%E4%B8%8E%E5%A4%B4%E6%96%87%E4%BB%B6.md#%E7%B1%BB%E5%9E%8B)
+
 ### 2.1 值-结果参数
 
 **1）从进程到内核传递套接字地址结构**：bind、connect、sendto
