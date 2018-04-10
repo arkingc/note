@@ -68,16 +68,7 @@ IANA(因特网已分配数值权威机构)维护着一个端口号分配状况�
 
 大多数套接字函数都需要一个指向套接字地址结构的指针作为参数。每个协议族都定义了自己的套接字地址结构
 
-套接字地址结构仅在给定主机上使用：虽然结构中的某些字段用在不同主机之间的通信中，但是结构本身并不在主机之间传递
-
-一些常用的套接字地址结构：
-
-|协议族|套接字地址结构|头文件|
-|:--:|:--:|:--:|
-|IPv4|sockaddr_in|<netinet/in.h>|
-|IPv6|sockaddr_in6|<netinet/in.h>|
-|通用|sockaddr|<sys/socket.h>|
-|新版通用|sockaddr_storage|<netinet/in.h>|
+**套接字地址结构仅在给定主机上使用：虽然结构中的某些字段用在不同主机之间的通信中，但是结构本身并不在主机之间传递**
 
 <div align="center"> <img src="../pic/unp-3-1.png"/> </div>
 
@@ -96,21 +87,6 @@ IANA(因特网已分配数值权威机构)维护着一个端口号分配状况�
     - 如果系统支持的任何套接字地址结构有对齐的需要，那么sockaddr_storage能够满足最苛刻的对齐要求
     - sockaddr_storage足够大，能够容纳系统支持的任何套接字地址结构
 * **sockaddr_storage**结构中除了上图中的两个字段，其它字段都是透明的，必须强制转换成其它类型套接字地址结构才能访问其它字段
-
-POSIX规范要求的数据类型：
-
-|数据类型|说明|头文件|
-|:--:|:--:|:--:|
-|int8_t|带符号的8位整数|<sys/types.h>|
-|uint8_t|无符号的8位整数|<sys/types.h>|
-|int16_t|带符号的16位整数|<sys/types.h>|
-|uint16_t|无符号的16位整数|<sys/types.h>|
-|int32_t|带符号的32位整数|<sys/types.h>|
-|uint32_t|无符号的32位整数|<sys/types.h>|
-|sa_family_t|套接字地址结构的地址族|<sys/socket.h>|
-|socklen_t|套接字地址结构的长度，一般为uint32_t|<sys/socket.h>|
-|in_addr_t|IPv4地址，一般为uint32_t|<netinet/in.h>|
-|in_port_t|TCP或UDP端口，一般为uint16_t|<netinet/in.h>|
 
 ### 2.1 值-结果参数
 
@@ -149,7 +125,7 @@ int memcmp(const void *ptr1,const void *ptr2,size_t nbytes);
 ```
 
 * bzero相比于memset只有2个参数
-* bcopy能够正确处理源“字节”串与目标“字节”串重叠，memcpy不行（可以用memmove）
+* bcopy能够正确处理源“字节串”与目标“字节串”重叠，memcpy不行（可以用memmove）
 
 >bzero和memset可用于**套接字地址结构**的初始化
 
