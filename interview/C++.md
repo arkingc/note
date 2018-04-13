@@ -5,7 +5,7 @@
     * 4）指针和引用的区别？（代表意义、内存占用、初始化、指向是否可改、作为参数、作为返回）
     * 5）C++的四种强制转换
     * 6）[如何修改const变量、const与volatile](https://blog.csdn.net/heyabo/article/details/8745942)
-    * 7）静态类型获取与动态类型获取（[typeid](当typeid作用于指针时（而非指针所指的对象），返回的结果是该指针的静态编译时类型)、dynamic_cast:转换目标类型必须是引用类型）
+    * 7）静态类型获取与动态类型获取（[typeid](https://github.com/arkingc/llc/blob/master/cpp/RTTI/typeid.cpp#L4)、dynamic_cast:转换目标类型必须是引用类型）
 * **二.函数**
     * 1）重载（[参数必须不同(const修饰形参)](https://github.com/arkingc/llc/blob/master/cpp/overload/main.cpp#L9)、重载与作用域、继承中的重载\(using\)、重载与const成员函数） 
 * **三.类**
