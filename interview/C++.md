@@ -63,7 +63,7 @@
     * 4）malloc的实现？
     * 5）delete（步骤、delete与析构、可以delete空指针、可以delete动态const对象）
     * 6）为什么要内存对齐？(性能原因、平台原因)
-    * 7）[结构体内存对齐方式？](https://github.com/arkingc/llc/blob/master/cpp/alignment/struct.cpp#L1)
+    * 7）[struct内存对齐方式？](https://github.com/arkingc/llc/blob/master/cpp/alignment/struct.cpp#L1)
     * 8）什么是内存泄露？如何检测与避免？（Mtrace，[valgrind](https://www.ibm.com/developerworks/cn/linux/l-cn-valgrind/)）
     * 9）智能指针相关
         * 种类、区别、原理、能否管理动态数组
@@ -90,7 +90,7 @@
     * 3）模板的用法与适用场景
     * 4）用过C++11？新特性？（auto,decltype、explicit、lambda、final）
     * 5）C++函数调用的压栈过程
-    * 6）sizeof和strlen的区别？（运算符与函数、计算的对象、编译时运行时）
+    * 6）[sizeof](https://github.com/arkingc/llc/blob/master/cpp/sizeof.cpp#L4)和strlen的区别？（运算符与函数、计算的对象、编译时运行时）
     * 7）union？
     * 8）覆盖、重载与隐藏（覆盖要求参数完全相同，用于继承体系的虚函数中，重载要求参数不同）
     * 9）C++是不是类型安全的？（不是，两个不同类型指针可以强制转换）
