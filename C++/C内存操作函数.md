@@ -6,7 +6,6 @@ void* memcpy(void *dst,const void *src,size_t size)
         return NULL;
     }
 
-    void *res = dst;//保留原指针
     char *pdst = (char*)dst;
     char *psrc = (char*)src;
 
@@ -21,10 +20,10 @@ void* memcpy(void *dst,const void *src,size_t size)
     //没有重叠，从低地址开始复制
     else{
         while(size--){
-            *dst++ = *src++;
+            *pdst++ = *psrc++;
         }
     }
 
-    return res;
+    return dst;
 }
 ```
