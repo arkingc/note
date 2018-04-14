@@ -19,7 +19,7 @@
         * [3.2 poll的优缺点](#32-poll的优缺点) 
     * [4.epoll](#4epoll) 
         * [4.1 工作模式](#41-工作模式) 
-        * [4.2 epoll的优缺点](#42-poll的优缺点)  
+        * [4.2 epoll的优缺点](#42-epoll的优缺点)  
 <!-- GFM-TOC -->
 
 
@@ -446,7 +446,7 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
 
 **ET模式在很大程度上减少了epoll事件被重复触发的次数，因此效率要比LT模式高**
 
-### 4.2 epoll的优缺点**：
+### 4.2 epoll的优缺点：
 
 * **优点**
     * **监视的描述符数量不受限制**，所支持的FD上限是最大可以打开文件的数目
