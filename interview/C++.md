@@ -51,11 +51,13 @@
     * 18）浅拷贝与深拷贝（安全性、行为像值的类与行为像指针的类）
     * 19）如何定义类内常量？（enum而不是static const 《Effective C++:条款3》）
 * **四.容器**
-    * 1）vector底层的实现？insert具体做了哪些事？resize()调用的是什么（根据新指定大小和当前大小比较，然后插入或删除元素）？
-    * 2）map、set的实现原理（红黑树、对于set来说key和value合一，value就是key，map的元素是一个pair，包括key和value、set不支持[]，map(不包括multimap)支持[]）
-    * 3）set(map)和multiset(multimap)的区别？（set不允许key重复,其insert操作调用rb_tree的insert_unique函数，multiset允许key重复,其insert操作调用rb_tree的insert_equal函数）
-    * 4）set(multiset)和map(multimap)的迭代器（由于set(multiset)key和value合一，迭代器不允许修改key、map(multimap)除了key有data，迭代器允许修改data不允许修改key）
-    * 5）map与unordered_map的区别？
+    * 1）vector底层的实现？insert具体做了哪些事？resize()调用的是什么？
+    * 2）vector的push_back要注意什么（大量调用会伴随大量的拷贝构造与析构，内存分配与释放）
+    * 3）[vector的resize()与reserve()](https://github.com/arkingc/llc/blob/master/cpp/container/vector/size.cpp#L5)
+    * 3）map、set的实现原理（红黑树、对于set来说key和value合一，value就是key，map的元素是一个pair，包括key和value、set不支持[]，map(不包括multimap)支持[]）
+    * 4）set(map)和multiset(multimap)的区别？（set不允许key重复,其insert操作调用rb_tree的insert_unique函数，multiset允许key重复,其insert操作调用rb_tree的insert_equal函数）
+    * 5）set(multiset)和map(multimap)的迭代器（由于set(multiset)key和value合一，迭代器不允许修改key、map(multimap)除了key有data，迭代器允许修改data不允许修改key）
+    * 6）map与unordered_map的区别？
 * **五.内存管理**
     * 1）[C++内存分区](../C++/内存分区.md)
     * 2）内存管理有几种方式？（new、delete、malloc、free、allocators）
