@@ -252,10 +252,10 @@ int select(int maxfdp1,fd_set *readset,fd_set *writeset,fd_set exceptset,const s
  * 对应的位返回时均清为0。因此，每次重新调用select函数时，都得再次把所有描述符集
  * 内所关心的位设置为1
  ********************************************************************/
-void FD_ZERO(fd_set *fdset);            //清楚fdset的所有比特
-void FD_SET(int fd,fd_set *fdset);      //打开fdset中的fd比特
-void FD_CLR(int fd,fd_set *fdset);      //清除fdset中的fd比特
-int FD_ISSET(int fd,fd_set *fdset);     //检查fdset中的fd比特是否置位
+void FD_ZERO(fd_set *fdset);            //清除fdset的所有位
+void FD_SET(int fd,fd_set *fdset);      //打开fdset中的fd位
+void FD_CLR(int fd,fd_set *fdset);      //清除fdset中的fd位
+int FD_ISSET(int fd,fd_set *fdset);     //检查fdset中的fd位是否置位
 ```
 
 ### 1.1 描述符就绪条件
