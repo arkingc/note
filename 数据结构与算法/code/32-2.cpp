@@ -1,4 +1,8 @@
 /*
+ * 使用2个变量：一个表示当前层中还没打印的节点数，另一个变量表示下一层节点的数目
+ */
+
+/*
 struct TreeNode {
     int val;
     struct TreeNode *left;

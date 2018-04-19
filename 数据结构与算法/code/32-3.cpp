@@ -1,4 +1,9 @@
 /*
+ * 需要两个栈，在打印某一层的节点时，把下一层的子节点保存到相应的栈里，
+ * 奇数层和偶数层保存左右子节点的顺序不同
+ */
+
+/*
 struct TreeNode {
     int val;
     struct TreeNode *left;
