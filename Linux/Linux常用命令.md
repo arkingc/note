@@ -450,6 +450,7 @@ netstat [选项]
     -n：将连接的进程服务名称以端口号显示（如下图中Local Address会换成10.0.2.15:22）
     -l：列出处于监听状态的连接
     -p：添加一列，显示网络服务进程的PID（需要root权限）
+    -i：显示网络接口列表，可以配合ifconfig一起分析
 ```
 
 ![](../pic/linux-netstat-1.png)
@@ -475,6 +476,26 @@ netstat [选项]
 ## 6.网络Debug分析：nc
 
 ## 7.命令行抓包：tcpdump
+
+#### 使用方法
+
+```bash
+sudo tcpdump [选项] ...
+
+选项：
+    -D/-i：查看/指定网卡
+```
+
+#### 示例
+
+```bash
+#抓取本地9877号端口的TCP数据包
+sudo tcpdump -i lo tcp port 9877
+```
+
+下图为tcp回射服务器，客户端分别键入"hello"和“world”时，使用tcpdump抓取到的数据包
+
+<div align="center"> <img src="../pic/linux-tcpdump-1.png"/> </div>
 
 ## 8.域名解析工具：dig
 
