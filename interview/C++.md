@@ -44,7 +44,7 @@
     * 11）多态的实现？
     * 12）[虚函数的实现原理？对类大小的影响？](https://www.cnblogs.com/malecrab/p/5572730.html)（vtbl是一个由函数指针组成的数组，无论pb指向哪种类型的对象，只要能够确定被调函数在虚函数中的偏移值，待运行时，能够确定具体类型，并能找到相应vptr，进一步能找出真正应该调用的函数）
     * 13）为什么不要在构造、析构函数中调用虚函数？（子对象的base class构造期间，对象的类型是base class Effective C++:条款9》）
-    * 14）[虚函数被隐藏？](https://github.com/arkingc/llc/blob/master/cpp/class/inheritance/virtual_function_hide.cpp#L1)
+    * 14）[虚函数被覆盖？](https://github.com/arkingc/llc/blob/master/cpp/class/inheritance/virtual_function_hide.cpp#L1)
     * 15）virtual函数动态绑定，缺省参数值静态绑定（《Effective C++:条款37》）
     * 16）纯虚函数与抽象基类（关系、”=0“、必须在类内申明）
     * 17）静态类型与动态类型（引用是否可实现动态绑定）

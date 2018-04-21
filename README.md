@@ -22,6 +22,10 @@
 
 > 参考:《数据结构与算法分析》(C++版) Clifford A. Shaffer
 
+## C++
+
+* [深度探索C++对象模型](C++/C++对象模型.md)
+
 ## Linux管理
 
 * [Linux常用命令](Linux/Linux常用命令.md)
