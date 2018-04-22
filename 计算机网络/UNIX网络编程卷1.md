@@ -214,6 +214,8 @@ int inet_pton(int family,const char *strptr,void *addrptr);//成功返回1，字
 const char* inet_ntop(int family,const void *addrptr,char *strptr,size_t len);
 ```
 
+<br>
+
 # 六.I/O复用
 
 **I/O复用是一种机制，一个进程可以监视多个描述符，一旦某个描述符就绪（一般是读就绪或写就绪），能够通知程序进行相应的读写操作。**
@@ -464,6 +466,7 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
 > * 当连接数少并且连接都十分活跃的情况下，select和poll的性能可能比epoll好
 > * 当遇到大量的"idle连接"，epoll的效率会大大高于select/poll
 
+<br>
 
 # 七.套接字选项
 
@@ -498,7 +501,7 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
 
 当一个套接字上发生错误时，源自Berkeley的内核中的协议模块将该套接字的名为so_error的变量设为标准的Unix Exxx值中的一个，称它为套接字的待处理错误。内核会通知进程这个错误。进程然后可以通过该套接字选项获取so_error的值。由getsockopt返回的整数值就是该套接字的待处理错误。so_error随后由内核复位为0
 
-#### 2） SO_KEEPALIVE
+#### 2）SO_KEEPALIVE
 
 设置该选项后，如果2小时（可以通过修改内核来改这个时间）内在该套接字的任一方向上都没有数据交换，TCP就自动给对端发送一个“保持存活探测分节”。对端可以做出3种响应：
 
@@ -538,7 +541,17 @@ struct linger{
 
 <div align="center"> <img src="../pic/unp-7-4.png"/> </div>
 
+#### 4）SO_RCVBUF和SO_SNDBUF
 
+每个套接字都有一个发送缓冲区和一个接收缓冲区。这两个套接字选项允许我们改变这两个缓冲区的大小
+
+* **TCP的流量控制**：对于TCP来说，套接字接收缓冲区中可用空间的大小限定了TCP通告对端的窗口大小。TCP套接字接收缓冲区不可能溢出，因为不允许对端发出超过本端所通告窗口大小的数据。如果对端无视窗口大小而发出了超过该窗口大小的数据，本端TCP将丢弃它们
+
+<div align="center"> <img src="../pic/unp-2-7.png"/> </div>
+
+* 对于UDP来说，当接收到的数据报装不进套接字接收缓冲区时，该数据报就被丢弃。UDP是没有流量控制的：较快的发送端可以很容易地淹没较慢的接收端，导致接收端的UDP丢弃数据报，事实上较快的发送端甚至可以淹没本机的网络接口，导致数据报被本机丢弃
+
+<div align="center"> <img src="../pic/unp-2-8.png"/> </div>
 
 ### 2.2 IPv4套接字选项
 
