@@ -8,6 +8,8 @@
     * [3.1 Data Member的绑定](#31-data-member的绑定)
     * [3.2 Data Member的布局](#32-data-member的布局)
     * [3.3 Data Member的存取](#33-data-member的存取)
+    * [3.4 继承与Data Member](#34-继承与Data-Member)
+    * [3.5 指向Data Members的指针](#35-指向Data-Members的指针)
 <!-- GFM-TOC -->
 
 <br>
@@ -214,3 +216,205 @@ pt->x = 0.0;
 
 * **Static Data Members**：这是C++中“通过一个指针和通过一个对象来存取member，结论完全相同”的唯一一种情况。这是因为“经由'.'对一个static data member进行存取操作”只是文法上的一种便宜行事。member其实并不在class object之中，因此存取static member并不需要通过class object（如果有两个类，每一个都声明了一个同名的static member，那么当它们都被放在程序的data segment时，就会导致命名冲突。编译器的解决方法是暗中对每一个static member编码，以获得一个独一无二的程序识别代码）
 * **Nonstatic Data Members**：欲对一个nonstatic data member进行存取操作，编译器需要把class object的起始位置加上data member的偏移位置。每一个nonstatic data member的偏移位置在编译时期即可获知，甚至如果member属于一个“基类子对象”也是一样，因此，存取一个nonstatic data member的效率和存取一个C struct member或一个非派生类的member是一样的。虚继承将为“经由基类子对象存取class members”导入一层新的间接性，如果通过指针存取，这个存取操作必须延迟至执行期，经由一个额外的间接引导才能解决
+
+## 3.4 继承与Data Member
+
+继承体系中类成员的布局分为以下几种情况来讨论：
+
+* 1）不使用继承
+* 2）不含多态的继承
+* 3）含多态的继承
+* 4）多重继承
+* 5）虚继承
+
+#### 1）不使用继承
+
+<div align="center"> <img src="../pic/cppmode-3-3.png"/> </div>
+
+#### 2）不含多态的继承
+
+C++标准并未强制指定派生类和基类成员的排列顺序；理论上编译器可以自由安排。在大部分编译器上，基类成员总是先出现（属于虚基类的除外）
+
+<div align="center"> <img src="../pic/cppmode-3-4.png"/> </div>
+
+将两个原本独立不相干的类凑成一对“类型/子类型”，并带有继承关系，需要注意两点
+
+1. 可能会重复设计一些相同操作的函数
+2. 把一个类分成两层或更多层，出现在派生类中的基类子对象具有完整原样性，因此可能会导致对象空间膨胀
+
+对于第2点，考虑下面的例子：
+
+```c++
+/****************************************************
+ * 不使用继承
+ ****************************************************/
+class Concrete{
+public:
+	//...
+private:
+	int val;
+	char c1;
+	char c2;
+	char c3;
+};
+
+
+/****************************************************
+ * 使用继承，设计成多层
+ ****************************************************/
+class Concrete1{
+public:
+	//...
+private:
+	int val;
+	char bit1;
+};
+
+class Concrete2 : public Concrete1{
+public:
+	//...
+private:
+	char bit2;
+};
+
+class Concrete3 : public Concrete2{
+public:
+	//...
+private:
+	char bit3;
+};
+```
+
+<div align="center"> <img src="../pic/cppmode-3-5.png"/> </div>
+
+在使用继承时，派生类中的基类子对象具有完整原样性，派生类部分的成员不直接使用基类子对象的填充部分是因为：如果将一个父类对象拷贝给一个派生类对象，派生类对象的派生类成员会被覆盖：
+
+<div align="center"> <img src="../pic/cppmode-3-6.png"/> </div>
+
+#### 3）含多态的继承
+
+相比于不含多态的继承，这种情况下，每一个class object内含一个额外的vptr member；多了一个virtual table；此外每一个virtual member function的调用也比以前复杂了
+
+某些编译器会把vptr放置在class object的尾端，另一些编译器会把vptr放置在class object的首端
+
+* 把vptr放在class object的尾端，可以保留base class C struct的对象布局，因而允许在C程序代码中也能使用。这种做法在C++最初问世时，被许多人采用
+* 把vptr放在class object的首端，对于“在多重继承之下，通过指向class members的指针调用virtual function”，会带来一些帮助。否则，不仅“从class object起始点开始量起”的offset必须在执行器备妥，甚至与class vptr之间的offset也必须备妥。当然，vptr放在前端，代价就是丧失了C语言兼容性（但是似乎并没有多少程序会从一个C struct派生出一个具有多态性质的class）
+
+假设把vptr放在base class的尾端，则Point2d和Point3d的成员布局如下：
+
+<div align="center"> <img src="../pic/cppmode-3-7.png"/> </div>
+
+#### 4）多重继承
+
+* 将vptr放在class object的尾端，提供了一种“自然多态”形式，基类和派生类的object都是从相同的地址开始，因此把一个派生类对象的地址指定给基类的指针或引用时，不需要编译器去调停或修改地址。它很自然地可以发生，提供了最佳执行效率
+* 将vptr放在class object的首端，如果基类没有virtual function而派生类有，那么单一继承的“自然多态”就会被打破。这种情况下把一个派生类object转换为其基类型，就需要编译器的介入，用以调整地址
+
+**多重继承的问题主要发生于派生类和其第二或后继基类object之间的转换**
+
+**对一个多重派生对象，将其地址指定给“最左端基类的指针”，情况将和单一继承时相同，因为二者都指向相同的起始地址。需付出的成本只有地址的指定操作而已；至于第二个或后继的基类的地址指定操作，则需要将地址修改过：加上(或减去，如果downcast的话)介于中间的基类子对象大小**
+
+```c++
+class Point2d{
+public:
+	//...（拥有virtual接口，所以Point2d对象之中会有vptr）
+protected:
+	float _x,_y;
+};
+
+class Point3d : public Point2d{
+public:
+	//...
+protected:
+	float _z;
+};
+
+class Vertex{
+public:
+	//...（拥有virtual接口，所以Point2d对象之中会有vptr）
+protected:
+	Vertex *next;
+};
+
+class Vertex3d : public Point3d , public Vertex{
+public:
+	//...
+protected:
+	float mumble;
+};
+```
+
+
+
+假设将vptr放在class object的尾端，类的继承关系和members的布局如下：
+
+<div align="center"> <img src="../pic/cppmode-3-8.png"/> </div>
+
+C++标准并未要求Vertex3d中的基类Point3d和Vertex有特定的排列顺序。原始的cfront编译器是根据声明顺序来排列的。因此cfront编译器创作出来的Vertex3d对象，将被视为一个Point3d子对象（其中又有一个Point2d子对象）加上一个Vertex子对象，最后再加上Vertex3d自己的部分。目前各编译器仍然以此方式完成多重基类的布局（但如果加上虚拟继承，就不一样了）
+
+在这个例子中，如果将一个Vertex3d类的对象的地址指定给Vertex类的指针，那么需要编译器介入，执行相应的地址转换。如果指定给Point2d或Point3d类的指针，则不要编译器介入
+
+#### 5）虚继承
+
+要在编译器中实现多继承，实在是难度颇高。以iostream继承体系为例，实现技术的挑战在于，要找到一个足够有效的方法，将istream和ostream各自维护的一个ios子对象，折叠成为一个由iostream维护的单一ios子对象，并且还可以保持基类和派生类的指针之间的多态指定操作
+
+**一般的实现方法是，如果一个类内含有一个或多个虚基类子对象，将被分割为2部分：一个不变区域和一个共享区域**
+
+* **不变区域**：不管后接如何衍化，总是拥有固定的offset(从object的开头算起)，所以这一部分数据可以被直接存取
+* **共享区域**：所表现的就是“虚基类子对象”，这一部分的数据的位置会因为每次的派生操作而有变化，所以它们只可以被间接存取（**各家编译器实现技术之间的差异就在于间接存取的方法不同**）
+
+**一般的布局策略是先安排好派生类的不变部分，然后再建立其共享部分**（对于共享部分的存取，cfront编译器会在每一个派生类对象中安插一些指针，每个指针指向一个虚基类。要存取继承得来的虚基类成员。可以通过相关指针间接完成）
+
+<div align="center"> <img src="../pic/cppmode-3-9.png"/> </div>
+
+这样的实现模型有两个主要的缺点：
+
+1. 每一个对象必须针对其每一个virtual base class背负一个额外的指针（然而理想上我们希望class object有固定的负担，不因为其virtual base class的个数而有所变化）
+	* 1）Microsoft编译器引入所谓的vitual base class table。每一个class object如果有一个或多个virtual base classes，就会由编译器安插一个指针，指向virtual base class table。至于真正的virtual base class指针，当然是放在该表格中 
+	* 2）在virtual  function table中放置virtual base class的offset(而不是地址)，将virtual base class offset和virtual function entries混杂在一起（**下图展示了这种模型**）
+2. 由于虚拟继承串链的加长，导致间接存取层次的增加（意思是，如果有3层虚拟派生，就需要经由3个virtual base class指针进行3次间接存取。然而理想上却希望固定的存取时间，不因为虚拟派生的深度而改变）
+	* MetaWare和其它编译器仍然使用cfront的原始实现模型来解决这个问题，他们经由拷贝操作取得所有的nested virtual base class指针，放到派生类object之中。从而解决了“固定存取时间”的问题，虽然付出了一些空间上的代价
+	
+<div align="center"> <img src="../pic/cppmode-3-10.png"/> </div>
+
+> 一般而言，virtual base class最有效的一种运用形式就是：一个抽象的virtual base class，没有任何data members
+
+## 3.5 指向Data Members的指针
+
+```c++
+class Point3d{
+ public:
+	virtual void print() {}
+    float x,y,z;
+};
+
+int main(){
+	//Point3d::*的意思是：“指向Point3d data member”的指针类型
+    float Point3d::*p1 = &Point3d::x;
+    float Point3d::*p2 = &Point3d::y;
+    float Point3d::*p3 = &Point3d::z;
+    //不可以用cout
+    printf("&Point3d::x = %p\n" , p1);   //0x8，根据机器和编译器决定
+    printf("&Point3d::y = %p\n" , p2);   //0xc，根据机器和编译器决定
+    printf("&Point3d::z = %p\n" , p3);   //0x10，根据机器和编译器决定
+    
+ 	Point3d p;
+    p.x = 1.1;
+    p.y = 2.2;
+    p.z = 3.3;
+    //x:1.1 y:2.2 z:3.3
+    cout << "x:" << p.*p1 << " y:" << p.*p2 << " z:" << p.*p3 << endl;
+    
+    return 0;
+}
+```
+
+**&Point3d::z**将得到z坐标在class object中的偏移位置。最低限度其值将是x和y的大小总和，因为C++要求同一access section中的members的排列顺序应该和其声明顺序相同
+
+如果vptr放在对象的尾端，三个坐标值在对象的布局中的偏移量分别是0，4，8。如果vptr放在对象的头部，三个坐标值在对象的布局中的offset分别是8，12，16（64位机器）。然后结果可能会加1，即1，5，9或者9，13，17。这是为了区分一个“没有指向任何data member”的指针，和一个指向“第一个data member”的指针：
+
+```c++
+float Point3d::*p1 = 0;
+float Point3d::*p2 = &Point3d::x;
+```
+
+为了区分p1和p2，每一个真正的member offset的值都被加上1（如我自己测的解决所示，**如果没有增加1，可能是编译器做了特殊处理**）。因此，无论编译器或使用者都必须记住，在真正使用该值以指出一个member之前请减掉1
