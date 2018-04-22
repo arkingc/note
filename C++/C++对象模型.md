@@ -8,8 +8,8 @@
     * [3.1 Data Member的绑定](#31-data-member的绑定)
     * [3.2 Data Member的布局](#32-data-member的布局)
     * [3.3 Data Member的存取](#33-data-member的存取)
-    * [3.4 继承与Data Member](#34-继承与Data-Member)
-    * [3.5 指向Data Members的指针](#35-指向Data-Members的指针)
+    * [3.4 继承与Data Member](#34-继承与data-member)
+    * [3.5 指向Data Members的指针](#35-指向data-members的指针)
 <!-- GFM-TOC -->
 
 <br>
