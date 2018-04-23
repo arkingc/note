@@ -418,3 +418,337 @@ float Point3d::*p2 = &Point3d::x;
 ```
 
 为了区分p1和p2，每一个真正的member offset的值都被加上1（如我测的结果所示，**如果没有增加1，可能是编译器做了特殊处理**）。因此，无论编译器或使用者都必须记住，在真正使用该值以指出一个member之前请减掉1
+
+# 第4章 Function语意学
+
+假设有一个Point3d的指针和对象：
+
+```c++
+Point3d obj;
+Point3d *ptr = &obj;
+```
+
+这一章主要讨论，在进行如下调用时，会发生什么：
+
+```c++
+obj.normalize();
+ptr->normalize();
+
+//normalize函数的定义
+Point3d Point3d::normalize() const
+{
+    register float mag = magnitude();
+    Point3d normal;
+
+    normal._x = _x/mag;
+    normal._y = _y/mag;
+    normal._z = _z/mag;
+
+    return normal;
+}
+
+//magnitude函数的定义
+float Point3d::magnitude() const
+{
+    return sqrt(_x * _x + _y * _y + _z * _z);
+}
+```
+
+## 4.1 Member的各种调用方式
+
+#### 1）Nonstatic Member Functions(非静态成员函数)
+
+C++的设计准则之一就是：nonstatic member function至少必须和一般的nonmember function有相同的效率。因此编译器内部会将”member函数实例“转换为对等的”nonmember函数实例“
+
+member function按照下列步骤转化为nonmember function：
+
+1. 改写函数原型，安插一个额外的参数到member function中，提供一个存取管道，使class object得以将此函数调用。额外参数被称为this指针：
+
+```c++
+Point3d Point3d::magnitude(Point3d *const this)
+//如果member function是const，则变成
+Point3d Point3d::magnitude(const Point3d *const this)
+```
+ 
+2. 将每一个”对nonstatic data member的存取操作“改为经由this指针来存取：
+
+```c++
+{
+    return sqrt(
+        this->_x * this->_x +
+        this->_y * this->_y +
+        this->_z * this->_z );
+}
+```
+
+3. 将member function重新写成一个外部函数。将函数名称经过”mangling“处理，使其在程序中成为独一无二的语汇：
+
+```c++
+extern magnitude__7Point3dFv(register Point3d *const this);
+```
+
+函数转换好之后，每一个调用操作也会进行转换：
+
+```c++
+obj.magnitude();
+magnitude__7Point3dFv(&obj);
+
+ptr->magnitude();
+magnitude__7Point3dFv(ptr);
+```
+
+#### 名称的特殊处理
+
+一般而言，member的名称前会被加上class名称，形成独一无二的命名：
+
+```c++
+class Bar {public: int ival; ...};
+//ival有可能变成：ival__3Bar
+
+class Foo:public Bar {public: int ival; ...};
+//可能会变成这样：
+class Foo{
+public:
+    int ival__3Bar;
+    int ival_3Foo;
+}
+```
+
+#### 成员函数重载的处理
+
+为了支持重载，“mangling”处理肯定不能只使用函数名和类名
+
+```c++
+class Point {
+public:
+    void x(float newX);
+    float x();
+    ...
+};
+
+//Point中重载的x函数，可能会变成这样：
+class Point{
+public:
+    void x__5PointFf(float newX);
+    float x__5PointFv();
+}
+```
+
+#### 2）Static Member Functions(静态成员函数)
+
+static member function也会被转换成一般的nonmember function，但是不同于普通的member function，static member function没有this指针，因此差不多等同于nonmember function。每一个调用操作会进行类似如下转换：
+
+```c++
+//obj.normalize();
+normalize__7Point3dSFv();
+//ptr->normalize();
+normalize__7Point3dSFv();
+```
+
+假设Point3d类存在一个名为object_count的static member function：
+
+```c++
+unsigned int Point3d::object_count()
+{
+    return _object_count;
+}
+
+//会被cfront转化为：
+unsigned int object_count__5Point3dSFv()
+{
+    return _object_count__5Point3d;
+}
+```
+
+SFv表示它是一个static member function，拥有一个void参数链表
+
+如果取一个static member function的地址，获得的将是其在内存中的位置，也就是其地址。由于static member function没有this指针，所以其地址的类型并不是一个“指向class member function的指针”，而是一个"nonmember函数指针"：
+
+```c++
+&Point3d::object_count();
+//会得到一个数值，类型是：
+unsigned int(*)();
+//而不是
+unsigned int (Point3d::*)();
+```
+
+#### 3）Virtual Member Functions(虚函数)
+
+还是考虑以下两种调用会如何转换：
+
+```c++
+ptr->normalize();
+obj.normalize();
+```
+
+通过ptr调用时，会被转化为：
+
+```c++
+/****************************************************
+ * 1是virtual table slot的索引值，关联到normalize()函数
+ * 第二个ptr表示this指针
+ ****************************************************/
+(*ptr->vptr[1])(ptr);
+```
+
+那么通过obj调用时，会如何转化？如果类似ptr，虽然语意正确，却没有必要。上述经由origin调用的函数实例只可能是Point3d::normalize()。“经由一个class object调用一个virtual function”，这种操作应该总是被编译器像对待一般nonstatic member function一样地解析，因此转化如下：
+
+```c++
+normalize__7Point3dFv
+```
+
+## 4.2 Virtual Member Functions虚函数
+
+#### 1）单继承中的虚函数
+
+考虑下面3个类：
+
+```c++
+class Point{
+public:
+    virtual ~Point();
+    virtual Point& mult(float) = 0;
+
+    float x() const {return _x;}
+    virtual float y() const {return 0;}
+    virtual float z() const {return 0;}
+protected:
+    Point(float x = 0.0);
+    float _x;
+};
+
+class Point2d : public Point{
+public:
+    Point2d(float x = 0.0,float y = 0.0) : Point(x),_y(y) {}
+    ~Point2d();
+
+    //改写base class virtual functions
+    Point2d& mult(float);
+    float y() const {return _y;}
+protected:
+    float _y;
+};
+
+class Point3d : public Point2d{
+public:
+    Point3d(float x = 0.0,float y = 0.0,float z = 0.0) : Point2d(x,y),_z(z) {}
+    ~Point3d();
+
+    //改写base class virtual functions
+    Point3d& mult(float);
+    float z() const {return _z;}
+protected:
+    float _z;
+};
+```
+
+3个类的虚函数表如下：
+
+<div align="center"> <img src="../pic/cppmode-4-1.png"/> </div>
+
+对于如下调用：
+
+```c++
+ptr->z();
+```
+
+如何有足够的信息在编译时期设定virtual function的调用呢？
+
+* 一般而言，每次调用z()时，并不知道ptr所指的真正类型。然而却知道经由ptr可以存取到该对象的virtual table
+* 虽然不知道哪一个z()函数实例会被调用，但却知道每一个z()函数地址都放在slot4中
+
+这些信息使得编译器可以将该调用转化成：
+
+```c++
+(*ptr->vptr[4])(ptr);
+```
+
+唯一一个在执行期才能知道的东西是：slot4所指的到达是哪一个z()函数实例
+
+> 在一个单一继承体系中，virtual function机制的行为十分良好，不但有效率而且很容易塑造出模型来。但是在多重继承和虚拟继承之中，对virtual functions的支持就没有那么好了
+
+#### 2）多继承中的虚函数
+
+**在多重继承中支持virtual functions，其复杂度围绕在第二个及后继的base classes身上，以及“必须在执行期调整this指针”这一点**
+
+```c++
+class Base1{
+public:
+    Base1();
+    virtual ~Base1();
+    virtual void speakClearly();
+    virtual Base1 *clone() const;
+protected:
+    float data_Base1;
+};
+
+class Base2{
+public:
+    Base2();
+    virtual ~Base2();
+    virtual void mumble();
+    virtual Base2 *clone() const;
+protected:
+    float data_Base2;
+};
+
+class Derived : public Base1 , public Base2{
+public:
+    Derived();
+    virtual ~Derived();
+    virtual Derived *clone() const;
+protected:
+    float data_Derived;
+};
+```
+
+在多重继承下，一个derived class内含n-1个额外的virtual tables，n表示其上一层base classes的个数（因此，单一继承将不会有额外的virtual tables）。对于上面的Derived类而言，会有2个virtual tables被编译器产生出来：
+
+1. 一个主要实例，与Base1(最左端base class)共享
+2. 一个次要实例，与Base2(第二个base class)有关
+
+针对每一个virtual tables，Derived对象中有对应的vptr
+
+用以支持“一个class拥有多个virtual tables”的传统方法是，将每一个tables以外部对象的形式产生出来，并给与独一无二的名称。例如，Derived所关联的两个tables可能有这样的名称：
+
+```c++
+vtbl__Derived;          //主要表格
+vtbl__Base2__Derived;   //次要表格
+```
+
+* 将一个Derived对象地址指定给一个Base1指针或Derived指针时，被处理的virtual table是主要表格vtbl__Derived
+* 将一个Derived对象地址指定给一个Base2指针时，被处理的virtual table是次要表格vtbl__Base2__Derived
+
+<div align="center"> <img src="../pic/cppmode-4-2.png"/> </div>
+
+**有3种情况，第二或后继的base class会影响对virtual functions的支持**：
+
+1. **通过一个“指向第二个base class”的指针，调用derived class virtual function**
+
+```c++
+Base2 *ptr = new Derived;
+//调用Derived::~Derived，ptr必须被向后调整sizeof(Base1)个bytes
+delete ptr;
+```
+
+ptr指向Derived对象中的Base2 subobject；为了能够正确执行，ptr必须调整指向Derived对象的起始处
+
+2. **通过一个“指向derived class”的指针，调用一个从第二个base class中继承而来的virtual function**：
+
+```c++
+Derived *pder = new Derived;
+//调用Base2::mumble()，pder必须被向前调整sizeof(Base1)个bytes
+pder->mumble();
+```
+
+在这种情况下，pder必须调整，指向第二个base subobject
+
+3. **允许一个virtual function的返回值类型有所变化，可能是base type，也可能是derived type。clone函数的Derived版本传回一个Derived class指针**：
+
+```c++
+Base2 *pb1 = new Derived;
+//调用Derived* Derived::clone()，返回值必须被调整，以指向Base2 subobject
+Base2 *pb2 = pb1->clone();
+```
+
+当进行pb1->clone()时，pb1会被调整指向Derived对象的起始地址，于是clone()的Derived版会被调用。它会传回一个新的Derived对象。该对象的地址在被指定给pb2之前，必须先经过调整，以指向Base2 subobject
