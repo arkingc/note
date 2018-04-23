@@ -22,10 +22,15 @@
 
 > 参考:《数据结构与算法分析》(C++版) Clifford A. Shaffer
 
+## Linux管理
+
+* [Linux常用命令](Linux/Linux常用命令.md)
+
 ## C++
 
 * [《深度探索C++对象模型》](C++/C++对象模型.md)
 
-## Linux管理
+C++运算符优先级表：
 
-* [Linux常用命令](Linux/Linux常用命令.md)
+![](pic/c++-operator.png)
+

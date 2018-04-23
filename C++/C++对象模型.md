@@ -1,3 +1,4 @@
+
 <!-- GFM-TOC -->
 * [第2章 构造函数语意学](#第2章-构造函数语意学)
     * [2.1 默认构造函数的构造操作](#21-默认构造函数的构造操作)
@@ -10,7 +11,11 @@
     * [3.3 Data Member的存取](#33-data-member的存取)
     * [3.4 继承与Data Member](#34-继承与data-member)
     * [3.5 指向Data Members的指针](#35-指向data-members的指针)
+* [第4章 Function语意学](#第4章-function语意学)
+    * [4.1 Member的各种调用方式](#41-member的各种调用方式)
+    * [4.2 Virtual Member Functions虚函数](#42-virtual-member-functions虚函数)
 <!-- GFM-TOC -->
+
 
 <br>
 <br>
@@ -606,7 +611,7 @@ normalize__7Point3dFv
 ```c++
 class Point{
 public:
-    virtual ~Point();
+    virtual \~Point();
     virtual Point& mult(float) = 0;
 
     float x() const {return _x;}
@@ -620,7 +625,7 @@ protected:
 class Point2d : public Point{
 public:
     Point2d(float x = 0.0,float y = 0.0) : Point(x),_y(y) {}
-    ~Point2d();
+    \~Point2d();
 
     //改写base class virtual functions
     Point2d& mult(float);
@@ -632,7 +637,7 @@ protected:
 class Point3d : public Point2d{
 public:
     Point3d(float x = 0.0,float y = 0.0,float z = 0.0) : Point2d(x,y),_z(z) {}
-    ~Point3d();
+    \~Point3d();
 
     //改写base class virtual functions
     Point3d& mult(float);
@@ -675,7 +680,7 @@ ptr->z();
 class Base1{
 public:
     Base1();
-    virtual ~Base1();
+    virtual \~Base1();
     virtual void speakClearly();
     virtual Base1 *clone() const;
 protected:
@@ -685,7 +690,7 @@ protected:
 class Base2{
 public:
     Base2();
-    virtual ~Base2();
+    virtual \~Base2();
     virtual void mumble();
     virtual Base2 *clone() const;
 protected:
@@ -695,7 +700,7 @@ protected:
 class Derived : public Base1 , public Base2{
 public:
     Derived();
-    virtual ~Derived();
+    virtual \~Derived();
     virtual Derived *clone() const;
 protected:
     float data_Derived;
@@ -727,7 +732,7 @@ vtbl__Base2__Derived;   //次要表格
 
 ```c++
 Base2 *ptr = new Derived;
-//调用Derived::~Derived，ptr必须被向后调整sizeof(Base1)个bytes
+//调用Derived::\~Derived，ptr必须被向后调整sizeof(Base1)个bytes
 delete ptr;
 ```
 
@@ -752,3 +757,35 @@ Base2 *pb2 = pb1->clone();
 ```
 
 当进行pb1->clone()时，pb1会被调整指向Derived对象的起始地址，于是clone()的Derived版会被调用。它会传回一个新的Derived对象。该对象的地址在被指定给pb2之前，必须先经过调整，以指向Base2 subobject
+
+#### 3）虚继承下的虚函数
+
+```c++
+class Point2d{
+public:
+	Point2d(float = 0.0,float = 0.0);
+    virtual \~Point2d();
+
+    virtual void mumble();
+    virtual float z();
+    //...
+protected:
+    float _x,_y;
+};
+
+class Point3d : public virtual Point2d {
+public:
+    Point3d(float = 0.0,float = 0.0,float = 0.0);
+    \~Point3d();
+
+    float z();
+protected:
+    float _z;
+};
+```
+
+virtual table布局如下：
+
+<div align="center"> <img src="../pic/cppmode-4-3.png"/> </div>
+
+虽然Point3d有唯一一个base class，即Point2d，但Point3d和Point2d的起始部分并不像“非虚拟的单一继承”情况那样一致。如上图所示，由于Point2d和Point3d的对象不再相符，两者之间的转换也就需要调整this指针。至于在虚拟继承的情况下要消除thunks，一般而言已经被证明是一项高难度技术
