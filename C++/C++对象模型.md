@@ -15,7 +15,7 @@
     * [4.1 Member的各种调用方式](#41-member的各种调用方式)
     * [4.2 Virtual Member Functions虚函数](#42-virtual-member-functions虚函数)
     * [4.3 指向Member Function的指针](#43-指向Member-Function的指针)
-* [第5章 构造、析构、拷贝语意学](#第5章-构造析构拷贝语意学)]
+* [第5章 构造、析构、拷贝语意学](#第5章-构造析构拷贝语意学)
     * [5.1 无继承情况下的对象构造](#51-无继承情况下的对象构造)
 <!-- GFM-TOC -->
 
