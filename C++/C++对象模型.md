@@ -14,7 +14,7 @@
 * [第4章 Function语意学](#第4章-function语意学)
     * [4.1 Member的各种调用方式](#41-member的各种调用方式)
     * [4.2 Virtual Member Functions虚函数](#42-virtual-member-functions虚函数)
-    * [4.3 指向Member Function的指针](#43-指向Member-Function的指针)
+    * [4.3 指向Member Function的指针](#43-指向member-function的指针)
 * [第5章 构造、析构、拷贝语意学](#第5章-构造析构拷贝语意学)
     * [5.1 无继承情况下的对象构造](#51-无继承情况下的对象构造)
 <!-- GFM-TOC -->
@@ -371,8 +371,8 @@ C++标准并未要求Vertex3d中的基类Point3d和Vertex有特定的排列顺�
 
 在这个例子中：
 
-* 如果将一个Vertex3d类的对象的地址指定给Vertex类的指针，那么需要编译器介入，执行相应的地址转换。
-* 如果指定给Point2d或Point3d类的指针，则不要编译器介入
+* **如果将一个Vertex3d类的对象的地址指定给Vertex类的指针，那么需要编译器介入，执行相应的地址转换**
+* **如果指定给Point2d或Point3d类的指针，则不要编译器介入**
 
 ```c++
 Vertex3d v3d;
@@ -387,9 +387,9 @@ Point3d *p2d;
 pv = (Vertex*)((char*)&v3d) + sizeof(Point3d);
 ```
 
-而 ```p2d = &v3d;``` 或 ```p3d = &v3d;``` 只需要简单地拷贝其地址就好：
+而 ```p2d = &v3d;``` 或 ```p3d = &v3d;``` 只需要简单地拷贝其地址就好
 
-作为补偿必须提出下面一种情况：
+作为补充，必须提及下面一种情况：
 
 ```c++
 Vertex3d *pv3d;
@@ -983,11 +983,11 @@ typedef struct
  * trivial members要不是没被定义，就是没被调用，程序的行为一如它在C中的表现一样
  * 
  * 那么在C和C++中有什么区别？
- * 在C中，global被视为一个“临时性的定义”，因为它没有显式的初始化操作。一个“临时性的定义”
+ * 1）在C中，global被视为一个“临时性的定义”，因为它没有显式的初始化操作。一个“临时性的定义”
  * 可以在程序中发生多次。那些实例会被链接器折叠起来，只留下单独一个实例，被放在程序
  * data segment中一个“特别保留给未初始化之global objects使用”的空间。由于历史的原因，
  * 这块空间被称为BSS
- * C++并不支持“临时性的定义”，这是因为class构造行为的隐式应用的缘故。虽然大家公认这个语言
+ * 2）C++并不支持“临时性的定义”，这是因为class构造行为的隐式应用的缘故。虽然大家公认这个语言
  * 可以判断一个class objects或是一个Plain O1' Data，但似乎没有必要搞这么复杂。因此，
  * global在C++中被视为完全定义（它会阻止第二个或更多的定义）。C和C++的一个差异就在于，
  * BSS data segment在C++中相对地不重要。C++的所有全局对象都被以“初始化过的数据”来对待
@@ -1006,7 +1006,8 @@ Point foobar()
     *heap = local;
     //观念上，会触发trivial destructor，但实际上destructor要不是没有被产生就是没有被调用
     delete heap;
-    //观念上会触发trivial copy constructor，不过实际上return操作只是一个简单的位拷贝操作，因为对象是个Plain O1' Data
+    //观念上会触发trivial copy constructor，不过实际上return操作只是一个简单的位拷贝操作，
+    //因为对象是个Plain O1' Data
     return local;
 }
 ```
