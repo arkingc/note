@@ -154,6 +154,8 @@ int main(){
 
 <div align="center"> <img src="../pic/cppmode-3-2.png"/> </div>
 
+<br>
+
 > C++标准并不强制规定如“基类子对象的排列顺序”或“不同存取层级的数据成员的排列顺序”这种琐碎细节。它也不规定“虚函数”或“虚基类”的实现细节。C++标准只说：这些细节由各家厂商自定
 
 **C++对象模型尽量以空间优化和存取速度优化的考虑来表现nonstatic data members，并且保持和C语言struct数据配置的兼容性。它把数据直接存放在每一个class object之中。对于继承而来的nonstatic data members（不管是虚继承还是一般继承）也是如此。不过并没有强制定义期间的排列顺序。至于static data memebers，则被放置在程序的一个全局数据段中，不会影响个别的class object的大小**
@@ -617,7 +619,7 @@ normalize__7Point3dFv
 ```c++
 class Point{
 public:
-    virtual \~Point();
+    virtual ~Point();
     virtual Point& mult(float) = 0;
 
     float x() const {return _x;}
@@ -631,7 +633,7 @@ protected:
 class Point2d : public Point{
 public:
     Point2d(float x = 0.0,float y = 0.0) : Point(x),_y(y) {}
-    \~Point2d();
+    ~Point2d();
 
     //改写base class virtual functions
     Point2d& mult(float);
@@ -643,7 +645,7 @@ protected:
 class Point3d : public Point2d{
 public:
     Point3d(float x = 0.0,float y = 0.0,float z = 0.0) : Point2d(x,y),_z(z) {}
-    \~Point3d();
+    ~Point3d();
 
     //改写base class virtual functions
     Point3d& mult(float);
@@ -686,7 +688,7 @@ ptr->z();
 class Base1{
 public:
     Base1();
-    virtual \~Base1();
+    virtual ~Base1();
     virtual void speakClearly();
     virtual Base1 *clone() const;
 protected:
@@ -696,7 +698,7 @@ protected:
 class Base2{
 public:
     Base2();
-    virtual \~Base2();
+    virtual ~Base2();
     virtual void mumble();
     virtual Base2 *clone() const;
 protected:
@@ -706,7 +708,7 @@ protected:
 class Derived : public Base1 , public Base2{
 public:
     Derived();
-    virtual \~Derived();
+    virtual ~Derived();
     virtual Derived *clone() const;
 protected:
     float data_Derived;
@@ -738,7 +740,7 @@ vtbl__Base2__Derived;   //次要表格
 
 ```c++
 Base2 *ptr = new Derived;
-//调用Derived::\~Derived，ptr必须被向后调整sizeof(Base1)个bytes
+//调用Derived::~Derived，ptr必须被向后调整sizeof(Base1)个bytes
 delete ptr;
 ```
 
@@ -770,7 +772,7 @@ Base2 *pb2 = pb1->clone();
 class Point2d{
 public:
 	Point2d(float = 0.0,float = 0.0);
-    virtual \~Point2d();
+    virtual ~Point2d();
 
     virtual void mumble();
     virtual float z();
@@ -782,7 +784,7 @@ protected:
 class Point3d : public virtual Point2d {
 public:
     Point3d(float = 0.0,float = 0.0,float = 0.0);
-    \~Point3d();
+    ~Point3d();
 
     float z();
 protected:
