@@ -14,8 +14,10 @@
 * [第4章 Function语意学](#第4章-function语意学)
     * [4.1 Member的各种调用方式](#41-member的各种调用方式)
     * [4.2 Virtual Member Functions虚函数](#42-virtual-member-functions虚函数)
+    * [4.3 指向Member Function的指针](#43-指向Member-Function的指针)
+* [第5章 构造、析构、拷贝语意学](#第5章-构造析构拷贝语意学)]
+    * [5.1 无继承情况下的对象构造](#51-无继承情况下的对象构造)
 <!-- GFM-TOC -->
-
 
 <br>
 <br>
@@ -110,6 +112,8 @@ int main(){
 **编译器会对初始化列表一一处理并可能重新排序，以反映出成员的声明顺序。它会安插一些代码到构造函数体内，并置于任何显示用户代码(explicit user code)之前**
 
 > 相关问题：是否可以使用memcpy来拷贝一个class对象，并解释原因
+
+<br>
 
 # 第3章 Data语意学
 
@@ -423,6 +427,8 @@ float Point3d::*p2 = &Point3d::x;
 ```
 
 为了区分p1和p2，每一个真正的member offset的值都被加上1（如我测的结果所示，**如果没有增加1，可能是编译器做了特殊处理**）。因此，无论编译器或使用者都必须记住，在真正使用该值以指出一个member之前请减掉1
+
+<br>
 
 # 第4章 Function语意学
 
@@ -789,3 +795,329 @@ virtual table布局如下：
 <div align="center"> <img src="../pic/cppmode-4-3.png"/> </div>
 
 虽然Point3d有唯一一个base class，即Point2d，但Point3d和Point2d的起始部分并不像“非虚拟的单一继承”情况那样一致。如上图所示，由于Point2d和Point3d的对象不再相符，两者之间的转换也就需要调整this指针。至于在虚拟继承的情况下要消除thunks，一般而言已经被证明是一项高难度技术
+
+## 4.3 指向Member Function的指针
+
+```c++
+class Point3d{
+ public:
+    Point3d(float x = 0.0,float y = 0.0,float z = 0.0) : _x(x),_y(y),_z(z) {}
+    float x()   {return _x;}
+    float y()   {return _y;}
+    float z()   {return _z;}
+private:
+    float _x,_y,_z;
+};
+
+int main(){
+    Point3d p;
+    Point3d *pp = &p;
+
+    //定义并初始化Member Function指针
+    float (Point3d::*pmf1)() = &Point3d::x;
+
+    //调用
+    (p.*pmf1)();    //会被编译器转换为：(pmf1)(&p);
+    (pp->*pmf1)();  //会被编译器转换为：(pmf1)(pp);
+
+    //地址
+    printf("&Point3d::x = %p\n" , &Point3d::x);   //0x10d81fec0
+    printf("&Point3d::y = %p\n" , &Point3d::y);   //0x10d81fee0
+    printf("&Point3d::z = %p\n" , &Point3d::z);   //0x10d81ff00
+
+    return 0;
+}
+```
+
+取一个nonstatic memeber function的地址，如果函数非虚，得到的结果是它在内存中真正的地址
+
+static member functions(没有this指针)的类型是“函数指针”，而不是“指向member function的指针”
+
+使用一个“member function指针”，如果并不用于virtual function、多重继承、virtual base class等情况的话，并不会比使用一个“nonmember function指针”的成本更高，对于那些没有virtual functions、virtual base class或多重继承的类而言，编译器可以为它们提供相同的效率
+
+#### 1）支持指向Virtual Member Functions的指针
+
+将上面的x()、y()、z()函数换成虚函数：
+
+```c++
+class Point3d{
+ public:
+    Point3d(float x = 0.0,float y = 0.0,float z = 0.0) : _x(x),_y(y),_z(z) {}
+    virtual float x()   {return _x;}
+    virtual float y()   {return _y;}
+    virtual float z()   {return _z;}
+
+private:
+    float _x,_y,_z;
+};
+
+int main(){
+    Point3d p;
+    Point3d *pp = &p;
+
+    //定义并初始化Member Function指针
+    float (Point3d::*pmf1)() = &Point3d::x;
+
+    //调用
+    (pp->*pmf1)();//会被编译器转换为：(*pp->vptr[(int)pmf1])(pp);
+
+    printf("&Point3d::x = %p\n" , &Point3d::x);   //0x1
+    printf("&Point3d::y = %p\n" , &Point3d::y);   //0x9
+    printf("&Point3d::z = %p\n" , &Point3d::z);   //0x11
+
+    return 0;
+}
+```
+
+结果显示，对虚函数取值得到的不是该函数在内存中的地址，而是一个索引值（或偏移量）
+
+pmf1能够指向一般成员函数和虚拟成员函数，因此编译器必须定义pmf1，使它能够：1）持有两种数值；2）其数值可以被区别代表内存地址还是virtual table中的索引值（或偏移量）。在cfront2.0非正式版中，这两个值都被内含在一个普通的指针内。cfront使用如下技巧识别两种数值：
+
+```c++
+(((int)pmf1) & ~127) ? (*pmf1)(ptr) : (*pp->vptr[(int)pmf1](ptr));
+```
+
+这种实现技巧必须假设继承体系中最多只有128个virtual functions，这并不是我们所希望的，但却证明是可行的。然而多重继承的引入，导致需要更多一般化的实现模式，并趁机出去对virtual functions的个数限制
+
+#### 2）多重继承下，指向Member Functions的指针
+
+为了让指向member functions的指针也能够支持多重继承和虚拟继承，Stroustrup设计了下面一个结构体：
+
+```c++
+//一般结构，用以支持在多重继承之下指向member functions的指针
+struct __mptr{
+    int delta;              //this指针的偏移
+    int index;              //virtual table索引（不指向virtual table时，会被设为-1）
+    union{
+        ptrtofunc faddr;    //nonvirtual member function的地址
+        int v_offset;       //virtual base class的vptr的位置
+    }
+};
+```
+
+此模型下，像下面的调用：
+
+```c++
+(ptr->*pmf)();
+```
+
+会变成：
+
+```c++
+(pmf.index < 0) ? (*pmf.faddr)(ptr) : (*ptr->vptr[pmf.index](ptr));
+```
+
+这种方法存在下面两个问题：
+
+* 每一个调用操作都得付出上述成本，检查其是否为virtual或nonvirtual
+* 当传入一个不变值的指针给member function时，需要产生一个临时性对象
+
+<br>
+
+## 4.4 Inline Functions
+
+暂略
+
+# 第5章 构造、析构、拷贝语意学
+
+## 5.1 无继承情况下的对象构造
+
+#### 1）C struct的Point声明
+
+```c++
+/*
+ * C++称这是一种所谓的Plain O1' Data声明形式。如果以C++来编译，观念上，编译器会为
+ * Point声明一个trivial default construct、一个trivial destructor、一个
+ * trivial copy constructor，以及一个trivial copy assignment operator。
+ * 但实际上，编译器会分析这个声明，并为它贴上Plain OI' Data标签
+ */
+typedef struct
+{
+    float x,y,z;
+}Point;
+
+/*
+ * 观念上Point的trivial constructor和destructor都会被产生并被调用，constructor
+ * 在程序起始处被调用而destructor在程序的exit()处被调用。然而，事实上那些
+ * trivial members要不是没被定义，就是没被调用，程序的行为一如它在C中的表现一样
+ * 
+ * 那么在C和C++中有什么区别？
+ * 在C中，global被视为一个“临时性的定义”，因为它没有显式的初始化操作。一个“临时性的定义”
+ * 可以在程序中发生多次。那些实例会被链接器折叠起来，只留下单独一个实例，被放在程序
+ * data segment中一个“特别保留给未初始化之global objects使用”的空间。由于历史的原因，
+ * 这块空间被称为BSS
+ * C++并不支持“临时性的定义”，这是因为class构造行为的隐式应用的缘故。虽然大家公认这个语言
+ * 可以判断一个class objects或是一个Plain O1' Data，但似乎没有必要搞这么复杂。因此，
+ * global在C++中被视为完全定义（它会阻止第二个或更多的定义）。C和C++的一个差异就在于，
+ * BSS data segment在C++中相对地不重要。C++的所有全局对象都被以“初始化过的数据”来对待
+ */
+Point global;
+
+Point foobar()
+{
+    //既没有被构造也没有被析构
+    Point local;
+    //没有default constructor实施于new运算符所传回的Point object身上
+    Point *heap = new Point;
+    //如果local曾被适当初始化过，一切就没问题，否则会产生编译警告
+    //观念上，这样的指定操作会触发trivial copy assignment operator做拷贝搬运操作。
+    //然而实际上该object是一个Plain OI' Data，所以赋值操作将只是像C那样的纯粹位搬移操作
+    *heap = local;
+    //观念上，会触发trivial destructor，但实际上destructor要不是没有被产生就是没有被调用
+    delete heap;
+    //观念上会触发trivial copy constructor，不过实际上return操作只是一个简单的位拷贝操作，因为对象是个Plain O1' Data
+    return local;
+}
+```
+
+上面的global在C和C++中的区别：
+
+<div align="center"> <img src="../pic/cppmode-5-1.png"/> </div>
+
+#### 2）抽象数据类型
+
+```c++
+/*
+ * 提供了完整的封装性，但没有提供任何virtual function
+ * 这个经过封装的Point class，其大小并没有改变，还是三个连续的float
+ */
+class Point{
+public:
+    //定义了一个构造函数
+    Point(float x = 0.0,float y = 0.0,float z = 0.0)
+        : _x(x) , _y(y) , _z(z) {}
+    //除此之外，没有定义其它成员函数
+private:
+    float _x , _y , _z;
+};
+
+//现在有了default constructor作用于其上。由于global被定义在全局范畴中，其初始化操作
+//在程序启动时进行
+Point global;
+
+Point foobar()
+{
+    /*
+     * local的定义会被附上default Point constructor的inline expansion:
+     * Point local;
+     * local._x = 0.0, local._y = 0.0, local._z = 0.0;
+     */
+    Point local;
+    /*
+     * 现在则被附加一个“对default Point constructor的有条件调用操作”：
+     * Point *heap = __new(sizeof(Point));
+     * if(heap != 0)
+     *     heap->Point::Point();
+     * 在条件内才又被编译器进行inline expansion操作
+     */
+    Point *heap = new Point;
+    //保持着简单的位拷贝操作
+    *heap = local;
+    //并不会导致destructor被调用
+    delete heap;
+    //return时，同样保持着简单的位拷贝操作，并没有拷贝构造
+    return local;
+}
+```
+
+总的来说，观念上，Point class有一个相关的default copy constructor、copy operator、和destructor。然而它们都是无关痛痒的，而且编译器实际上根本没有产生它们
+
+#### 3）包含虚函数的Point声明
+
+包含虚函数时，除了每一个class object多负担一个vptr之外，virtual function的导入也引发编译器对于Point class产生膨胀作用（如，编译器会在构造函数中插入初始化vptr的代码）
+
+```c++
+class Point{
+public:
+    Point(float x = 0.0,float y = 0.0) : _x(x) , _y(y) {}
+    virtual float z();
+private:
+    float _x , _y;
+}
+```
+
+* 自定义构造函数中会安插初始化vptr的代码
+* 因为需要处理vptr，所以会合成一个copy constructor和一个copy assignment operator，这两个函数不再是trivial（但隐式的destructor任然是trivial）
+
+```c++
+Point * Point::Point(Point *this,float x,float y) : _x(x) , _y(y)
+{
+    //设定object的virtual table pointer(vptr)
+    this->__vptr_Point = __vtbl__Point;
+
+    //扩展member initialization list
+    this->_x = x;
+    this->_y = y;
+
+    //传回this对象
+    return this;
+}
+
+inline Point* Point::Point(Point *this,const Point &rhs)
+{
+    //设定object的virtual table pointer(vptr)
+    this->__vptr_Point = __vtbl__Point;
+
+    //将rhs左边中的连续位拷贝到this对象，
+    //或是经由member assignment提供一个member...
+
+    return this;
+}
+
+//编译器在优化状态下可能会把object的连续内容拷贝到另一个object身上，
+//而不会实现一个精确地“以成员为基础的赋值操作”
+```
+
+```c++
+//和前一版本相同
+Point global;
+
+Point foobar()
+{
+    //和前一版本相同
+    Point local;
+    //和前一版本相应
+    Point *heap = new Point;
+    //这里可能触发copy assignment operator的合成，及其调用操作的一个
+    //inline expansion（行内扩张），以this取代heap，而以rhs取代local
+    *heap = local;
+    //和前一版本相同
+    delete heap;
+    //最具戏剧性的改变在这，下面讨论
+    return local;
+}
+```
+
+由于copy constructor的出现，foobar很可能被转化为下面这样：
+
+```c++
+Point foobar(Point &__result)
+{
+    Point local;
+    local.Point::Point(0.0,0.0);
+
+    //heap的部分与前面相同
+
+    //copy constructor的应用
+    __result.Point::Point(local);
+
+    //销毁local对象
+
+    return;
+}
+```
+
+如果支持named return value(NRV)优化，会进一步被转化：
+
+```c++
+Point foobar(Point &__result)
+{
+    __result.Point::Point(0.0,0.0);
+
+    //heap的部分与前面相同...
+
+    return;
+}
+```
+
+> 一般而言，如果设计之中有许多函数都需要以传值方式传回一个local class object，那么提供一个copy constructor就比较合理——甚至即使default memberwise语意已经足够。它的出现会触发NRV优化。然而，就像前面例子展现的那样，NRV优化后将不再需要调用copy constructor，因为运算结果已经被直接计算于“将被传回的object”内了
