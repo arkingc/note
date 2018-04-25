@@ -1381,4 +1381,5 @@ inline Vertex3d& Vertex3d::operator=(const Vertex3d &v)
 > 就像constructor一样，目前对于destructor的一种最佳实现策略就是维护两份destructor实例：
 > * 一个complete object实例，总是设定好vptr(s)，并调用virtual base class destructor
 > * 一个base class subobject实例；除非在destructor函数中调用一个virtual function，否则它绝不会调用virtual base class destructors并设定vptr（因为如果不调用虚函数就没必要修改vptr）
+> 
 > 一个object的生命结束于其destructor开始执行之时。由于每一个base class destructor都轮番被调用，所以derived object实际上变成了一个完整的object。例如一个PVertex对象归还其内存空间之前，会依次变成一个Vertex3d对象、一个Vertex对象，一个Point3d对象，最后成为一个Point对象。当我们在destructor中调用member functions时，对象的蜕变会因为vptr的重新设定（在每一个destructor中，在程序员所提供的代码执行之前）而受到影响
