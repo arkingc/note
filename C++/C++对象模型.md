@@ -17,6 +17,9 @@
     * [4.3 指向Member Function的指针](#43-指向member-function的指针)
 * [第5章 构造、析构、拷贝语意学](#第5章-构造析构拷贝语意学)
     * [5.1 无继承情况下的对象构造](#51-无继承情况下的对象构造)
+    * [5.2 继承体系下的对象构造](#52-继承体系下的对象构造)
+    * [5.3 对象拷贝语意学](#53-对象拷贝语意学)
+    * [5.4 析构语意学](#54-析构语意学)
 <!-- GFM-TOC -->
 
 <br>
@@ -959,6 +962,8 @@ struct __mptr{
 
 暂略
 
+<br>
+
 # 第5章 构造、析构、拷贝语意学
 
 ## 5.1 无继承情况下的对象构造
@@ -1163,3 +1168,217 @@ Point foobar(Point &__result)
 ```
 
 > 一般而言，如果设计之中有许多函数都需要以传值方式传回一个local class object，那么提供一个copy constructor就比较合理——甚至即使default memberwise语意已经足够。它的出现会触发NRV优化。然而，就像前面例子展现的那样，NRV优化后将不再需要调用copy constructor，因为运算结果已经被直接计算于“将被传回的object”内了
+
+## 5.2 继承体系下的对象构造
+
+```c++
+class Point{
+public:
+    Point(float x = 0.0,float y = 0.0);
+    Point(const Point&);
+    Point& operator=(const Point&);
+
+    virtual ~Point();
+    virtual float z() {return 0.0;}
+protected:
+    float _x,_y;
+};
+```
+
+#### 虚拟继承
+
+假设具有如下继承体系：
+
+<div align="center"> <img src="../pic/cppmode-5-2.png"/> </div>
+
+```c++
+class Point{
+public:
+    Point(float x = 0.0,float y = 0.0);
+    Point(const Point&);
+    Point3d& operator=(const Point&);
+
+    virtual ~Point();
+    virtual float z() {return 0.0;}
+protected:
+    float _x,_y;
+};
+
+class Point3d : public virtual Point{
+public:
+    Point3d(float x = 0.0,float y = 0.0,float z = 0.0) : Point(x,y),_z(z) {}
+    Point3d(const Point3d &rhs) : Point(rhs),_z(rhs._z) {}
+    ~Point3d();
+    Point3d& operator=(const Point3d&);
+
+    virtual float z() {return _z;}
+protected:
+    float _z;
+};
+
+class Vertex : virtual public Point {...};
+class Vertex3d : public Point3d,public Vertex {...};
+class PVertex : public Vertex3d {...};
+```
+
+**在虚拟继承下，一个主要的问题是如何初始化“虚基类子对象”，调用虚基类的构造函数初始化”虚基类子对象“应该在最底层的派生类中进行**
+
+因此，Point3d的构造函数可能被编译器扩充成如下形式：
+
+```c++
+Point3d* Point3d::Point3d(Point3d *this,bool __most_derived,float x,float y,float z)
+{
+    if(__most_derived != false)
+        this->Point::Point(x,y);
+
+    this->__vptr_Point3d = __vtbl__Point3d;
+    this->__vptr_Point3d__Point = __vtbl_Point3d__Point;
+    
+    this->_z = rhs._z;
+    return this;
+}
+```
+
+在更深层的继承情况下，例如Vertex3d，调用Point3d和Vertex的constructor时，总是会把__most_derived参数设为false，于是就压制了两个constructors中对Point constructor的调用操作：
+
+```c++
+Vertex3d* Vertex3d::Vertex3d(Vertex3d *this,bool __most_derived,float x,float y,float z)
+{
+    if(__most_derived != false)
+        this->Point::Point(x,y);
+
+    //调用上一层base classes设定__most_derived为false
+    this->Point3d::Point3d(false,x,y,z);
+    this->Vertex::Vertex(false,x,y);
+
+    //设定vptrs，安插user code
+
+    return this;
+}
+```
+
+这样，```Point3d origin;``` 和 ```Vertex3d cv;``` 都能挣钱的调用Point constructor
+
+> 某些新进的编译器把每个constructor分裂为二，一个针对完整的object，另一个针对subobject。”完整object“版无条件地调用virtual base constructor，设定所有的vptrs等。”subobject“版则不调用virtual base constructors，也可能不设定vptrs等。constructor的分裂可带来程序速度的提升，但是使用这个技术的编译器似乎很少，或者说没有
+
+#### vptr的设置
+
+**vptr会在构造函数中进行初始化，关键是vptr应该在构造函数中何时执行初始化。考虑这个问题是因为：如果在构造函数中调用虚拟函数，那么vptr的初始化时机可能会给使得程序产生不一致的表现**
+
+当定义一个PVertex object时，constructors的调用顺序如下：
+
+```c++
+Point(x,y);         //1
+Point3d(x,y,z);     //2
+Vertex(x,y,z);      //3
+Vertex3d(x,y,z);    //4
+PVertex(x,y,z);     //5
+```
+
+假设这个继承体系中的每一个class都定义了一个virtual function size()，函数负责传回class的大小，并且在每一个构造函数中调用这个size()函数。那么当定义PVertex object时，5个constructors会如何？每一次size()都是调用PVertex::size()？或者每次调用会被决议为”目前正在执行的constructor所对应的class“的size()函数实例？答案是后者，关键是编译器如何处理，来实现这一点
+
+* 如果调用操作限制必须在constructor中直接调用，那么将每一个调用操作以静态方式决议，而不使用虚拟机制。例如，在Point3d constructor中，就显式调用Point3d::size()。然而，如果size()之中又调用一个virtual function，会发生什么？这种情况下，这个调用也必须决议为Point3d的size()函数实例。而在其它情况下，这个调用是纯正的virtual，必须经由虚拟机制来决定其归向。也就是说，虚拟机制本身必须知道是否这个调用源自于一个constructor之中
+* **根本的解决之道是，在执行一个constructor时，必须限制一组virtual functions候选名单**。因此需要处理virtual table，而处理virtual table又需要通过vptr。所以为了控制一个class中有所作用的函数，编译系统只要简单地控制vptr的初始化和设定操作即可
+
+**vptr应该在base class constructors调用之后，在程序员提供的代码及member initialization list中所列的members初始化操作之前进行初始化**
+
+* 在base class constructors执行完毕之后才设定vptr，那么每次都能调用正确的virtual function实例
+* 在程序员提供的代码之前设定vptr是因为程序员提供的代码中可能会调用virtual function，因此必须先设定
+* 在member initialization list之前设定是因为member initialization list中也可能调用virtual function。因此需要先进行设定
+
+那么这种方式是否安全？考虑下列两种情况：
+
+* **在class的constructor的member initialization list中调用该class的一个虚函数**：vptr能在member initialization list被扩展之前由编译器正确设定好。而虚函数本身可能还得依赖未被设立初值的members，所以语意上可能是不安全的。然而从vptr的整体角度来看，是安全的
+* **在member initialization list中使用虚函数为base class constructor提供参数**：这是不安全的，由于base class constructor的执行在vptr的设定之前，因此，此时vpt若不是尚未被设定好，就是被设定指向错误的class。更进一步地说，该函数所存取的任何class's data members一定还没有被初始化
+
+## 5.3 对象拷贝语意学
+
+一个class对于默认的copy assignment operator，在以下情况，不会表现出bitwise copy语意：
+
+1. 当class内含有一个member object，而其class有一个copy assignment operator时
+2. 当一个class的base class有一个copy assignment operator时
+3. 当一个class声明了任何virtual functions时（一定不要拷贝右端class object的vptr地址，因为它可能是一个derived class object）
+4. 当class继承自一个virtual base class时（无论此base class有没有copy operator）时
+
+C++标准上说，copy assignment operator在不表现出bitwise copy semantics时，是nontrivial的，只有nontrivial的实例才会被合成出来 
+
+以上面的2.为例子看看编译器合成的copy assignment operator是什么样子，在为Point类显式定义一个copy assignment operator，然后Point3d继承类Point，但是不显式定义copy assignment operator：
+
+```c++
+inline Point& Point::operator=(const Point &p)
+{
+    _x = p._x;
+    _y = p._y;
+
+    return *this;
+}
+
+class Point3d::virtual public Point{
+public:
+    Point3d(float x = 0.0,float y = 0.0,float z = 0.0);
+protected:
+    float _z;
+};
+```
+
+编译器为Point3d合成的copy assignment operator，类似如下形式：
+
+```c++
+inline Point3d& Point3d::operator=(Point3d* const this,const Point3d &p)
+{
+    //调用base class的函数实例
+    this->Point::operator=(p);  //或(*(Point*)this) = p;
+
+    //逐成员拷贝派生类的成员
+    _z = p._z;
+    return *this;
+}
+```
+
+> copy assignment operator是一个非正交性情况，它缺乏一个member assignment list（平行于member initialization list的东西）
+
+#### 虚继承中的拷贝赋值
+
+假设编译器按上面的形式合成子类的copy assignment operator，现在假设另一个类Vertex，和Point3d一样，派生自Point，那么编译器为Vertex合成的copy assignment operator，类似如下形式：：
+
+```c++
+inline Vertex& Vertex::operator=(const Vertex &v)
+{
+    this->Point::operator=(v);
+    _next = v._next;
+    return *this;
+}
+```
+
+那么现在又从Point3d和Vertex中派生出Vertex3d。编译器也会为Vertex3d合成copy assignment operator：
+
+```c++
+inline Vertex3d& Vertex3d::operator=(const Vertex3d &v)
+{
+    this->Point::operator=(v);
+    this->Point3d::operator=(v);
+    this->Vertex::operator=(v);
+    ...
+}
+```
+
+在执行Point3d和Vertex的copy assignment operator时，会重复调用Point的copy assignment operator
+
+事实上，copy assignment operator在虚拟继承情况下行为不佳，需要小心地设计和说明。许多编译器甚至并不尝试取得正确的语意，它们在每一个中间的copy assignment operator中调用每一个base class instance，于是造成virtual base class copy assignment operator的多个实例被调用。cfront、Edison Design Group的前端处理器、Borland C++ 4.5以及Symantec最新版C++编译器都这么做，而C++标准对此其实也并没有做限制
+
+## 5.4 析构语意学
+
+如果class没有定义destructor，那么只有在class内含的member object（抑或class自己的base class）拥有destructor的情况下，编译器才会自动合成出一个来
+
+一个destructor被扩展的方式类似constructor被扩展的方式，但是顺序相反：
+
+1. destructor的函数本体首先被执行
+2. 如果class拥有member class object，而后者拥有destructors，那么它们会以其声明顺序的相反顺序被调用
+3. 如果object内含一个vptr，现在被重新设定，指向适当base class的virtual table
+4. 如果有任何直接的（上一层）nonvirtual base classes拥有destructors，那么它们会以其声明顺序的相反顺序被调用
+5. 如果有任何virtual base classes拥有destructor，而目前讨论的这个class是最尾端的class，那么它们会以其原来的构造顺序的相反顺序被调用
+
+> 就像constructor一样，目前对于destructor的一种最佳实现策略就是维护两份destructor实例：
+> * 一个complete object实例，总是设定好vptr(s)，并调用virtual base class destructor
+> * 一个base class subobject实例；除非在destructor函数中调用一个virtual function，否则它绝不会调用virtual base class destructors并设定vptr（因为如果不调用虚函数就没必要修改vptr）
+> 一个object的生命结束于其destructor开始执行之时。由于每一个base class destructor都轮番被调用，所以derived object实际上变成了一个完整的object。例如一个PVertex对象归还其内存空间之前，会依次变成一个Vertex3d对象、一个Vertex对象，一个Point3d对象，最后成为一个Point对象。当我们在destructor中调用member functions时，对象的蜕变会因为vptr的重新设定（在每一个destructor中，在程序员所提供的代码执行之前）而受到影响
