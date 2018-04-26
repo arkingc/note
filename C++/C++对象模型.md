@@ -20,6 +20,9 @@
     * [5.2 继承体系下的对象构造](#52-继承体系下的对象构造)
     * [5.3 对象拷贝语意学](#53-对象拷贝语意学)
     * [5.4 析构语意学](#54-析构语意学)
+* [第6章 执行期语意学](#第6章-执行期语意学) 
+    * [6.1 对象的构造和析构](#61-对象的构造和析构) 
+    * [6.2 new和delete运算符](#62-new和delete运算符)
 <!-- GFM-TOC -->
 
 <br>
@@ -1383,3 +1386,249 @@ inline Vertex3d& Vertex3d::operator=(const Vertex3d &v)
 > * 一个base class subobject实例；除非在destructor函数中调用一个virtual function，否则它绝不会调用virtual base class destructors并设定vptr（因为如果不调用虚函数就没必要修改vptr）
 > 
 > 一个object的生命结束于其destructor开始执行之时。由于每一个base class destructor都轮番被调用，所以derived object实际上变成了一个完整的object。例如一个PVertex对象归还其内存空间之前，会依次变成一个Vertex3d对象、一个Vertex对象，一个Point3d对象，最后成为一个Point对象。当我们在destructor中调用member functions时，对象的蜕变会因为vptr的重新设定（在每一个destructor中，在程序员所提供的代码执行之前）而受到影响
+
+<br>
+
+# 第6章 执行期语意学
+
+## 6.1 对象的构造和析构
+
+#### 1）全局对象
+
+```c++
+Matrix identity;
+
+main()
+{
+    //identity必须在此处被初始化
+    Matrix m1 = identity;
+    ...
+    return 0;
+}
+```
+
+C++保证，一定会在main()函数中第一次用到identity之前，把identity构造出来，而在main()函数结束之前吧identity摧毁掉。像identity这样的所谓global object如果有constructor和destructor的话，我们说它需要**静态的初始化操作和内存释放操作**
+
+当cfront还是唯一的C++编译器，而且跨平台移植性比效率的考虑更重要的时候，有一个可移植但成本颇高的**静态初始化(以及内存释放)**方法，称为munch策略：
+
+1. 为每一个需要静态初始化的文件产生一个_sti()函数，内含必要的constructor调用操作或inline expansions。例如前面的identity对象会在matrix.c中产生出下面的__sti()函数：
+
+```c++
+__sti__matrix_c__identity()
+{
+    identity.Matrix::Matrix();  //静态初始化
+}
+```
+
+2. 在每一个需要静态的内存内存释放操作的文件中，产生一个__std()函数，内含必要的destructor调用操作，或是其inline expansions
+
+3. 提供一组runtime library "munch"函数；一个_main()函数（用以调用可执行文件中的所有__sti()函数）,以及一个exit()函数（以类似方式调用所有的__std()函数）
+
+<div align="center"> <img src="../pic/cppmode-6-1.png"/> </div>
+
+cfront2.0版之前并不支持noclass object的静态初始化操作；也就是说C语言的限制仍然残留着。所以下面的每一个初始化操作都被标为不合法：
+
+```c++
+extern int i;
+
+//全部都要求静态初始化，在2.0版之前的C和C++中，都是不合法的
+int j = i;
+int *pi = new int(i);
+double sal = compute_sal(get_employee(i));
+```
+
+使用被静态初始化的objects，有下列缺点：
+
+* 如果exception handling被支持，那些objects将不能够被放置于try区段之内。这对于被静态调用的constructors可能是特别无法接受的，因为任何的throw操作将必然触发exception handling library默认的terminate()函数
+* 为了控制”需要跨越模块做静态初始化“的objects的相依顺序，而扯出来的复杂度
+
+> 作者建议根本就不要用那些需要静态初始化的global objects（虽然这项建议几乎普遍不为C程序员所接受）
+
+#### 2）局部静态对象
+
+```c++
+const Matrix& identity()
+{
+    static Matrix mat_identity;
+    //...
+    return mat_identity;
+}
+```
+
+* mat_identity的constructor必须只能执行一次，虽然上述函数可能被调用多次
+* mat_identity的destructor必须只能执行一次，虽然上述函数可能会被调用多次
+
+编译器的**策略之一**是，无条件地在程序起始时构造出对象来。然而这会导致所有的local static class objects都在程序起始时被初始化，即使它们所在的那个函数从不层被调用过
+
+实际上identity()被调用时才把mat_identity构造起来是一种更好的做法，现在的C++标准已经强制要求这一点了。
+cfront实现的方法是：首先，导入一个临时性对象以保护mat_identity的初始化操作。第一次处理identity()时，这个临时对象被评估为false，于是constructor会被调用，然后临时对象被改为true。这样就解决了构造的问题。而在相反的一端，destructor也需要有条件地实施于mat_identity身上，只有在mat_identity已经被构造起来才调用，可以通过临时对象是否为true来判断mat_identity是否已经构造
+
+#### 3）对象数组
+
+```c++
+Point knots[10];
+```
+
+如果Point没有定义一个constructor和destructor，那么上述代码执行的工作不会比建立一个”内建类型所组成的数组“更多（即，不会调用下面所要讲到的vec_new()），也就是说只要配置足够内存以存储10个连续的Point元素即可
+
+在cfront中，使用一个命名为vec_new()的函数，产生出以class objects构造而成的数组。（比较新的编译器，则是提供两个函数，一个用来处理”没有virtual base class“的class，另一个用来处理”内含virtual base class“的class，后一个函数通常被称为vec_vnew()）函数vec_new()类型通常如下：
+
+```c++
+void* vec_new(
+    void *array,                        //数组起始地址
+    size_t elem_size,                   //每一个class object的大小
+    int elem_count,                     //数组中的元素个数
+    void (*constructor)(void*),
+    void (*destructor)(void*,char)
+    )
+```
+
+* constructor是class的default constructor的函数指针
+* destructor是class的default destructor的函数指针
+* array持有的若不是具名数组的地址，就是0。如果是0，那么数组将经由应用程序的new运算符被动态配置于heap中
+
+假设Point定义了一个constructor，以下是编译器可能对10个Point元素所做的vec_new()调用操作：
+
+```c++
+Point knots[10];
+vec_new(&knots,sizeof(Point),10,&Point::Point,0);
+```
+
+如果Point也定义了一个destructor，当knots的生命结束时，该destructor也必须实施于10个Point元素身上，经由一个类似的vec_delete()的runtime library函数完成：
+
+```c++
+void* vec_delete(
+    void *array,                        //数组起始地址
+    size_t elem_size,                   //每一个class object的大小
+    int elem_count,                     //数组中的元素个数
+    void (*destructor)(void*,char)
+    )
+```
+
+## 6.2 new和delete运算符
+
+#### 1）new
+
+```c++
+int *pi = new int(5);
+```
+
+实际上是由两个步骤完成的：
+
+1. 通过适当的new运算符函数实例，配置所需内存：```int *pi = __new(sizeof(int));```
+2. 将配置得来的对象设置初值：```*pi = 5;```
+
+更进一步，初始化操作应该在内存配置成功后才执行：
+
+```c++
+int *pi;
+if(pi = __new(sizeof(int))) //（__new即下面会说到的operator new）
+    *pi = 5;
+```
+
+> 以constructor来配置一个class object的情况类似
+
+#### 2）delete
+
+```c++
+delete pi;
+```
+
+delete pi时，如果pi是0，C++要求delete运算符不要有操作。因此”编译器“必须为此调用构造一层保护：
+
+```c++
+if(pi != 0)
+    __delete(pi);   //（__delete即下面会说到的operator delete）释放内存，但是pi并不会设为为0
+```
+
+> destructor的应用极为相似，在__delete前会调用destructor
+
+#### 3）operator new和operator delete的实现
+
+一般的library对于new运算符的实现操作都很直截了当，但有两个精巧之处值得斟酌（以下版本并未考虑exception handling）：
+
+```c++
+extern void* operator new(size_t size)
+{
+    if(size == 0)
+        size = 1;
+
+    void *last_alloc;
+    while(!(last_alloc = malloc(size))){
+        if(_new_handler)
+            (*_new_handler)();
+        else
+            return 0;
+    }
+    return last_alloc;
+}
+```
+
+这虽然这样是合法的：
+
+```c++
+new T[0];
+```
+
+但语言要求每一次对new的调用都必须传回一个独一无二的指针。解决此问题的传统方法是传回一个指针，指向一个默认为1 byte的内存区块（上述代码中将size设为1的原因）
+
+上述实现允许使用者提供一个属于自己的_new_handler()函数
+
+> operator new实际上总是以标准的C malloc完成，虽然并没有规定一定得这么做
+
+operator delete也总是以标准的C free()完成：
+
+```c++
+extern void operator delete(void *ptr)
+{
+    if(ptr)
+        free((char*)ptr);
+}
+```
+
+#### 4）针对数组的new语意
+
+```c++
+int *p_array = new int[5];
+```
+
+vec_new()不会真正被调用，因为它的主要功能是把default constructor施行于class objects所组成的数组的每一个元素身上，倒是operator new会被调用：
+
+```c++
+int *p_array = (int*)__new(5 * sizeof(int));
+```
+
+相同的情况：
+
+```c++
+//struct simple_aggr{float f1,f2;};
+simple_aggr *p_aggr = new simple_aggr[5];
+```
+
+vec_new()也不会被调用。因为simple_aggr并没有定义一个constructor或destructor，所以配置数组以及清除p_aggr数组的操作，只是单纯地获得内存和释放内存而已。由operator new和operator delete来完成绰绰有余
+
+如果class定义了一个default constructor，某些版本的vec_new()就会被调用
+
+当 ```delete``` 一个指向数组的指针时，C++2.0版之前，需要提供数组的大小。而2.1版后，不需要提供数组大小，只有在 ```[]``` 出现时，编译器才寻找数组的维度。否则它便假设只有单独一个object要被删除：
+
+```c++
+//正确的代码应该是delete [] p_array;
+delete p_array;
+```
+
+只有第一个元素会被析构。其它元素仍然存在——虽然相关的内存已经被要求归还了
+
+由于新版可以不提供数组大小，那么如何记录数组的元素，以便在 ```delete [] arr;``` 时使用？
+
+* 一个明显的方法是为vec_new()所传回的每一个内存区块配置一个额外的word，然后把元素个数包藏在这个word之中，通常这种被包藏的数值称为cookie
+* Jonathan和Sun编译器决定维护一个”联合数组“，防止指针及大小。Sun也把destructor的地址维护于此数组之中
+
+cookie策略有一个普遍引起忧虑的话题，如果一个坏指针被交给delete_vec()，取出来的cookie自然是不合法的。一个不合法的元素个数和一个坏指针的起始地址，会导致destructor以非预期的次数被实施于一段非预期的区域。然而在”联合数组“的策略下，坏指针的可能结果就只是取出错误的元素个数而已
+
+**避免以一个base class指针指向一个derived class objects所组成的数组**：
+
+```c++
+Point *ptr = new Point3d[10];
+```
+
+实施于数组上的destructor，是根据交给vec_delete()函数的”被删除的指针类型的destructor“——在本例中就是Point destructor，与我们的期望不符。此外，每一个元素的大小也一并被传递过去（本例中是Point class object的大小）。这就是vec_delete()如何迭代走过每一个数组元素的方式。因此整个过程失败了，不只是因为执行了错误的destructor，而且自从第一个元素之后，该destructor即被施行于不正确的内存区块中
