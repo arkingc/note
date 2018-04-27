@@ -26,7 +26,7 @@ public:
 int main()
 {
     cout << sizeof(Derived) << endl;
-    Derived d;
+    Derived d;//断点设在这
     cout << sizeof(d) << endl;
 
     return 0;
