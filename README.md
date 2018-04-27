@@ -30,6 +30,70 @@
 
 * [《深度探索C++对象模型》](C++/C++对象模型.md)
 
+整形在16/32/64位平台下的大小：
+
+<table>
+<tr>
+    <td rowspan="4" align="center"> <b>16位平台</b> </td>
+    <td align="center"> char </td>
+    <td align="center"> 1个字节(8位) </td>
+</tr>
+<tr>
+    <td align="center"> short </td>
+    <td align="center"> 2个字节(16位) </td>
+</tr>
+<tr>
+    <td align="center"> <b>int</b> </td>
+    <td align="center"> 2个字节(16位) </td>
+</tr>
+<tr>
+    <td align="center"> long </td>
+    <td align="center"> 4个字节(32位) </td>
+</tr>
+<tr>
+    <td rowspan="5" align="center"> <b>32位平台</b> </td>
+    <td align="center"> char </td>
+    <td align="center"> 1个字节(8位) </td>
+</tr>
+<tr>
+    <td align="center"> short </td>
+    <td align="center"> 2个字节(16位) </td>
+</tr>
+<tr>
+    <td align="center"> <b>int</b> </td>
+    <td align="center"> 4个字节(32位) </td>
+</tr>
+<tr>
+    <td align="center"> <b>long</b> </td>
+    <td align="center"> 4个字节(32位) </td>
+</tr>
+<tr>
+    <td align="center"> long long </td>
+    <td align="center"> 8个字节(64位) </td>
+</tr>
+<tr>
+    <td rowspan="5" align="center"> <b>64位平台</b> </td>
+    <td align="center"> char </td>
+    <td align="center"> 1个字节(8位) </td>
+</tr>
+<tr>
+    <td align="center"> short </td>
+    <td align="center"> 2个字节(16位) </td>
+</tr>
+<tr>
+    <td align="center"> int </td>
+    <td align="center"> 4个字节(32位) </td>
+</tr>
+<tr>
+    <td align="center"> <b>long</b>> </td>
+    <td align="center"> 8个字节(64位) </td>
+</tr>
+<tr>
+    <td align="center"> long long </td>
+    <td align="center"> 8个字节(64位) </td>
+</tr>
+</table>
+
 C++运算符优先级表：
 
 ![](pic/c++-operator.png)
