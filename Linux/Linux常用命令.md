@@ -451,6 +451,7 @@ netstat [选项]
     -l：列出处于监听状态的连接
     -p：添加一列，显示网络服务进程的PID（需要root权限）
     -i：显示网络接口列表，可以配合ifconfig一起分析
+    -s：打印网络统计数据，包括某个协议下的收发包数量
 ```
 
 ![](../pic/linux-netstat-1.png)
@@ -466,6 +467,8 @@ netstat [选项]
     - **Flags**：连接标识
     - **Type**：socket访问的类型
     - **Path**：连接到此socket的相关程序的路径
+
+[netstat的10个基本用法](https://linux.cn/article-2434-1.html)
 
 ## 3.查看路由表：route
 
