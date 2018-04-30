@@ -896,40 +896,40 @@ Nagle算法常常与另一个TCP算法联合使用：**ACK延滞算法**，该�
 <tr>
     <td rowspan="10" align="center"> <b>TCP回射服务器</b> </td>
     <td rowspan="2" align="center"> v1 </td>
-    <td align="center"> <a href = "tcpcliserv/tcpcli01.c">客户端</a> </td>
-    <td align="center"> <a href = "lib/str_cli.c">str_cli函数</a>(阻塞于标准输入时无法处理来自服务器子进程的FIN分节) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpcli01.c">客户端</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/lib/str_cli.c">str_cli函数</a>(阻塞于标准输入时无法处理来自服务器子进程的FIN分节) </td>
 </tr>
 <tr>
-    <td align="center"> <a href = "tcpcliserv/tcpserv01.c">服务器</a>(多进程) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv01.c">服务器</a>(多进程) </td>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#1%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%AD%A3%E5%B8%B8%E7%BB%88%E6%AD%A2">服务器会产生僵尸子进程</a> </td>
 </tr>
 <tr>
     <td rowspan="1" align="center"> v2 </td>
-    <td align="center"> <a href = "tcpcliserv/tcpserv02.c">服务器</a>(多进程) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv02.c">服务器</a>(多进程) </td>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#11-%E4%BD%BF%E7%94%A8wait%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">处理服务器僵尸子进程，会中断服务器系统调用</a> </td>
 </tr>
 <tr>
     <td rowspan="1" align="center"> v3 </td>
-    <td align="center"> <a href = "tcpcliserv/tcpserv03.c">服务器</a>(多进程) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv03.c">服务器</a>(多进程) </td>
     <td align="center"> 处理服务器被中断的系统调用，无法同时处理多个SIGCHLD信号 </td>
 </tr>
 <tr>
     <td rowspan="2" align="center"> v4 </td>
-    <td align="center"> <a href = "tcpcliserv/tcpcli04.c">客户端</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpcli04.c">客户端</a> </td>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#12-%E4%BD%BF%E7%94%A8waitpid%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">正常终止时引起服务器5个子进程终止</a> </td>
 </tr>
 <tr>
-    <td align="center"> <a href = "tcpcliserv/tcpserv04.c">服务器</a>(多进程) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv04.c">服务器</a>(多进程) </td>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#12-%E4%BD%BF%E7%94%A8waitpid%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">同时处理多个SIGCHLD信号</a> </td>
 </tr>
 <tr>
     <td rowspan="3" align="center"> select </td>
-    <td align="center"> <a href = "select/tcpcli01.c">客户端</a> </td>
-    <td align="center"> <a href = "select/strcliselect01.c">str_cli函数</a>(解决v1版的问题，但无法处理重定向、无法处理I/O缓冲) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/tcpcli01.c">客户端</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/strcliselect01.c">str_cli函数</a>(解决v1版的问题，但无法处理重定向、无法处理I/O缓冲) </td>
 </tr>
 <tr>
-    <td align="center"> <a href = "select/tcpcli02.c">客户端</a> </td>
-    <td align="center"> <a href = "select/strcliselect02.c">str_cli函数</a>(解决前一版的问题) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/tcpcli02.c">客户端</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/strcliselect02.c">str_cli函数</a>(解决前一版的问题) </td>
 </tr>
 <tr>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/select.md#%E4%BB%A3%E7%A0%81">服务器</a>(单进程) </td>
@@ -937,7 +937,7 @@ Nagle算法常常与另一个TCP算法联合使用：**ACK延滞算法**，该�
 </tr>
 <tr>
     <td rowspan="1" align="center"> poll </td>
-    <td align="center"> <a href = "tcpcliserv/tcpservpoll01.c">服务器</a>(单进程) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpservpoll01.c">服务器</a>(单进程) </td>
     <td align="center"> 重写v4版服务器，使用单进程减少了多进程的开销 </td>
 </tr>
 
