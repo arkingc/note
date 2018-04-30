@@ -16,7 +16,6 @@
 * [三.基本UDP套接字编程](#三基本udp套接字编程)
     * [1.缓冲区](#1缓冲区)
     * [2.相关函数](#2相关函数)
-    * [3.端口号与IP](#3端口号与ip)
 * [四.I/O复用](#四io复用)
     * [1.select](#1select)
         * [1.1 描述符就绪条件](#11-描述符就绪条件) 
@@ -462,7 +461,7 @@ TCP和UDP服务器上获取**源IP**、**源端口号**、**目的IP**、**目�
 
 TCP要再次调用connect必须先close套接字再重新调用socket创建套接字描述符
 
-**当应用进程在一个未连接的UDP套接字上调用sendto时，源自Berkeley的内核暂时连接该套接字，发送数据报，然后断开该连接。**因此，当应用进程要给同一目的地址发送多个数据报时，使用连接套接字可以获得更高的效率
+**当应用进程在一个未连接的UDP套接字上调用sendto时，源自Berkeley的内核暂时连接该套接字，发送数据报，然后断开该连接**。因此，当应用进程要给同一目的地址发送多个数据报时，使用连接套接字可以获得更高的效率
 
 <br>
 
@@ -1128,6 +1127,40 @@ Nagle算法常常与另一个TCP算法联合使用：**ACK延滞算法**，该�
 </tr>
 <tr>
     <td> <b>inet_ntop</b> </td>
+</tr>
+
+<tr>
+    <td rowspan="10"> <b>基本套接字编程</b> </td>
+    <td rowspan="9"> &lt;sys/socket.h&gt; </td>
+    <td> <b>socket</b> </td>
+</tr>
+<tr>
+    <td> <b>connect</b> </td>
+</tr>
+<tr>
+    <td> <b>bind</b> </td>
+</tr>
+<tr>
+    <td> <b>listen</b> </td>
+</tr>
+<tr>
+    <td> <b>accept</b> </td>
+</tr>
+<tr>
+    <td> <b>recvfrom</b> </td>
+</tr>
+<tr>
+    <td> <b>sendto</b> </td>
+</tr>
+<tr>
+    <td> <b>getsockname</b> </td>
+</tr>
+<tr>
+    <td> <b>getpeername</b> </td>
+</tr>
+<tr>
+    <td rowspan="1"> &lt;unistd.h&gt; </td>
+    <td> <b>close</b> </td>
 </tr>
 
 <tr>
