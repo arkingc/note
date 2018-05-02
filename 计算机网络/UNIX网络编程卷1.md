@@ -32,6 +32,11 @@
     * [2.套接字选项分类](#2套接字选项分类)
         * [2.1 通用套接字选项](#21-通用套接字选项)
         * [2.2 TCP套接字选项](#22-tcp套接字选项)
+* [六.名字与地址转换](#六名字与地址转换)
+    * [1.主机名字与IP地址之间的转换](#1主机名字与ip地址之间的转换)
+    * [2.服务名字与端口号之间的转换](#2服务名字与端口号之间的转换)
+    * [3.主机与服务名字转IP地址与端口号](#3主机与服务名字转ip地址与端口号)
+    * [4.IP地址与端口号转主机与服务名字](#4ip地址与端口号转主机与服务名字)
 * [附1.回射服务器程序](#附1回射服务器程序)
     * [1.TCP回射服务器程序](#1tcp回射服务器程序)
     * [2.UDP回射服务器程序](#2udp回射服务器程序) 
@@ -884,6 +889,167 @@ Nagle算法的目的在于防止一个连接在任何时刻有多个小分组待
 <div align="center"> <img src="../pic/unp-7-5.png"/> </div>
 
 Nagle算法常常与另一个TCP算法联合使用：**ACK延滞算法**，该算法使得TCP在接收到数据后不立即发送ACK，而是等待一小段时间（典型值为50ms~200ms），然后才发送ACK。TCP期待在这一小段时间内自身有数据发送回对端，被延滞的ACK就可以由这些数据捎带，从而省掉一个TCP分节（这种情形对于Rlogin和Telnet客户来说通常可行，因为他们的服务器一般都回显客户发送来的每个字符，这样对客户端字符的ACK完全可以在服务器对该字符的回显中捎带返回；然而对于服务器不在相反方向产生数据以便捎带ACK的客户来说，ACK延滞算法存在问题。这些客户可能觉察到明显的延迟）
+
+<br>
+
+# 六.名字与地址转换
+
+**名字与数值间进行转换**：
+
+* **主机名字与IP地址之间进行转换**（**协议相关**，只支持**IPv4**）：
+    - **主机名字转IP地址**：gethostbyname
+    - **IP地址转主机名字**：gethostbyaddr
+* **服务名字与端口号之间进行转换**：
+    - **服务名字**转**端口号**：getservbyname
+    - **端口号**转**服务名字**：getservbyport
+* **主机与服务名字**转**IP地址与端口号**（**协议无关**）：getaddrinfo
+* **IP地址与端口号**转**主机与服务名字**：getnameinfo
+
+## 1.主机名字与IP地址之间的转换
+
+**可以通过DNS获取名字和地址信息**
+
+<div align="center"> <img src="../pic/unp-name-1.png"/> </div>
+
+* 解析器代码通过读取其系统相关配置文件(通常是**/etc/resolv.conf**)确定本组织机构的名字服务器的所在位置
+* 解析器使用UDP向本地名字服务器发出查询，如果本地名字服务器不知道答案，通常会使用UDP在整个因特网上查询其它名字服务器（如果答案太长，超出了UDP消息的承载能力，本地名字服务器和解析器会自动切换到TCP）
+
+**不使用DNS也可能获取名字和地址信息，有下列替代方法**：
+
+1. 静态主机文件（通常是**/etc/hosts**文件）
+2. 网络信息系统（NIS）
+3. 轻权目录访问协议（LDAP）
+
+系统管理员如何配置一个主机以使用不同类型的名字服务是实现相关的，但这些差异对开发人员来说，通常是透明的，只需调用诸如gethostbyname和gethostbyaddr这样的解析器函数
+
+### 1）gethostbyname函数
+
+<div align="center"> <img src="../pic/unp-name-2.png"/> </div>
+
+函数的局限是**只能返回IPv4地址**，返回的指针指向hostent结构，该结构含有所查找主机的所有IPv4地址：
+
+```c++
+struct hostent{
+    char *h_name;           //规范主机名
+    char **h_aliases;       //主机别名
+    int h_addrtype;         //主机地址类型：AF_INET
+    int h_length;           //地址长度：4
+    char **h_addr_list;     //IPv4地址
+};
+```
+
+<div align="center"> <img src="../pic/unp-name-3.png"/> </div>
+
+当发生错误时，函数会设置全局变量h_errno为定义在\<netdb.h\>中的下列常值：
+
+* **HOST_NOT_FOUND**：
+* **TRY_AGAIN**：
+* **NO_RECOVERY**：
+* **NO_DATA**(等同于**NO_ADDRESS**)：表示指定的名字有效，但没有A记录（只有MX记录的主机名就是这样的一个例子）
+
+如今多数解析器提供hstrerror函数，该函数以某个h_errno值作为唯一参数，返回一个指向相应错误说明的const char *指针
+
+### 2）gethostbyaddr函数
+
+该函数试图由一个二进制的IP地址找到相应的主机名，与gethostbyname的行为相反
+
+<div align="center"> <img src="../pic/unp-name-4.png"/> </div>
+
+* **addr**：实际上是一个指向存放IPv4地址的某个in_addr结构的指针
+* **len**：addr指向的in_addr结构的大小（对于IPv4地址为4）
+* **family**：AF_INET
+
+函数同样返回一个指向hostent结构的指针，但是不同于gethostbyname，这里我们感兴趣的通常是存放规范主机名的h_name字段
+
+## 2.服务名字与端口号之间的转换
+
+### 1）getservbyname函数
+
+从服务名字到端口的映射关系通常保存在**/etc/services**文件中，因此如果程序中使用服务名字而非端口号时，即使端口号发生变动，仅需修改这个文件，而不必重新编译应用程序
+
+<div align="center"> <img src="../pic/unp-name-5.png"/> </div>
+
+* **servname**：服务名参数，必须指定
+* **protoname**：协议，如果指定了，那么指定的服务必须有匹配的协议（如果protoname未指定而servname服务支持多个协议，那么返回哪个端口号取决于实现）
+
+函数成功时返回指向servent结构的指针：
+
+```c++
+struct servent{
+    char *s_name;       //规范服务名
+    char **s_aliases;   //服务别名
+    int s_port;         //服务对应的端口号（网络字节序）
+    char *s_proto;      //使用的协议
+};
+```
+
+### 2）getservbyport函数
+
+<div align="center"> <img src="../pic/unp-name-6.png"/> </div>
+
+* **port**：端口号，必须为网络字节序
+* **protoname**：指定协议（有些端口号在TCP上用于一种服务，在UDP上却用于完全不同的另一种服务）
+
+## 3.主机与服务名字转IP地址与端口号
+
+### getaddrinfo函数
+
+getaddrinfo与协议无关，并且能处理**名字到地址**、**服务到端口**这两种转换。返回的不再是地址列表，返回的addrinfo结构中包含了一个指向sockaddr结构的指针，这些sockaddr结构随后可由套接字函数直接使用，因此将协议相关性完全隐藏在函数的内部
+
+<div align="center"> <img src="../pic/unp-name-7.png"/> </div>
+
+* **hostname**：主机名或IP地址串
+* **service**：服务名或端口号数串
+* **hints**：可以是空指针。非空时指向的addrinfo结构包含了一些对期望返回的信息类型的限制
+* **result**：指向addrinfo结构的指针，**返回值**
+    * 如果与hostname参数关联的地址有多个，那么适用于所请求地址族的每个地址都返回一个对应的结构
+    * 如果service参数指定的服务支持多个套接字类型，那么每个套接字类型都可能返回一个对应的结构
+
+```c++
+//调用者可以通过hints设置的字段有：ai_flags、ai_family、ai_socktype、ai_protocol
+//如果hints参数是一个空指针，函数就假设ai_flags、ai_family、ai_socktype为0，ai_protocol为AF_UNSPEC
+struct addrinfo{
+    int ai_flags;               //0个或多个或在一起的AI_xxx值
+    int ai_family;              //某个AF_xxx值
+    int ai_socktype;            //某个SOCK_xxx值
+    int ai_protocol;            //0或IPPROTO_xxx
+    socklen_t ai_addrlen;       //ai_addr的长度
+    char *ai_canonname;         //指向规范主机名的指针
+    struct sockaddr *ai_addr;   //指向套接字地址结构的指针
+    struct addrinfo *ai_next;   //指向链表中下一个addrinfo结构的指针
+};
+
+//ai_flags成员可用的标志值及含义如下：
+AI_PASSIVE：套接字将用于被动打开
+AI_CANONNAME：告知getaddrinfo函数返回主机的规范名字
+AI_NUMERICHOST：防止任何类型的名字到地址映射，hostname参数必须是一个地址串
+AI_NUMERICSERV：防止任何类型的名字到服务映射，service参数必须是一个十进制端口号数串
+AI_V4MAPPED：如果同时指定ai_family的值为AF_INET6，那么如果没有可用的AAAA记录，就返回与A记录对应的IPv4映射的IPv6地址
+AI_ALL：如果同时指定了AI_V4MAPPED，那么返回与AAAA记录对应的IPv6地址、与A记录对于的IPv4映射的IPv6地址
+AI_ADDRCONFIG：按照所在主机的配置选择返回地址类型
+```
+
+如果函数成功，result指向的变量已被填入一个指针，指向的是由ai_next成员串起来的addrinfo结构链表（这些结构的先后顺序没有保证）：
+
+<div align="center"> <img src="../pic/unp-name-8.png"/> </div>
+
+常见的使用：
+
+* **TCP或UDP客户同时制定hostname和service**
+    - **TCP客户**在一个循环中针对每个返回的IP地址，逐一调用socket和connect，直到有一个连接成功，或者所有地址尝试完毕
+    - 对于**UDP客户**，由getaddrinfo填入的套接字地址结构用于调用sendto或connect。如果客户能够判断第一个地址看来不工作（或者在已连接的UDP套接字上收到出错消息，或者在未连接的套接字上经历消息接收超时），那么可以尝试其余地址
+* **典型的服务器只指定service而不指定hostname，同时在hints结构中指定AI_PASSIVE标志**。返回的套接字地址结构中应含有一个值为INADDR_ANY(对于IPv4)或IN6ADDR_ANY_INIT(对于IPv6)的IP地址
+    - 函数返回后，**TCP服务器**调用socket、bind和listen。如果服务器想要malloc另一个套接字地址结构以从accept获取客户的地址，那么返回的ai_addrlen值给出了这个套接字地址结构的大小
+    - **UDP服务器**将调用socket、bind和recvfrom。如果想要malloc另一个套接字地址结构以从recvfrom获取客户的地址，那么返回的ai_addrlen值给出了这个套接字地址结构的大小
+    - 以上假设服务器仅处理一个套接字，如果**使用select或poll让服务器处理多个套接字**，服务器将遍历由getaddrinfo返回的整个addrinfo结构链表，并为每个结构创建一个套接字，再使用select或poll
+
+如果**客户或服务器**清楚自己只处理一种类型的套接字，那么应该把hints结构的ai_socktype成员设置成SOCK_STREAM或SOCK_DGRAM
+
+> 尽管getaddrinfo函数确实比gethostbyname和getservbyname要“好”：1）能编写协议无关的代；2）单个函数能同时处理主机名和服务名；3）所有返回信息动态分配而非静态分配；但是它仍没有像期待的那样好用：必须先分配一个hints结构，把它清零后填写需要的字段，再调用getaddrinfo，然后遍历一个链表逐一尝试每个返回地址
+
+## 4.IP地址与端口号转主机与服务名字
+
+### getnameinfo函数
 
 <br>
 
