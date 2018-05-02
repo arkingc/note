@@ -897,13 +897,13 @@ Nagle算法常常与另一个TCP算法联合使用：**ACK延滞算法**，该�
 **名字与数值间进行转换**：
 
 * **主机名字与IP地址之间进行转换**（**协议相关**，只支持**IPv4**）：
-    - **主机名字转IP地址**：gethostbyname
-    - **IP地址转主机名字**：gethostbyaddr
+    - **主机名字转IP地址**：[gethostbyname](#1gethostbyname函数)
+    - **IP地址转主机名字**：[gethostbyaddr](#2gethostbyaddr函数)
 * **服务名字与端口号之间进行转换**：
-    - **服务名字**转**端口号**：getservbyname
-    - **端口号**转**服务名字**：getservbyport
-* **主机与服务名字**转**IP地址与端口号**（**协议无关**）：getaddrinfo
-* **IP地址与端口号**转**主机与服务名字**：getnameinfo
+    - **服务名字**转**端口号**：[getservbyname](#1getservbyname函数)
+    - **端口号**转**服务名字**：[getservbyport](#2getservbyport函数)
+* **主机与服务名字**转**IP地址与端口号**（**协议无关**）：[getaddrinfo](#getaddrinfo函数)
+* **IP地址与端口号**转**主机与服务名字**：[getnameinfo](#getnameinfo函数)
 
 ## 1.主机名字与IP地址之间的转换
 
