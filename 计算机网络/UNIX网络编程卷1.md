@@ -1045,6 +1045,20 @@ AI_ADDRCONFIG：按照所在主机的配置选择返回地址类型
 
 如果**客户或服务器**清楚自己只处理一种类型的套接字，那么应该把hints结构的ai_socktype成员设置成SOCK_STREAM或SOCK_DGRAM
 
+如果发生**错误**，函数getaddrinfo返回错误值，该值可以作为函数**gai_strerror()**的参数。调用gai_strerror函数可以得到一个描述错误信息的C字符串指针：
+
+<div align="center"> <img src="../pic/unp-name-9.png"/> </div>
+
+常见的错误说明如下表：
+
+<div align="center"> <img src="../pic/unp-name-10.png"/> </div>
+
+getaddrinfo函数返回的所有**存储空间都是动态获取**的，包括addrinfo结构、ai_addr结构和ai_canonname字符串，可以通过调用**freeaddrinfo**返**还给系统**：
+
+<div align="center"> <img src="../pic/unp-name-11.png"/> </div>
+
+* **ai**：指向由getaddrinfo返回的第一个addrinfo结构（这个链表中所有的结构以及由它们指向的任何动态存储空间都被释放掉）
+
 > 尽管getaddrinfo函数确实比gethostbyname和getservbyname要“好”：1）能编写协议无关的代；2）单个函数能同时处理主机名和服务名；3）所有返回信息动态分配而非静态分配；但是它仍没有像期待的那样好用：必须先分配一个hints结构，把它清零后填写需要的字段，再调用getaddrinfo，然后遍历一个链表逐一尝试每个返回地址
 
 ## 4.IP地址与端口号转主机与服务名字
