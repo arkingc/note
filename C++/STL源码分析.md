@@ -1,6 +1,18 @@
+* [一.简介](#一简介)
+    * [1.GNU源代码开发精神](#1gun源代码开放精神)
+    * [2.STL版本](#2stl版本)
+    * [3.SGI STL头文件分布](sgi-stl头文件分布)
+    * [4.STL六大部件](#4stl六大部件)
+* [二.空间分配器](#二空间分配器)
+    * [1.空间分配器的标准接口](#1空间分配器的标准接口)
+
+<br>
+<br>
+<br>
+
 # 一.简介
 
-## 1.GNU源代码开发精神
+## 1.GNU源代码开放精神
 
 全世界所有的STL实现版本，都源于Alexander Stepanov和Meng Lee完成的原始版本，这份原始版本有Hewlett-Packard Compant(惠普公司)拥有。没一个头文件都有一份声明，允许任何人任意运用、拷贝、修改、传播、贩卖这些代码，无需付费，唯一的条件是必须将声明置于使用者新开发的文件内
 
@@ -63,6 +75,8 @@
 * [组态8：__STL_MEMBER_TEMPLATES](stlbookcode/c1/1config8.cpp)
 * [组态10：__STL_LIMITED_DEFAULT_TEMPLATES](stlbookcode/c1/1config10.cpp)
 * [组态11：__STL_NON_TYPE_TMPL_PARAM_BUG](stlbookcode/c1/1config11.cpp)
+* [组态：__STL_EXPLICIT_FUNCTION_TMPL_ARGS](stlbookcode/c1/1config-null-template-arguments.cpp)（**bound friend templates**）
+* [组态：__STL_TEMPLATE_NULL](stlbookcode/c1/1config-template-exp-special.cpp)（**class template explicit specialization**）
 
 ## 4.STL六大部件
 
@@ -76,6 +90,8 @@
 * **迭代器**(Iterrators)
 * **适配器**(Adapters)
 * **仿函数**(Functors)
+
+<br>
 
 # 二.空间分配器
 
