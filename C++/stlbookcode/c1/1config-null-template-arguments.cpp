@@ -2,9 +2,9 @@
  <stl_config.h>定义__STL_NULL_TMPL_ARGS如下：
  
  * ifdef __STL_EXPLICIT_FUNCTION_TMPL_ARGS
- * 		define __STL_NULL_TMPL_ARGS <>
+ * 	define __STL_NULL_TMPL_ARGS <>
  * else
- * 		define __STL_NULL_TMPL_ARGS
+ * 	define __STL_NULL_TMPL_ARGS
  * endif
  
  这个组态常量常常出现在类似这样的场合（class template的friend函数声明）：
@@ -12,16 +12,16 @@
  * // in <stl_stack.h>
  * template <class T,class Sequence = deque<T> >
  * class stack{
- * 		friend bool operator== __STL_NULL_TMPL_ARGS (const stack &,const stack &);
- * 	 	friend bool operator< __STL_NULL_TMPL_ARGS (const stack &,const stack &);
+ * 	friend bool operator== __STL_NULL_TMPL_ARGS (const stack &,const stack &);
+ * 	friend bool operator< __STL_NULL_TMPL_ARGS (const stack &,const stack &);
  * };
 
  展开后就变成了：
 
  * template <class T,class Sequence = deque<T> >
  * class stack{
- * 		friend bool operator== <> (const stack &,const stack &);
- * 	 	friend bool operator< <> (const stack &,const stack &);
+ * 	friend bool operator== <> (const stack &,const stack &);
+ * 	friend bool operator< <> (const stack &,const stack &);
  * };
 
  这种奇特的语法是为了实现所谓的 bound friend templates，也就是说 class template

@@ -2,9 +2,9 @@
  <stl_config.h>定义__STL_TEMPLATE_NULL如下：
  
  * ifdef __STL_CLASS_PARTIAL_SPECIALIZATION
- * 		define __STL_TEMPLATE_NULL template<>
+ * 	define __STL_TEMPLATE_NULL template<>
  * else
- * 		define __STL_TEMPLATE_NULL
+ * 	define __STL_TEMPLATE_NULL
  * endif
  
  这个组态常量常常出现在类似这样的场合：

@@ -1,7 +1,7 @@
 * [一.简介](#一简介)
-    * [1.GNU源代码开发精神](#1gun源代码开放精神)
+    * [1.GNU源代码开发精神](#1gnu源代码开放精神)
     * [2.STL版本](#2stl版本)
-    * [3.SGI STL头文件分布](sgi-stl头文件分布)
+    * [3.SGI STL头文件分布](#3sgi-stl头文件分布)
     * [4.STL六大部件](#4stl六大部件)
 * [二.空间分配器](#二空间分配器)
     * [1.空间分配器的标准接口](#1空间分配器的标准接口)
@@ -112,7 +112,7 @@ allocator::const_reference
 allocator::size_type
 allocator::difference_type
 
-//一个嵌套的class template，class rebind<U> 用于唯一成员pther,是一个typedef，代表allocator<U> 
+//一个嵌套的class template，class rebind<U> 拥有唯一成员other,是一个typedef，代表allocator<U> 
 allocator::rebind
 
 //构造函数
