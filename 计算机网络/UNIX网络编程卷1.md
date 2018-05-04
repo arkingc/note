@@ -37,6 +37,7 @@
     * [2.服务名字与端口号之间的转换](#2服务名字与端口号之间的转换)
     * [3.主机与服务名字转IP地址与端口号](#3主机与服务名字转ip地址与端口号)
     * [4.IP地址与端口号转主机与服务名字](#4ip地址与端口号转主机与服务名字)
+    * [5.其它网络相关信息](#5其它网络相关信息)
 * [附1.回射服务器程序](#附1回射服务器程序)
     * [1.TCP回射服务器程序](#1tcp回射服务器程序)
     * [2.UDP回射服务器程序](#2udp回射服务器程序) 
@@ -44,7 +45,6 @@
     * [1.类型与头文件映射表](#1类型与头文件映射表)
     * [2.函数与头文件映射表](#2函数与头文件映射表)
 <!-- GFM-TOC -->
-
 
 <br>
 <br>
@@ -198,7 +198,7 @@ uint32_t ntohl(uint32_t net32bitvalue);
 
 ### 2.4 地址转换
 
-有两组函数可以完成**ASCII字符串与网络字节序的二进制值之间网际地址的转换**：
+有两组函数可以完成**ASCII字符串与网络字节序的二进制值之间的转换**：
 
 ```c
 #include<arpa/inet.h>
@@ -902,7 +902,15 @@ Nagle算法常常与另一个TCP算法联合使用：**ACK延滞算法**，该�
 * **服务名字与端口号之间进行转换**：
     - **服务名字**转**端口号**：[getservbyname](#1getservbyname函数)
     - **端口号**转**服务名字**：[getservbyport](#2getservbyport函数)
-* **主机与服务名字**转**IP地址与端口号**（**协议无关**）：[getaddrinfo](#getaddrinfo函数)
+* **主机与服务名字**转**IP地址与端口号**：
+    - [getaddrinfo](#getaddrinfo函数)（**协议无关**）
+    - [getaddrinfo的封装函数]
+        + [host_serv](#2host_servbyname函数)
+        + [tcp_connect](#3tcp_connect函数)
+        + [tcp_listen](#4tcp_listen函数)
+        + [udp_client](#5udp_client函数)
+        + [udp_connect](#6udp_connect函数)
+        + [udp_server](#7udp_server函数)
 * **IP地址与端口号**转**主机与服务名字**：[getnameinfo](#getnameinfo函数)
 
 ## 1.主机名字与IP地址之间的转换
@@ -992,7 +1000,7 @@ struct servent{
 
 ## 3.主机与服务名字转IP地址与端口号
 
-### getaddrinfo函数
+### 1）getaddrinfo函数
 
 getaddrinfo与协议无关，并且能处理**名字到地址**、**服务到端口**这两种转换。返回的不再是地址列表，返回的addrinfo结构中包含了一个指向sockaddr结构的指针，这些sockaddr结构随后可由套接字函数直接使用，因此将协议相关性完全隐藏在函数的内部
 
@@ -1061,9 +1069,98 @@ getaddrinfo函数返回的所有**存储空间都是动态获取**的，包括ad
 
 > 尽管getaddrinfo函数确实比gethostbyname和getservbyname要“好”：1）能编写协议无关的代；2）单个函数能同时处理主机名和服务名；3）所有返回信息动态分配而非静态分配；但是它仍没有像期待的那样好用：必须先分配一个hints结构，把它清零后填写需要的字段，再调用getaddrinfo，然后遍历一个链表逐一尝试每个返回地址
 
+### 2）host_serv函数
+
+host_serv封装了函数getaddrinfo，不要求调用者分配并填写一个hints结构，该结构中的**地址族**和**套接字类型**字段作为参数：
+
+<div align="center"> <img src="../pic/unp-name-12.png"/> </div>
+
+[函数源码](https://github.com/arkingc/unpv13e/blob/master/lib/host_serv.c#L4)
+
+### 3）tcp_connect函数
+
+tcp_connect执行TCP客户的通常步骤：创建一个TCP套接字并连接到一个服务器
+
+<div align="center"> <img src="../pic/unp-name-13.png"/> </div>
+
+[函数源代码](https://github.com/arkingc/unpv13e/blob/master/lib/tcp_connect.c#L5)
+
+[时间获取程序——使用tcp_connect的客户端](https://github.com/arkingc/unpv13e/blob/master/names/daytimetcpcli.c)
+
+### 4）tcp_listen函数
+
+tcp_listen执行TCP服务器的通常步骤：创建一个TCP套接字，给它捆绑服务器的众所周知的端口，并允许接受外来的连接请求：
+
+<div align="center"> <img src="../pic/unp-name-14.png"/> </div>
+
+[函数源代码](https://github.com/arkingc/unpv13e/blob/master/lib/tcp_listen.c#L5)
+
+* [时间获取程序——使用tcp_listen的服务器](https://github.com/arkingc/unpv13e/blob/master/names/daytimetcpsrv1.c)（不可指定协议）
+* [时间获取程序——使用tcp_listen的服务器](https://github.com/arkingc/unpv13e/blob/master/names/daytimetcpsrv2.c)（可指定协议）
+
+### 5）udp_client函数
+
+创建未连接UDP套接字：
+
+<div align="center"> <img src="../pic/unp-name-15.png"/> </div>
+
+* **saptr**：指向的套接字地址结构保存有服务器的IP地址和端口号，用于稍后调用sendto
+* **lenp**：saptr所指的套接字地址结构的大小。不能为空指针，因为任何sendto和recvfrom调用都需要知道套接字地址结构的长度
+
+[函数源代码](https://github.com/arkingc/unpv13e/blob/master/lib/udp_client.c#L5)
+
+[时间获取程序——使用udp_client的客户端](https://github.com/arkingc/unpv13e/blob/master/names/daytimeudpcli1.c)（可指定协议）
+
+### 6）udp_connect函数
+
+创建一个已连接UDP套接字：
+
+<div align="center"> <img src="../pic/unp-name-16.png"/> </div>
+
+因为已连接套接字改用write代替sendto，所以相比于udp_client，省略了套接字地址结构及长度参数
+
+[函数源代码](https://github.com/arkingc/unpv13e/blob/master/lib/udp_connect.c#L5)
+
+### 7）udp_server函数
+
+<div align="center"> <img src="../pic/unp-name-17.png"/> </div>
+
+[时间获取程序——使用udp_server的服务器](https://github.com/arkingc/unpv13e/blob/master/names/daytimeudpsrv2.c)（可指定协议）
+
 ## 4.IP地址与端口号转主机与服务名字
 
 ### getnameinfo函数
+
+getaddrinfo的互补函数
+
+<div align="center"> <img src="../pic/unp-name-18.png"/> </div>
+
+* **sockaddr**：指向套接字地址结构，包含了待转换为可读字符串的协议地址
+* **addrlen**：sockaddr指向的套接字地址结构的大小
+* **host**：指向存储转换得到的”主机名“信息的buf（调用者预先分配）
+* **hostlen**：host指向的buf的大小（不想获得”主机名“信息则设为0）
+* **serv**：指向存储转换得到的”服务名“信息的buf（调用者预先分配）
+* **servlen**：serv指向的buf的大小（不想获得”服务名“信息则设为0）
+* **flags**：标志，见下表
+
+<div align="center"> <img src="../pic/unp-name-19.png"/> </div>
+
+> getnameinfo和sock_ntop的差别在于：sock_ntop不涉及DNS
+
+## 5.其它网络相关信息
+
+应用进程可能想要查找4类与网络相关的信息：**主机**、**网络**、**协议**、**服务**。大多数查找针对的是主机，一小部分查找针对的是服务，更小一部分查找针对的是网络和协议。所有4类信息都可以放在一个文件中，每类信息各定义有3个访问函数：
+
+1. 函数getXXXent读出文件中的下一个表项，必要的话首先打开文件
+2. 函数setXXXent打开（如果尚未打开的话）并回绕文件
+3. 函数endXXXent关闭文件
+
+每类信息都定义了各自的结构：hostent、netent、protoent、servent。这些结构定义在头文件<netdb.h>中
+
+<div align="center"> <img src="../pic/unp-name-20.png"/> </div>
+
+* **只有主机和网络信息可通过DNS获取**，协议和服务信息总是从相应文件中读取
+* 如果使用DNS查找主机和网络信息，只有键值查找函数才有意义。如果调用gethostent，那么它仅仅读取/etc/hosts文件并避免访问DNS
 
 <br>
 
@@ -1387,7 +1484,7 @@ getaddrinfo函数返回的所有**存储空间都是动态获取**的，包括ad
     <td> <b>端口号转服务名字</b> </td>
 </tr>
 <tr>
-    <td> <a href="#getaddrinfo函数">getaddrinfo</a> </td>
+    <td> <a href="#1getaddrinfo函数">getaddrinfo</a> </td>
     <td> <b>主机与服务名字转IP地址与端口号</b> </td>
 </tr>
 <tr>
