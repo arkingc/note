@@ -1370,7 +1370,7 @@ getaddrinfo函数返回的所有**存储空间都是动态获取**的，包括ad
 
 <tr>
     <td rowspan="6"> <b>名字与数值转换</b> </td>
-    <td rowspan="2"> &lt;netdb.h&gt; </td>
+    <td rowspan="6"> &lt;netdb.h&gt; </td>
     <td> <a href="#1gethostbyname函数">gethostbyname</a> </td>
     <td> <b>主机名字转IP地址(只支持IPv4)</b> </td>
 </tr>
