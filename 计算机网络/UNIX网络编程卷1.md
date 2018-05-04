@@ -903,9 +903,9 @@ Nagle算法常常与另一个TCP算法联合使用：**ACK延滞算法**，该�
     - **服务名字**转**端口号**：[getservbyname](#1getservbyname函数)
     - **端口号**转**服务名字**：[getservbyport](#2getservbyport函数)
 * **主机与服务名字**转**IP地址与端口号**：
-    - [getaddrinfo](#getaddrinfo函数)（**协议无关**）
-    - [getaddrinfo的封装函数]
-        + [host_serv](#2host_servbyname函数)
+    - [getaddrinfo](#1getaddrinfo函数)（**协议无关**）
+    - getaddrinfo的封装函数:
+        + [host_serv](#2host_serv函数)
         + [tcp_connect](#3tcp_connect函数)
         + [tcp_listen](#4tcp_listen函数)
         + [udp_client](#5udp_client函数)
