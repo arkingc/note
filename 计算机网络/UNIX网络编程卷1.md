@@ -1333,10 +1333,12 @@ getaddrinfo函数返回的所有**存储空间都是动态获取**的，包括ad
     <td> <b>sendto</b> </td>
 </tr>
 <tr>
-    <td> <b>getsockname</b> </td>
+    <td> <a href="#7getsockname和getpeername函数">getsockname</a> </td>
+    <td> <b>根据套接字获取本地协议地址</b> </td>
 </tr>
 <tr>
     <td> <b>getpeername</b> </td>
+    <td> <b>根据套接字获取外地协议地址</b> </td>
 </tr>
 <tr>
     <td rowspan="1"> &lt;unistd.h&gt; </td>
