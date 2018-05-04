@@ -32,7 +32,7 @@
     * [2.套接字选项分类](#2套接字选项分类)
         * [2.1 通用套接字选项](#21-通用套接字选项)
         * [2.2 TCP套接字选项](#22-tcp套接字选项)
-* [六.名字与地址转换](#六名字与地址转换)
+* [六.名字与数值转换](#六名字与数值转换)
     * [1.主机名字与IP地址之间的转换](#1主机名字与ip地址之间的转换)
     * [2.服务名字与端口号之间的转换](#2服务名字与端口号之间的转换)
     * [3.主机与服务名字转IP地址与端口号](#3主机与服务名字转ip地址与端口号)
@@ -892,7 +892,7 @@ Nagle算法常常与另一个TCP算法联合使用：**ACK延滞算法**，该�
 
 <br>
 
-# 六.名字与地址转换
+# 六.名字与数值转换
 
 **名字与数值间进行转换**：
 
@@ -1312,37 +1312,37 @@ getaddrinfo函数返回的所有**存储空间都是动态获取**的，包括ad
 <tr>
     <td rowspan="10"> <b>基本套接字编程</b> </td>
     <td rowspan="9"> &lt;sys/socket.h&gt; </td>
-    <td> <b>socket</b> </td>
+    <td> <a href="#1socket函数">socket</a> </td>
 </tr>
 <tr>
-    <td> <b>connect</b> </td>
+    <td> <a href="#2connect函数">connect</a> </td>
 </tr>
 <tr>
-    <td> <b>bind</b> </td>
+    <td> <a href="#3bind函数">bind</a> </td>
 </tr>
 <tr>
-    <td> <b>listen</b> </td>
+    <td> <a href="#4listen函数">listen</a> </td>
 </tr>
 <tr>
-    <td> <b>accept</b> </td>
+    <td> <a href="#5accept函数">accept</a> </td>
 </tr>
 <tr>
-    <td> <b>recvfrom</b> </td>
+    <td> <a href="#1recvfrom与sendto函数">recvfrom</a> </td>
 </tr>
 <tr>
-    <td> <b>sendto</b> </td>
+    <td> <a href="#1recvfrom与sendto函数">sendto</a> </td>
 </tr>
 <tr>
     <td> <a href="#7getsockname和getpeername函数">getsockname</a> </td>
     <td> <b>根据套接字获取本地协议地址</b> </td>
 </tr>
 <tr>
-    <td> <b>getpeername</b> </td>
+    <td> <a href="#7getsockname和getpeername函数">getpeername</a> </td>
     <td> <b>根据套接字获取外地协议地址</b> </td>
 </tr>
 <tr>
     <td rowspan="1"> &lt;unistd.h&gt; </td>
-    <td> <b>close</b> </td>
+    <td> <a href="#6close函数">close</a> </td>
 </tr>
 
 <tr>
@@ -1366,5 +1366,32 @@ getaddrinfo函数返回的所有**存储空间都是动态获取**的，包括ad
 </tr>
 <tr>
     <td> <b>epoll_wait</b> </td>
+</tr>
+
+<tr>
+    <td rowspan="6"> <b>名字与数值转换</b> </td>
+    <td rowspan="2"> &lt;netdb.h&gt; </td>
+    <td> <a href="#1gethostbyname函数">gethostbyname</a> </td>
+    <td> <b>主机名字转IP地址(只支持IPv4)</b> </td>
+</tr>
+<tr>
+    <td> <a href="#2gethostbyaddr函数">gethostbyaddr</a> </td>
+    <td> <b>IP地址转主机名字(只支持IPv4)</b> </td>
+</tr>
+<tr>
+    <td> <a href="#1getservbyname函数">getservbyname</a> </td>
+    <td> <b>服务名字转端口号</b> </td>
+</tr>
+<tr>
+    <td> <a href="#2getservbyport函数">getservbyport</a> </td>
+    <td> <b>端口号转服务名字</b> </td>
+</tr>
+<tr>
+    <td> <a href="#getaddrinfo函数">getaddrinfo</a> </td>
+    <td> <b>主机与服务名字转IP地址与端口号</b> </td>
+</tr>
+<tr>
+    <td> <a href="#getnameinfo函数">getnameinfo</a> </td>
+    <td> <b>IP地址与端口号转主机与服务名字</b> </td>
 </tr>
 </table>
