@@ -1,3 +1,5 @@
+## 第一部分 基本套接字编程
+
 <!-- GFM-TOC -->
 * [一.套接字编程简介](#一套接字编程简介)
     * [1.端口号与套接字](#1端口号与套接字)
@@ -45,6 +47,10 @@
     * [1.类型与头文件映射表](#1类型与头文件映射表)
     * [2.函数与头文件映射表](#2函数与头文件映射表)
 <!-- GFM-TOC -->
+
+## 第二部分 高级套接字编程
+
+
 
 <br>
 <br>
@@ -1492,3 +1498,31 @@ getaddrinfo的互补函数
     <td> <b>IP地址与端口号转主机与服务名字</b> </td>
 </tr>
 </table>
+
+# 七.高级I/O函数
+
+## 1.套接字超时
+
+套接字I/O操作上设置超时的方法有3种：
+
+1. 调用alarm，它再指定超时期满时产生SIGALRM信号。**但**涉及信号处理，信号处理在不同实现上存在差异，而且可能干扰进程中现有的alarm信号（**适用于任何描述符**）
+2. 在select中阻塞等待I/O，以此替代直接阻塞在read或write调用上（**适用于任何描述符**）
+3. 使用较新的SO_RCVTIMEO和SO_SNDTIMEO套接字选项。**但**并非所有实现都支持这两个套接字选项（**仅使用于套接字描述符**）
+    * SO_RCVTIMEO仅应用于(该描述符上的所有)读操作
+    * SO_SNDTIMEO仅应用于(该描述符上的所有)写操作
+
+上述3个技术都适用于输入和输出操作（read、write、recvfrom、sendto等）。但是对于connect（connect的**内置超时相当长，典型值为75s**）：
+
+* [alarm可以为connect设置超时](https://github.com/arkingc/unpv13e/blob/master/lib/connect_timeo.c#L7)，但：
+    - 总能减少connect的超时期限，但是无法延长内核现有的超时期限（比如能比75小，但是不能更大）
+    - 使用了系统调用的可中断能力，使得它们能够在内核超时发生之前返回，前提是：执行的是系统调用，并且能够直接处理由它们返回的EINTR错误
+    - 在多线程中正确使用信号非常困难
+* select用来在connect上设置超时的先决条件是相应套接字处于非阻塞模式
+* 3中的两个套接字选项对connect不适用
+
+使用3种套接字超时技术处理UDP客户端永久阻塞于recvfrom的问题：
+
+* [使用SIGALRM为recvfrom设置超时](https://github.com/arkingc/unpv13e/blob/master/advio/dgclitimeo3.c#L6)
+* [使用select为recvfrom设置超时](https://github.com/arkingc/unpv13e/blob/master/advio/dgclitimeo1.c#L4)（[readable_timeo函数](https://github.com/arkingc/unpv13e/blob/master/lib/readable_timeo.c#L5)）
+* [使用SO_RCVTIMEO套接字选项为recvfrom设置超时](https://github.com/arkingc/unpv13e/blob/master/advio/dgclitimeo2.c#L4)
+
