@@ -50,8 +50,11 @@
 
 ## 第二部分 高级套接字编程
 
-* [七.高级I/O函数](#七高级i/o函数)
+* [七.高级I/O函数](#七高级io函数)
     * [1.套接字超时](#1套接字超时) 
+    * [2.排队的数据量](#2排队的数据量)
+    * [3.Unix I/O函数](#3unix-io函数)
+    * [4.标准I/O函数](#4标准io函数)
 
 <br>
 <br>
@@ -1499,11 +1502,37 @@ getaddrinfo的互补函数
     <td> <a href="#getnameinfo函数">getnameinfo</a> </td>
     <td> <b>IP地址与端口号转主机与服务名字</b> </td>
 </tr>
+
+<tr>
+    <td rowspan="6"> <b>高级I/O函数</b> </td>
+    <td rowspan="4"> &lt;sys/socket.h&gt; </td>
+    <td> <a href="#1recv和send函数">recv</a> </td>
+</tr>
+<tr>
+    <td> <a href="#1recv和send函数">send</a> </td>
+</tr>
+<tr>
+    <td> <a href="#3recvmsg和sendmsg函数">recvmsg</a> </td>
+</tr>
+<tr>
+    <td> <a href="#3recvmsg和sendmsg函数">sendmsg</a> </td>
+</tr>
+<tr>
+    <td rowspan="2"> &lt;sys/uio.h&gt; </td>
+    <td> <a href="#2readv和writev函数">readv</a> </td>
+</tr>
+<tr>
+    <td> <a href="#2readv和writev函数">writev</a> </td>
+</tr>
 </table>
 
 <br>
 
 # 七.高级I/O函数
+
+下图汇总5组I/O函数进行了汇总：
+
+<div align="center"> <img src="../pic/unp-io-8.png"/> </div>
 
 ## 1.套接字超时
 
@@ -1530,3 +1559,144 @@ getaddrinfo的互补函数
 * [使用select为recvfrom设置超时](https://github.com/arkingc/unpv13e/blob/master/advio/dgclitimeo1.c#L4)（[readable_timeo函数](https://github.com/arkingc/unpv13e/blob/master/lib/readable_timeo.c#L5)）
 * [使用SO_RCVTIMEO套接字选项为recvfrom设置超时](https://github.com/arkingc/unpv13e/blob/master/advio/dgclitimeo2.c#L4)
 
+## 2.排队的数据量
+
+有时我们想要在不真正读取数据的前提下知道一个套接字上已有多少数据排队等着读取。**有3个技术可用于获悉已排队的数据量**：
+
+1. 如果获悉已排队数据量的目的在于避免读操作阻塞在内核中（因为没有数据可读时我们还有其它事情可做），那么**可以使用非阻塞式I/O**
+2. 如果既想查看数据，又想数据仍留在接收队列中以供本进程其它部分稍后读取，可以使用[MSG_PEEK标志](#1recv和send函数)。如果想这样做，但是不能肯定是否真有数据可读，那么可以结合非阻塞套接字使用该标志，也可以组合使用MSG_DONTWAIT标志和MSG_PEEK标志
+    * 就一个字节流套接字而言，其接受队列中的数据量可能在两次相继的recv调用之间发生变化
+    * 就一个UDP套接字而言，即使另有数据报在两次调用之间加入接收队列，两个调用的返回值也完全相同（假设没有其他进程共享该套接字并从中读取数据）
+3. 一些支持ioctl的FIONREAD命令。该命令的第3个ioctl参数是指向某个整数的一个指针，内核通过该整数返回的值就是套接字接收队列的当前字节数
+
+## 3.Unix I/O函数
+
+这部分介绍的函数称为Unix I/O。它们围绕描述符工作，**通常作为Unix内核中的系统调用实现**
+
+### 1）recv和send函数
+
+这两个函数与标准的read和write的不同在于第4个参数：
+
+<div align="center"> <img src="../pic/unp-io-1.png"/> </div>
+
+* **flag**：或为0或为下图中一个或多个常值的逻辑或：
+
+<div align="center"> <img src="../pic/unp-io-2.png"/> </div>
+
+* **MSG_DONTROUTE**：告知内核目的主机在某个直接连接的本地网络上，因而无需执行路由表查找
+* **MSG_DONTWAIT**：在无需打开相应套接字的非阻塞标准下，把单个I/O操作临时指定为非阻塞
+* **MSG_PEEK**：允许我们查看已经可读取的数据，而且系统不在recv或recvfrom返回后丢弃这些数据
+* **MSG_WAITALL**：告知内核不要在尚未读入请求数目的字节之前让一个读操作返回（**即使指定了这个标志，如果发生：a）捕获一个信号；b）连接被终止；c）套接字发生一个错误；那么相应的读函数仍有可能返回比所请求字节数要少的数据**）
+
+**flags参数在设计上存在一个基本问题：它是值传递的，而不是一个值-结构参数。因此它只能用于从进程向内核传递标志。内核无法向进程传递标志**。对于TCP/IP协议这一点不成问题，因为TCP/IP几乎从不需要从内核向进程传回标志。然而随着OSI协议被加到4.3BSD Reno中，却提出了随输入操作向进程返送MSG_EOR标志的需求。4.3BSD Reno做出的决定是保持常用输入函数(recv和recvfrom)的参数不变，而改变recvmsg和sendmsg的msghdr结构。这个决定同时意味着如果一个进程需要由内核更新标志，它就必须调用recvmsg，而不是recv或recvfrom
+
+### 2）readv和writev函数
+
+与标准的read和write不同在于：readv和writev允许单个系统调用读入到或写出自一个或多个缓冲区，这些操作分别称为**分散读**和**集中写**，因为来自读操作的输入数据被分散到多个应用缓冲区中，而来自多个应用缓冲区的输出数据则被集中提供给单个写操作：
+
+<div align="center"> <img src="../pic/unp-io-3.png"/> </div>
+
+* **iov**：指向某个iovec结构数组的一个指针，iovec结构定义在<sys/uio.h>中：
+
+```c++
+struct iovec{
+    void *iov_base; //buf的起始地址
+    size_t iov_len; //buf的大小
+};
+```
+
+**iovec结构数组中元素的个数存在某个限制，取决于具体实现**。4.3BSD和Linux均最多允许1024个，而HP-UX最多允许2100个。**POSIX要求在头文件<sys/uio.h>中定义IOV_MAX常值，其值至少为16**
+
+**这两个函数可用于任何描述符，writev是一个原子操作**
+
+### 3）recvmsg和sendmsg函数
+
+这两个函数是最通用的I/O函数
+
+<div align="center"> <img src="../pic/unp-io-4.png"/> </div>
+
+* **msg**：指向一个msghdr结构，这个结构封装了大部分参数：
+
+```c++
+struct msghdr{
+    /*************************************************************************
+     * msg_name和msg_namelen用于套接字未连接的场合（譬如UDP套接字）。它们类似recvfrom
+     * 和sendto的第5个和第6个参数：msg_name指向一个套接字地址结构，调用者在其中存放接收者
+     * 或发送者的协议地址
+     * 如果无需指明协议地址（TCP或已连接UDP套接字）。msg_name应置为空指针
+     * namelen对于sendmsg是一个值参数，对于recvmsg却是一个值-结果参数
+     *************************************************************************/
+    void *msg_name;             /*protocol address*/
+    socklen_t msg_namelen;      /*size of protocol address*/
+    /*************************************************************************
+     * msg_iov和msg_iovlen指定输入或输出缓冲区数组，类似readv或writev的第二个和
+     * 第3个参数
+     *************************************************************************/
+    struct iovec *msg_iov;      /*scatter/gather array*/
+    int msg_iovlen;             /*elements int msg_iov*/
+    /*************************************************************************
+     * msg_control和msg_controllen指定可选的辅助数据(控制信息)的位置和大小
+     * msg_controllen对于recvmsg是一个值-结果参数
+     *************************************************************************/
+    void *msg_control;          /*ancillary data (cmsghdr struct)*/
+    socklen_t msg_controllen;   /*length of ancillary data*/
+    int msg_flags;              /*flags returned by recvmsg()*/
+};
+```
+
+对于recvmsg和sendmsg，必须区别它们的两个标志变量：flags和msghdr结构的msg_flags成员
+
+* 只有recvmsg使用msg_flags成员。recvmsg被调用时，flags参数被复制到msg_flags成员
+* sendmsg则忽略msg_flags成员，因为它直接使用flags参数驱动发送处理过程
+
+下表汇总了内核为输入和输出函数检查的flags参数值以及recvmsg可能返回的msg_flags：
+
+<div align="center"> <img src="../pic/unp-io-5.jpeg"/> </div>
+
+msghdr结构中的msg_control字段指向一个**辅助数据**，**辅助数据由一个或多个辅助数据对象构成。每个辅助数据对象用一个cmsghdr结构表示**，msg_control指向第一个辅助数据对象，msg_controllen指定了辅助数据(即所以辅助数据对象)的总长度，cmsg_len是包括这个结构在内的字节数：
+
+<div align="center"> <img src="../pic/unp-io-9.png"/> </div>
+
+cmsg_level和cmsg_type的取值和说明如下表：
+
+<div align="center"> <img src="../pic/unp-io-10.png"/> </div>
+
+下面5个宏可以对应用程序屏蔽可能出现的填充字节，以简化对辅助数据的处理：
+
+<div align="center"> <img src="../pic/unp-io-11.png"/> </div>
+
+下面以一个例子说明msghdr结构：
+
+* 假设进程即将对一个UDP套接字调用recvmsg，在调用前为这个套接字设置了IP_RECVDSTADDR套接字选项，以接收所读取UDP数据报的目的IP地址。调用时，msghdr结构如下
+
+<div align="center"> <img src="../pic/unp-io-6.png"/> </div>
+
+* 接着假设从198.6.38.100端口2000到达一个170字节的UDP数据报，它的目的地址是我们的UDP套接字，目的IP地址为206.168.112.96。recvfrom返回时，msghdr结构如下：
+
+<div align="center"> <img src="../pic/unp-io-7.png"/> </div>
+
+## 4.标准I/O函数
+
+执行I/O的另一个方法是使用标准I/O函数库，这个函数库由ANSI C标准规范，意在便于移植到支持ANSI C的非Unix系统上。标准I/O函数库处理直接使用Unix I/O函数时必须考虑的一些细节，譬如自动缓冲输入流和输出流。不幸的是，对于流的缓冲处理可能导致同样必须考虑的一组新的问题
+
+标准I/O函数库可用于套接字，不过需要考虑以下几点：
+
+* 通过调用fdopen，可以从任何一个描述符创建出一个标准I/O流。类似地，通过调用fileno，可以获取一个给定标准I/O流对应的描述符
+* TCP和UDP套接字是全双工的。标准I/O流也可以是全双工的：只要以r+类型(读写)打开流即可，但是在这样的流上：
+    * 必须在调用一个**输出函数**之后，插入一个fflush、fseek、fsetpos或rewind调用才能接着调用一个**输入函数**
+    * 必须在调用一个**输入函数**之后，插入一个fflush、fseek、fsetpos或rewind调用才能接着调用一个**输出函数**，除非输入函数遇到一个EOF
+    * 但是，fflush、fseek、fsetpos函数都调用lseek，而lseek用在套接字上只会失败
+
+解决上述全双工问题的最简单方法是为一个给定套接字打开两个标准I/O流：一个用于读，一个用于写。但是**存在缓冲区问题**（[使用这种方式改写的str_echo函数](https://github.com/arkingc/unpv13e/blob/master/advio/str_echo_stdio02.c#L4)）
+
+**标准I/O函数库执行以下3类缓冲**：
+
+1. **完全缓冲**：意味着只在出现下列情况时才发生I/O：**缓冲区满**、**进程显示调用fflush**、**进程调用exit终止自身**
+2. **行缓冲**：意味着只在出现下列情况时才发生I/O：**碰到一个换行符**、**进程调用fflush**、**进程调用exit终止自身**
+3. **不缓冲**：意味着**每次调用标准I/O输出函数都发生I/O**
+
+标准I/O函数库的大多数Unix实现使用如下规则：
+
+* **标准错误**输出总是**不缓冲**
+* **标准输入**和**标准输出完全缓冲**，除非他们**指代终端设备**（这种情况下**行缓冲**）
+* 所有**其他I/O流**都是**完全缓冲**，除非他们**指代终端设备**（这种情况下**行缓冲**）
