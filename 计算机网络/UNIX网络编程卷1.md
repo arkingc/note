@@ -55,6 +55,10 @@
     * [2.排队的数据量](#2排队的数据量)
     * [3.Unix I/O函数](#3unix-io函数)
     * [4.标准I/O函数](#4标准io函数)
+* [八.Unix域协议](#八unix域协议)
+    * [1.Unix域套接字地址结构](#1unix域套接字地址结构)
+    * [2.相关函数](#2相关函数)
+    * [3.描述符传递](#3描述符传递)
 
 <br>
 <br>
@@ -1700,3 +1704,93 @@ cmsg_level和cmsg_type的取值和说明如下表：
 * **标准错误**输出总是**不缓冲**
 * **标准输入**和**标准输出完全缓冲**，除非他们**指代终端设备**（这种情况下**行缓冲**）
 * 所有**其他I/O流**都是**完全缓冲**，除非他们**指代终端设备**（这种情况下**行缓冲**）
+
+<br>
+
+# 八.Unix域协议
+
+Unix域协议并不是一个实际的协议族，而是在**单个主机上**执行客户/服务器通信的一种方法
+
+Unix域提**供两类套接字**：字节流套接字(类似TCP)、数据报套接字(类似UDP)
+
+使用Unix域套接字有以下**3个理由**：
+
+1. Unix域套接字往往比通信两端位于同一主机的TCP套接字快出一倍
+2. Unix域套接字可用于在同一主机上的不同进程之间传递描述符
+3. Unix域套接字较新的实现把客户的凭证(用户IP和组ID)提供给服务器，从而能够提供额外的安全检查措施
+
+## 1.Unix域套接字地址结构
+
+定义在头文件<sys/un.h>中：
+
+```c++
+struct sockaddr_un{
+    sa_family_t sun_family;     /*AF_LOCAL*/
+    char sun_path[104];         /*null-terminated pathname*/
+};
+```
+
+Unix域中用于标识客户和服务器的协议地址是普通文件系统中的路径名。这些路径名不是普通Unix文件：除非把它们和Unix域套接字关联起来，否则无法读写这些文件
+
+sun_path数组中的路径名必须以空字符结尾。未指定地址以空字符串作为路径名指示（即sun_path[0]值为0的地址结构），它等价于IPv4的INADDR_ANY常值和IPv6的IN6ADDR_ANY_INIT常值
+
+SUN_LEN宏以一个指向sockaddr_un结构的指针为参数并返回该结构的长度，其中包括路径名中非空字节数
+
+[Unix域套接字bind一个路径名](https://github.com/arkingc/unpv13e/blob/master/unixdomain/unixbind.c)
+
+## 2.相关函数
+
+### 1）socketpair函数
+
+socketpair函数创建2个随后连接起来的套接字：
+
+<div align="center"> <img src="../pic/unp-domain-1.png"/> </div>
+
+* **family**：必须为AF_LOCAL
+* **type**：既可以是SOCK_STREAM，也可以是SOCK_DGRAM（使用SOCK_STREAM得到的结果称为流管道，它是全双工的）
+* **protocol**：必须为0
+* **sockfd**：新创建的两个套接字描述符作为sockfd[0]和sockfd[1]返回（这样创建的2个套接字不曾命名，也就是说其中没有涉及隐式的bind调用）
+
+### 2）其它
+
+用于Unix域套接字时，套接字函数中存在一些差异和限制。尽量列出POSIX的要求，并指出并非所有实现目前都已达到这个级别：
+
+1. 由bind创建的路径名默认**访问权限**应为0777，并按当前umask值进行修正
+2. 与Unix域套接字关联的**路径名**应该是一个绝对路径，而不是一个相对路径
+3. 在connect调用中指定的路径名必须是一个当前绑定在某个打开的Unix域套接字上的路径名，而且它们的套接字类型也必须一致。出错条件包括：
+    * 该路径名已存在却不是一个套接字
+    * 该路径名已存在且是一个套接字，不过没有与之关联的打开的描述符
+    * 该路径名已存在且是一个打开的套接字，不过类型不符
+4. 调用connect连接一个Unix域套接字涉及的权限测试等同于调用open以只写方式访问相应的路径名
+5. Unix域字节流套接字类似TCP套接字：它们都为进程提供一个无记录边界的字节流接口
+6. 如果对于某个Unix域字节流套接字的connect调用发现这个监听套接字的队列已满，调用就立即返回一个ECONNREFUSED错误（对于TCP，监听套接字会忽略新到达的SYN，而TCP连接发起端将数次发送SYN进行重试）
+7. Unix域数据报套接字类似于UDP套接字：都提供一个保留记录边界的不可靠的数据报服务
+8. 在一个未绑定的Unix域套接字上发送数据报不会自动给这个套接字捆绑一个路径名（在一个未绑定的UDP套接字上发送UDP数据报导致给这个套接字捆绑一个临时端口）。类似的，对于某个Unix域数据报套接字的connect调用不会给本套接字捆绑一个路径名
+
+* [Unix域字节流协议的回射服务器](https://github.com/arkingc/unpv13e/blob/master/unixdomain/unixstrserv01.c)
+* [Unix域字节流协议的回射客户端](https://github.com/arkingc/unpv13e/blob/master/unixdomain/unixstrcli01.c)
+* [Unix域数据报协议的回射服务器](https://github.com/arkingc/unpv13e/blob/master/unixdomain/unixdgserv01.c)
+* [Unix域数据报协议的回射客户端](https://github.com/arkingc/unpv13e/blob/master/unixdomain/unixdgcli01.c)
+
+## 3.描述符传递
+
+当前的Unix系统提供了用于从一个进程向任一其他进程传递任一打开的描述符的方法。两个进程之间无需存在亲缘关系。这种技术要求首先在这两个进程之间创建一个Unix域套接字，然后使用sendmsg跨这个套接字发送一个特殊消息。这个消息由内核来专门处理，会把打开的描述符从发送进程传递到接收进程
+
+在两个进程之间传递描述符涉及以下步骤：
+
+1. 创建一个字节流的或数据报的Unix域套接字
+    * 如果目标是fork一个子进程，让子进程打开待传递的描述符，再把它传递会父进程，那么父进程可以预先调用socketpair创建一个用于在父子进程之间交换描述符的流管道
+    * 如果进程之间没有亲缘关系，那么服务器进程必须创建一个Unix域字节流套接字，bind一个路径名到该套接字，以允许客户进程connect到该套接字。然后客户可以向服务器发送一个打开某个描述符的请求，服务器再把该描述符通过Unix域套接字传递回客户（客户和服务器之间也可以使用Unix数据报套接字，但是这么做没什么好处，而且数据报还存在被丢弃的可能）
+2. 发送进程调用返回描述符的任一Unix函数打开一个描述符
+3. 发送进程创建一个msghdr结构，其中含有待传递的描述符。POSIX规定描述符作为辅助数据（msghdr结构的msg_control成员）发送。发送进程在调用sendmsg之后但在接收进程调用recvmsg之前关闭了该描述符，对于接收进程它仍保持打开状态。发送一个描述符会使该描述符的引用计数加1
+4. 接收进程调用recvmsg接收描述符。这个描述符在接收进程中的描述符号不同于它再发送进程中的描述符号是正常的。传递一个描述符不是传递一个描述符号，而是涉及在接收进程中创建一个新的描述符，这个新描述符和发送进程中的描述符指向内核中相同的文件表项
+
+客户和服务器之间必须存在某种应用协议，以便描述符的接收进程预先知道何时期待接收。如果接收进程调用recvfrom时没有分配用于接收描述符的空间，而且之前已有一个描述符被传递并正等着被读取，这个早先传递的描述符就会被关闭。另外，在期待接收描述符的recvmsg调用中应该避免使用MSG_PEEK标志
+
+描述符传递的例子：
+
+* [mycat程序](https://github.com/arkingc/unpv13e/blob/master/unixdomain/mycat.c)（描述符接收端）
+    - [my_open函数](https://github.com/arkingc/unpv13e/blob/master/unixdomain/myopen.c#L4)
+    - [read_fd函数](https://github.com/arkingc/unpv13e/blob/master/lib/read_fd.c#L5)
+* [openfile程序](https://github.com/arkingc/unpv13e/blob/master/unixdomain/openfile.c)（描述符发送端）
+    - [write_fd函数](https://github.com/arkingc/unpv13e/blob/master/lib/write_fd.c#L5)

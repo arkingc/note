@@ -88,7 +88,7 @@
 * **分配器**(Allocator)
 * **算法**(Algorithms)
 * **迭代器**(Iterrators)
-* **适配器**(Adapters)
+* **适配器**(Adaptors)
 * **仿函数**(Functors)
 
 <br>
