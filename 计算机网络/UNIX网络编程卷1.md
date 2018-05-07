@@ -59,6 +59,10 @@
     * [1.Unix域套接字地址结构](#1unix域套接字地址结构)
     * [2.相关函数](#2相关函数)
     * [3.描述符传递](#3描述符传递)
+* [九.非阻塞式I/O](#九非阻塞式io)
+    * [1.非阻塞读和写](#1非阻塞读和写)
+    * [2.非阻塞connect](#2非阻塞connect)
+    * [3.非阻塞accept](#3非阻塞accept)
 
 <br>
 <br>
@@ -1711,7 +1715,7 @@ cmsg_level和cmsg_type的取值和说明如下表：
 
 Unix域协议并不是一个实际的协议族，而是在**单个主机上**执行客户/服务器通信的一种方法
 
-Unix域提**供两类套接字**：字节流套接字(类似TCP)、数据报套接字(类似UDP)
+Unix域提供**两类套接字**：字节流套接字(类似TCP)、数据报套接字(类似UDP)
 
 使用Unix域套接字有以下**3个理由**：
 
@@ -1794,3 +1798,82 @@ socketpair函数创建2个随后连接起来的套接字：
     - [read_fd函数](https://github.com/arkingc/unpv13e/blob/master/lib/read_fd.c#L5)
 * [openfile程序](https://github.com/arkingc/unpv13e/blob/master/unixdomain/openfile.c)（描述符发送端）
     - [write_fd函数](https://github.com/arkingc/unpv13e/blob/master/lib/write_fd.c#L5)
+
+<br>
+
+# 九.非阻塞式I/O
+
+可能阻塞的**套接字调用**可分为以下4类：
+
+* **输入操作**：包括read、readv、recv、recvfrom和recvmsg
+    - **阻塞**：如果套接字的接收缓冲区中没有数据可读，进程将被投入睡眠
+    - **非阻塞**：如果输入操作不能被满足，相应调用将立即返回一个EWOULDBLOCK错误
+* **输出操作**：包括write、writev、send、sendto和sendmsg
+    - **阻塞**：如果套接字的发送缓冲区中没有空间，进程将被投入睡眠
+    - **非阻塞**：如果发送缓存区中根本没空间，返回一个EWOULDBLOCK错误；如果有一些空间，返回值是内核能够复制到该缓冲区中的字节数，也称为”不足计数“
+* **发起连接**：用于TCP的connect
+    - **阻塞**：connect将阻塞到3路握手的前2路完成（即至少阻塞1个RTT）
+    - **非阻塞**：如果对于一个非阻塞的TCP套接字调用connect，并且连接不能立即建立，那么照样会发起连接，但会返回一个EINPROGRESS错误
+* **接受连接**：accept
+    - **阻塞**：如果尚无新的连接到达，调用进程将被投入睡眠
+    - **非阻塞**：如果尚无新的连接到达，调用将立即返回一个EWOULDBLOCK错误
+
+**通过将套接字设置为非阻塞，从而得到使得相应的套接字调用为非阻塞**
+
+## 1.非阻塞读和写
+
+使用select版的str_cli函数存在一个问题：如果套接字发送缓冲区已满，writen调用将会阻塞。在进程阻塞于writen调用期间，可能有来自套接字接收缓冲区的数据可供读取。类似的，如果从套接字中有一行输入文本可读，那么一旦标准输出比网络还慢，进程照样可能阻塞于后续的write调用
+
+问题在于如果进程同时在多个流上进行读写，如果因为其中的一个流阻塞，但是其它流可读写，阻塞就会降低效率，可以实现[select版的str_cli函数的非阻塞版本](https://github.com/arkingc/unpv13e/blob/master/nonblock/strclinonb.c)
+
+这个版本的str_cli具有下列特点：相比于使用select和阻塞式I/O版的str_cli，性能提升不大，但是代码量成倍增长（select和阻塞式I/O版的str_cli虽然相比于最初的停等版str_cli代码量也有所增长，但是性能提升了几十倍）
+
+可以使用[多进程版的str_cli](https://github.com/arkingc/unpv13e/blob/master/nonblock/strclifork.c)（在这个版本中，每个进程只处理2个流，从一个复制到另一个。不需要非阻塞式I/O，因为如果从输入流没有数据可读，往相应的输出流就没有数据可写），每个进程处理一些流，而不是让单个进程处理多个流，从而可以简化代码，同时保证效率
+
+以下为本书作者使用一个Solaris客户主机向RTT为175毫秒的服务器主机复制2000行文本，不同版本str_cli函数的效率：
+
+* 354.0s，停等版本
+* 12.3s，select加阻塞式I/O版本
+* 6.9s，非阻塞式I/O版本
+* 8.7s，fork版本
+* 8.5s，线程化版本
+
+## 2.非阻塞connect
+
+如果对于一个非阻塞的TCP套接字调用connect，并且连接不能立即建立，那么照样会发起连接，但会返回一个EINPROGRESS错误。接着使用select检查这个连接或成功或失败的已建立条件。非阻塞的connect有3个用途：
+
+1. **可以把3路握手叠加在其他处理上**（完成一个connect要花一个RTT，而RTT波动范围很大，这段时间内也许有想要执行的其他处理工作可执行）
+2. **同时建立多个连接**（这个用途已随web浏览器变得流行起来）
+3. 既然使用select等待连接建立，**可以给select指定一个时间限制，缩短connect的超时**（许多实现有着75s到数分钟的connect超时时间）
+
+使用非阻塞式connect时，必须处理下列细节：
+
+* 尽管套接字非阻塞，如果连接到的服务器在同一个主机上，那么当我们调用connect时，连接通常立刻建立。因此，必须处理这种情况
+* 源自Berkeley的实现对于select和非阻塞connect有以下两个规则：
+    - 当连接成功建立时，描述符变为可写
+    - 当连接建立遇到错误时，描述符变为既可读又可写
+
+[非阻塞connect](https://github.com/arkingc/unpv13e/blob/master/lib/connect_nonb.c)
+
+**非阻塞connect是网络编程中最不易移植的部分：一个移植性问题是如果判断连接成功建立**
+
+> **被中断的connect**：对于一个正常的阻塞式套接字，如果其上的connect调用在TCP三路握手完成前被中断（譬如捕获了某个信号）：如果connect调用不由内核自动重启，那么它将返回EINTR。不能再次调用connect等待未完成的连接继续完成，否则会返回EADDRINUSE错误。只能调用select像处理非阻塞式connect那样处理
+
+非阻塞connect：[web客户程序](https://github.com/arkingc/unpv13e/blob/master/nonblock/web.c)
+
+* [头文件](https://github.com/arkingc/unpv13e/blob/master/nonblock/web.h)
+* [home_page函数](https://github.com/arkingc/unpv13e/blob/master/nonblock/home_page.c#L4)
+* [start_connect函数](https://github.com/arkingc/unpv13e/blob/master/nonblock/start_connect.c#L4)
+* [write_get_cmd函数](https://github.com/arkingc/unpv13e/blob/master/nonblock/write_get_cmd.c#L4)
+
+## 3.非阻塞accept
+
+在一个服务器中，当有一个已完成的连接准备好被accept时，select将作为可读描述符返回该链接的监听套接字。因此通常情况下，如果使用select在某个监听套接字上等待一个外来连接，那就没有必要把该监听套接字设置为非阻塞，因为如果select告诉我们该套接字上已有连接就绪，那么随后的accept调用不应该阻塞
+
+但是，对于一个繁忙的服务器，它可能无法再select返回监听套接字的可读条件后就马上调用accept。如果在这期间，有来自客户端的RST分节到达（也就是说，客户在connect返回后，立即发送一个RST，随后关闭该套接字，可以通过[这个程序](https://github.com/arkingc/unpv13e/blob/master/nonblock/tcpcli03.c#L4)模拟）。在源自Berkeley的实现上，接收到RST会使这个已完成的连接被服务器TCP驱逐出队列，假设这之后队列中没有其它已完成的连接，因此accept会使服务器阻塞，直到其它某个客户建立一个连接为止。但是在此期间，服务器单纯阻塞在accept调用上，无法处理任何其他已就绪的描述符
+
+解决办法是：
+
+* 当使用select获悉某个监听套接字上何时有已完成连接准备好被accept时，总是把这个监听套接字设置为非阻塞
+* 在后续的accept调用中忽略以下错误：EWOULDBLOCK(源自Berkeley的实现，客户终止连接时)、ECONNABORTED(POSIX实现，客户终止连接时)、EPROTO(SVR4实现，客户终止连接时)和EINTR(如果有信号被捕获)
+
