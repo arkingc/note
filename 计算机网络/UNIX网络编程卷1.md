@@ -1824,9 +1824,9 @@ socketpair函数创建2个随后连接起来的套接字：
 
 使用select版的str_cli函数存在一个问题：如果套接字发送缓冲区已满，writen调用将会阻塞。在进程阻塞于writen调用期间，可能有来自套接字接收缓冲区的数据可供读取。类似的，如果从套接字中有一行输入文本可读，那么一旦标准输出比网络还慢，进程照样可能阻塞于后续的write调用
 
-问题在于如果进程同时在多个流上进行读写，如果因为其中的一个流阻塞，但是其它流可读写，阻塞就会降低效率，可以实现[select版的str_cli函数的非阻塞版本](https://github.com/arkingc/unpv13e/blob/master/nonblock/strclinonb.c)
+问题在于如果进程同时在多个流上进行读写，如果因为其中的一个流阻塞，但是其它流可读写，阻塞就会降低效率，可以实现[select加非阻塞式I/O版的str_cli函数](https://github.com/arkingc/unpv13e/blob/master/nonblock/strclinonb.c)
 
-这个版本的str_cli具有下列特点：相比于使用select和阻塞式I/O版的str_cli，性能提升不大，但是代码量成倍增长（select和阻塞式I/O版的str_cli虽然相比于最初的停等版str_cli代码量也有所增长，但是性能提升了几十倍）
+这个版本的str_cli具有下列特点：相比于使用select加阻塞式I/O版的str_cli，性能提升不大，但是代码量成倍增长（select加阻塞式I/O版的str_cli虽然相比于最初的停等版str_cli代码量也有所增长，但是性能提升了几十倍）
 
 可以使用[多进程版的str_cli](https://github.com/arkingc/unpv13e/blob/master/nonblock/strclifork.c)（在这个版本中，每个进程只处理2个流，从一个复制到另一个。不需要非阻塞式I/O，因为如果从输入流没有数据可读，往相应的输出流就没有数据可写），每个进程处理一些流，而不是让单个进程处理多个流，从而可以简化代码，同时保证效率
 
@@ -1834,7 +1834,7 @@ socketpair函数创建2个随后连接起来的套接字：
 
 * 354.0s，停等版本
 * 12.3s，select加阻塞式I/O版本
-* 6.9s，非阻塞式I/O版本
+* 6.9s，select加非阻塞式I/O版本
 * 8.7s，fork版本
 * 8.5s，线程化版本
 
@@ -1855,7 +1855,7 @@ socketpair函数创建2个随后连接起来的套接字：
 
 [非阻塞connect](https://github.com/arkingc/unpv13e/blob/master/lib/connect_nonb.c)
 
-**非阻塞connect是网络编程中最不易移植的部分：一个移植性问题是如果判断连接成功建立**
+**非阻塞connect是网络编程中最不易移植的部分（比如，一个移植性问题是如何判断连接成功建立）**
 
 > **被中断的connect**：对于一个正常的阻塞式套接字，如果其上的connect调用在TCP三路握手完成前被中断（譬如捕获了某个信号）：如果connect调用不由内核自动重启，那么它将返回EINTR。不能再次调用connect等待未完成的连接继续完成，否则会返回EADDRINUSE错误。只能调用select像处理非阻塞式connect那样处理
 
