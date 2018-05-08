@@ -63,6 +63,10 @@
     * [1.非阻塞读和写](#1非阻塞读和写)
     * [2.非阻塞connect](#2非阻塞connect)
     * [3.非阻塞accept](#3非阻塞accept)
+* [十.线程]
+    * [1.相关函数](#1相关函数)
+    * [2.线程安全的函数](#2线程安全的函数)
+    * [3.线程特定数据](#3线程特定数据)
 
 <br>
 <br>
@@ -1836,7 +1840,7 @@ socketpair函数创建2个随后连接起来的套接字：
 * 12.3s，select加阻塞式I/O版本
 * 6.9s，select加非阻塞式I/O版本
 * 8.7s，fork版本
-* 8.5s，线程化版本
+* 8.5s，[线程化版本](https://github.com/arkingc/unpv13e/blob/master/threads/strclithread.c)
 
 ## 2.非阻塞connect
 
@@ -1868,7 +1872,7 @@ socketpair函数创建2个随后连接起来的套接字：
 
 ## 3.非阻塞accept
 
-在一个服务器中，当有一个已完成的连接准备好被accept时，select将作为可读描述符返回该链接的监听套接字。因此通常情况下，如果使用select在某个监听套接字上等待一个外来连接，那就没有必要把该监听套接字设置为非阻塞，因为如果select告诉我们该套接字上已有连接就绪，那么随后的accept调用不应该阻塞
+在一个服务器中，当有一个已完成的连接准备好被accept时，select将作为可读描述符返回该连接的监听套接字。因此通常情况下，如果使用select在某个监听套接字上等待一个外来连接，那就没有必要把该监听套接字设置为非阻塞，因为如果select告诉我们该套接字上已有连接就绪，那么随后的accept调用不应该阻塞
 
 但是，对于一个繁忙的服务器，它可能无法再select返回监听套接字的可读条件后就马上调用accept。如果在这期间，有来自客户端的RST分节到达（也就是说，客户在connect返回后，立即发送一个RST，随后关闭该套接字，可以通过[这个程序](https://github.com/arkingc/unpv13e/blob/master/nonblock/tcpcli03.c#L4)模拟）。在源自Berkeley的实现上，接收到RST会使这个已完成的连接被服务器TCP驱逐出队列，假设这之后队列中没有其它已完成的连接，因此accept会使服务器阻塞，直到其它某个客户建立一个连接为止。但是在此期间，服务器单纯阻塞在accept调用上，无法处理任何其他已就绪的描述符
 
@@ -1877,3 +1881,162 @@ socketpair函数创建2个随后连接起来的套接字：
 * 当使用select获悉某个监听套接字上何时有已完成连接准备好被accept时，总是把这个监听套接字设置为非阻塞
 * 在后续的accept调用中忽略以下错误：EWOULDBLOCK(源自Berkeley的实现，客户终止连接时)、ECONNABORTED(POSIX实现，客户终止连接时)、EPROTO(SVR4实现，客户终止连接时)和EINTR(如果有信号被捕获)
 
+<br>
+
+# 十.线程
+
+当一个进程需要另一个实体来完成某事时，Unix上大多数网络服务器通过fork一个子进程来处理。但是**fork调用存在一些问题**：
+
+* **fork是昂贵的**。fork要把父进程的内存映像复制到子进程，并在子进程中复制所有描述符。尽管现在使用**写时拷贝**技术，避免在子进程切实需要自己的副本之前把父进程的数据空间拷贝到子进程。但是fork仍然是昂贵哦的
+* **fork返回之后父子进程之间信息的传递需要进程间通信(IPC)机制**。调用fork之前，父进程向尚未存在的子进程传递信息相当容易，因为子进程将从父进程数据空间及所有描述符的一个副本开始运行。然而从子进程往父进程返回信息却比较费力
+
+**线程有助于解决上述问题，它被称为“轻量级进程”，创建可能比进程的创建快10~100倍。但是，伴随这种简易性而来的是同步问题**
+
+* **同一进程内的线程共享**
+    - 相同的全局内存
+    - 进程指令
+    - 大多数数据
+    - 打开的文件（即描述符）
+    - 信号处理函数和信号设置
+    - 当前工作目录
+    - 用户ID和组ID
+* **线程之间不共享**
+    - 线程ID
+    - 寄存器集合（包括程序计数器和栈指针）
+    - 栈（用于存放局部变量和返回地址）
+    - errno
+    - 信号掩码
+    - 优先级
+
+> 这一章介绍的是POSIX线程，也称为Pthread。POSIX线程作为POSIX.1c标准的一部分在1995年得到标准化，大多数UNIX版本将来会支持这类线程。所有Pthread函数都以pthread_打头
+
+## 1.相关函数
+
+### 1）pthread_create函数
+
+该函数用于创建一个POSIX线程。**当一个程序由exec启动执行时，称为“初始线程”或“主线程”的单个线程就创建了。其余线程则由pthread_create函数创建**
+
+<div align="center"> <img src="../pic/unp-thread-1.png"/> </div>
+
+* **tid**：线程ID，数据类型为pthread_t，往往是unsigned int，如果线程成功创建，其ID就通过tid指针返回
+* **attr**：线程属性，包括：优先级、初始栈大小、是否应该成为一个守护线程等。设置为空指针时表示采用默认设置
+* **func**：该线程执行的函数
+* **arg**：该线程执行函数的参数
+
+**如果发生错误，函数返回指示错误的某个正值，不会设置errno变量**
+
+**创建的线程通过调用指定的函数开始执行，然后显示地（通过调用pthread_exit）或隐式地（通过让该函数返回）终止**
+
+### 2）pthread_join函数
+
+pthread_join类似于进程中的waitpid，用于等待一个给定线程的终止
+
+<div align="center"> <img src="../pic/unp-thread-2.png"/> </div>
+
+* **tid**：等待终止的线程ID。和进程不同的是，无法等待任意线程，所以不能通过指定ID参数为-1来企图等待任意线程终止
+* **status**：如果该指针非空，来自所等待线程的返回值（一个指向某个对象的指针）将存入由status指向的位置
+
+### 3）pthread_self函数
+
+线程可以使用pthread_self获取自身的线程ID，类似于进程中的getpid
+
+<div align="center"> <img src="../pic/unp-thread-3.png"/> </div>
+
+### 4）pthread_detach函数
+
+<div align="center"> <img src="../pic/unp-thread-4.png"/> </div>
+
+该函数把指定的线程转变为**脱离状态**，通常由想让自己脱离的线程调用：```pthread_detach(pthread_self());```
+
+一个线程或者是**可汇合**的，或者是**脱离**的：
+
+* **可汇合**：一个可汇合线程终止时，它的线程ID和退出状态将保存到另一个线程对它调用pthread_join。如果一个线程需要知道另一个线程什么时候终止，那就最好保持第二个线程的可汇合状态
+* **脱离**：脱离的线程像守护进程，当它们终止时，所有相关资源都被释放，不能等待它们终止
+
+### 5）pthread_exit函数
+
+线程终止的一个方法
+
+<div align="center"> <img src="../pic/unp-thread-5.png"/> </div>
+
+* **status**：不能指向一个局部于调用线程的对象，因为线程终止时这样的对象也消失
+
+让一个线程终止的另外两个方法：
+
+1. **线程执行的函数返回**，在pthread_create参数中，这个函数的返回值是一个void\*指针，它指向相应线程的终止状态
+2. **如果进程的main函数返回或任何线程调用了exit，整个进程就终止了，其中包括它的任何线程**
+
+## 2.线程安全的函数
+
+**多线程并发服务器中，要特别注意线程的同步问题**
+
+比如，在调用[pthread_create函数](#1pthread_create函数)时，要特别注意向子线程传递参数的方式。下面程序的注释中有说明：
+
+[使用线程的TCP回射服务器](https://github.com/arkingc/unpv13e/blob/master/threads/tcpserv01.c)
+
+以下程序是一种更具移植性的方法；
+
+[使用线程的TCP回射服务器](https://github.com/arkingc/unpv13e/blob/master/threads/tcpserv02.c)
+
+除了下图列出的函数外，POSIX.1要求由POSIX.1和ANSI C标准定义的所有函数都是线程安全的：
+
+<div align="center"> <img src="../pic/unp-thread-6.png"/> </div>
+
+POSIX未就网络编程API函数的线程安全性作出任何规定。表中最后5行来源于Unix98。gethostbyname和gethostbyaddr具有不可重入性质。尽管一些厂家定义了这两个函数以_r结尾其名字的线程安全版本，不过这些线程安全函数没有标准可循，应该避免使用
+
+## 3.线程特定数据
+
+把一个未线程化的程序转换成使用线程的版本时，有时会碰到因其中有函数使用静态变量而引起同步问题，如使用[my_read函数](https://github.com/arkingc/unpv13e/blob/master/lib/readline.c#L21)的[readline函数](https://github.com/arkingc/unpv13e/blob/master/lib/readline.c#L45)，在my_read函数中为了加速性能而使用了3个静态变量。解决这个问题有下列方法：
+
+1. **使用线程特定数据**
+    * **优点**
+        - 调用顺序无需变动，所有变动都体现在库函数中而非调用这些函数的应用程序中
+    * **缺点**
+        - 函数转换成了只能在支持线程的系统上工作的函数
+2. **改变调用顺序，由调用者把readline的所有调用参数封装在一个结构中，并在该结构中存储静态变量**
+    * 优点
+        - 新函数在支持线程和不支持线程的系统上都可以使用
+    * 缺点
+        - 调用readline的所有应用程序都必须修改
+3. **改变接口的结构，避免使用静态变量**
+    * 优点
+        - 函数是线程安全的
+    * 缺点
+        - 相当于忽略了性能加速，回到了[readline低效的老版本](https://github.com/arkingc/unpv13e/blob/master/test/readline1.c#L15)
+
+第一种方法——**使用线程特定数据**是使得现有函数变为线程安全的一个常用技巧
+
+**每个系统支持有限数量的线程特定数据元素，POSIX要求这个限制不小于128(每个进程)**，**系统**为**每个进程**维护一个称之为Key结构（一个Key结构就是一个线程特定数据元素）的结构数组，如下图：
+
+<div align="center"> <img src="../pic/unp-thread-7.png"/> </div>
+
+ * **标志**：指示这个数组元素是否正在使用（所有标志初始化为”不在使用“）
+
+除了**进程范围**的Key结构数组外，**系统**还在**进程内**维护关于每个线程的多条信息，记录在Pthread结构（由系统维护）中：
+
+<div align="center"> <img src="../pic/unp-thread-8.png"/> </div>
+
+pKey数组的所有元素都被初始化为空指针。这128个指针是和进程内的128个可能的索引（称为”键“）逐一关联的值
+
+[使用线程特定数据的readline函数](https://github.com/arkingc/unpv13e/blob/master/threads/readline.c)
+
+### 1）pthread_once和pthread_key_create函数
+
+<div align="center"> <img src="../pic/unp-thread-9.png"/> </div>
+
+pthread_key_create函数：
+
+* **keyptr**：创建一个新的线程特定数据元素时，系统搜索其Key结构数组找到第一个不在使用的元素，元素的索引（0~127）记录在keyptr成员中，**作为返回值**。随后，线程可以利用记录在keyptr中的索引，在Pthread结构pkey数组的对应索引位置处存储一个指针，这个指针指向malloc动态分配的内存
+* **destructor**：指向析构函数的函数指针，当一个线程终止时，系统扫描该线程的pKey数组，为每个非空的pkey指针调用相应的析构函数，释放其指向的动态内存
+
+pthread_key_create函数：
+
+* **onceptr**：onceptr参数指向的变量中的值，确保init参数所指的函数在进程范围内只被调用一次
+* **init**：进程范围内，对于一个给定的键，pthread_key_create只能被调用一次。所以可以init可以指向一个pthread_key_create函数，通过onceptr参数确保只调用一次
+
+### 2）pthread_getspecific和pthread_setspecific函数
+
+<div align="center"> <img src="../pic/unp-thread-10.png"/> </div>
+
+* pthread_getspecific函数在Pthread结构中把对应指定键的指针设置为指向分配的内存
+* pthread_setspecific函数返回对应指定键的指针
