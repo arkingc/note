@@ -57,7 +57,7 @@
     * [4.标准I/O函数](#4标准io函数)
 * [八.Unix域协议](#八unix域协议)
     * [1.Unix域套接字地址结构](#1unix域套接字地址结构)
-    * [2.相关函数](#2相关函数)
+    * [2.相关函数](#1socketpair函数)
     * [3.描述符传递](#3描述符传递)
 * [九.非阻塞式I/O](#九非阻塞式io)
     * [1.非阻塞读和写](#1非阻塞读和写)
@@ -1537,6 +1537,60 @@ getaddrinfo的互补函数
 </tr>
 <tr>
     <td> <a href="#2readv和writev函数">writev</a> </td>
+</tr>
+
+<tr>
+    <td rowspan="1"> <b>Unix域套接字</b> </td>
+    <td rowspan="1"> &lt;sys/socket.h&gt; </td>
+    <td> <a href="#1socketpair函数">socketpair</a> </td>
+</tr>
+
+<tr>
+    <td rowspan="15"> <b>线程</b> </td>
+    <td rowspan="15"> &lt;pthread.h&gt; </td>
+    <td> <a href="#1pthread_create函数">pthread_create</a> </td>
+</tr>
+<tr>
+    <td> <a href="#2pthread_join函数">pthread_join</a> </td>
+</tr>
+<tr>
+    <td> <a href="#3pthread_self函数">pthread_self</a> </td>
+</tr>
+<tr>
+    <td> <a href="#4pthread_detach函数">pthread_detach</a> </td>
+</tr>
+<tr>
+    <td> <a href="#5pthread_exit函数">pthread_exit</a> </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_once函数">pthread_once</a> </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_key_create函数">pthread_key_create</a> </td>
+</tr>
+<tr>
+    <td> <a href="#2pthread_getspecific函数">pthread_getspecific</a> </td>
+</tr>
+<tr>
+    <td> <a href="#2pthread_setspecific函数">pthread_setspecific</a> </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_mutex_lock函数">pthread_mutex_lock</a> </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_mutex_unlock函数">pthread_mutex_unlock</a> </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_cond_wait函数">pthread_cond_wait</a> </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_cond_signal函数">pthread_cond_signal</a> </td>
+</tr>
+<tr>
+    <td> <a href="#2pthread_cond_broadcast函数">pthread_cond_broadcast</a> </td>
+</tr>
+<tr>
+    <td> <a href="#2pthread_cond_timedwait函数">pthread_cond_timedwait</a> </td>
 </tr>
 </table>
 
