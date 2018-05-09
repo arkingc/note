@@ -1863,12 +1863,13 @@ socketpair函数创建2个随后连接起来的套接字：
 
 > **被中断的connect**：对于一个正常的阻塞式套接字，如果其上的connect调用在TCP三路握手完成前被中断（譬如捕获了某个信号）：如果connect调用不由内核自动重启，那么它将返回EINTR。不能再次调用connect等待未完成的连接继续完成，否则会返回EADDRINUSE错误。只能调用select像处理非阻塞式connect那样处理
 
-非阻塞connect：[web客户程序](https://github.com/arkingc/unpv13e/blob/master/nonblock/web.c)
-
-* [头文件](https://github.com/arkingc/unpv13e/blob/master/nonblock/web.h)
-* [home_page函数](https://github.com/arkingc/unpv13e/blob/master/nonblock/home_page.c#L4)
-* [start_connect函数](https://github.com/arkingc/unpv13e/blob/master/nonblock/start_connect.c#L4)
-* [write_get_cmd函数](https://github.com/arkingc/unpv13e/blob/master/nonblock/write_get_cmd.c#L4)
+* 非阻塞connect：[web客户程序](https://github.com/arkingc/unpv13e/blob/master/nonblock/web.c)
+    - [头文件](https://github.com/arkingc/unpv13e/blob/master/nonblock/web.h)
+    - [home_page函数](https://github.com/arkingc/unpv13e/blob/master/nonblock/home_page.c#L4)
+    - [start_connect函数](https://github.com/arkingc/unpv13e/blob/master/nonblock/start_connect.c#L4)
+    - [write_get_cmd函数](https://github.com/arkingc/unpv13e/blob/master/nonblock/write_get_cmd.c#L4)
+* [多线程web客户程序](https://github.com/arkingc/unpv13e/blob/master/threads/web01.c)（可以避免使用非阻塞connect，需要使用Solaris线程等待任一线程终止）
+* [多线程web客户程序](https://github.com/arkingc/unpv13e/blob/master/threads/web03.c)（可以避免使用非阻塞connect，使用[条件变量](#5条件变量)避免使用Solaris线程）
 
 ## 3.非阻塞accept
 
@@ -2042,3 +2043,42 @@ pthread_once函数：
 
 * pthread_getspecific函数在Pthread结构中把对应指定键的指针设置为指向分配的内存
 * pthread_setspecific函数返回对应指定键的指针
+
+## 4.互斥锁
+
+多线程编程中，[多个线程可能修改相同的变量，导致错误发生](https://github.com/arkingc/unpv13e/blob/master/threads/example01.c)。互斥锁可以用于保护共享变量：访问共享变量的前提条件是持有该互斥锁，**按照Pthread，互斥锁的类型为pthread_mutex_t的变量**
+
+* **如果某个互斥锁变量是静态分配的，必须把它初始化为常值PTHREAD_MUTEX_INITIALIZER**
+* **如果在共享内存区中分配一个互斥锁，必须通过调用pthread_mutex_init函数在运行时初始化**
+
+### 1）pthread_mutex_lock和pthread_mutex_unlock函数
+
+<div align="center"> <img src="../pic/unp-thread-11.png"/> </div>
+
+* **mptr**
+    - **pthread_mutex_lock**锁住mptr指向的互斥锁
+    - **pthread_mutex_unlock**将mptr指向的互斥锁解锁
+
+[使用互斥锁解决修改相同变量的问题](https://github.com/arkingc/unpv13e/blob/master/threads/example02.c)（本书作者测试这个程序和前面有问题的版本运行的时间，差别是10%，说明互斥锁并不会带来太大的开销）
+
+## 5.条件变量
+
+条件变量可以在某个条件发生之前，将进程投入睡眠
+
+**按照Pthread，条件变量是类型为pthread_cond_t的变量**
+
+### 1）pthread_cond_wait和pthread_cond_signal函数
+
+<div align="center"> <img src="../pic/unp-thread-12.png"/> </div>
+
+* **pthread_cond_wait**函数等待cptr指向的条件变量，投入睡眠之前会释放mptr指向的互斥锁，唤醒后会重新获得mptr指向的互斥锁
+* **pthread_cond_signal**唤醒等待cptr指向的条件变量
+
+为什么每个条件变量都要关联一个互斥锁呢？因为”条件“（这里不是指条件变量）通常是线程之间共享的某个变量的值。允许不同线程设置和测试该变量要求有一个与该变量关联的互斥锁
+
+### 2）pthread_cond_broadcast和pthread_cond_timedwait函数
+
+<div align="center"> <img src="../pic/unp-thread-13.png"/> </div>
+
+* **pthread_cond_broadcast**：有时候一个线程应该唤醒多个线程，这种情况下它可以调用该函数唤醒在相应条件变量上的所有线程
+* **pthread_cond_timedwait**：允许线程设置一个阻塞时间的限制。如果超时，返回ETIME错误。这个时间值是一个绝对时间，而不是一个时间增量。也就是说abstime参数是函数应该返回时刻的系统时间——从1970年1月1日UTC时间以来的秒数和纳秒数
