@@ -1549,48 +1549,63 @@ getaddrinfo的互补函数
     <td rowspan="15"> <b>线程</b> </td>
     <td rowspan="15"> &lt;pthread.h&gt; </td>
     <td> <a href="#1pthread_create函数">pthread_create</a> </td>
+    <td> <b>线程的基本操作</b>：创建线程 </td>
 </tr>
 <tr>
     <td> <a href="#2pthread_join函数">pthread_join</a> </td>
+    <td> <b>线程的基本操作</b>：等待指定的线程终止 </td>
 </tr>
 <tr>
     <td> <a href="#3pthread_self函数">pthread_self</a> </td>
+    <td> <b>线程的基本操作</b>：线程获取自身ID </td>
 </tr>
 <tr>
     <td> <a href="#4pthread_detach函数">pthread_detach</a> </td>
+    <td> <b>线程的基本操作</b>：将线程转变为脱离状态 </td>
 </tr>
 <tr>
     <td> <a href="#5pthread_exit函数">pthread_exit</a> </td>
+    <td> <b>线程的基本操作</b>：线程显示终止 </td>
 </tr>
 <tr>
-    <td> <a href="#1pthread_once函数">pthread_once</a> </td>
+    <td> <a href="#1pthread_once和pthread_key_create函数">pthread_once</a> </td>
+    <td> <b>用于线程特定数据</b> </td>
 </tr>
 <tr>
-    <td> <a href="#1pthread_key_create函数">pthread_key_create</a> </td>
+    <td> <a href="#1pthread_once和pthread_key_create函数">pthread_key_create</a> </td>
+    <td> <b>用于线程特定数据</b> </td>
 </tr>
 <tr>
-    <td> <a href="#2pthread_getspecific函数">pthread_getspecific</a> </td>
+    <td> <a href="#2pthread_getspecific和pthread_setspecific函数">pthread_getspecific</a> </td>
+    <td> <b>用于线程特定数据</b> </td>
 </tr>
 <tr>
-    <td> <a href="#2pthread_setspecific函数">pthread_setspecific</a> </td>
+    <td> <a href="#2pthread_getspecific和pthread_setspecific函数">pthread_setspecific</a> </td>
+    <td> <b>用于线程特定数据</b> </td>
 </tr>
 <tr>
-    <td> <a href="#1pthread_mutex_lock函数">pthread_mutex_lock</a> </td>
+    <td> <a href="#1pthread_mutex_lock和pthread_mutex_unlock函数">pthread_mutex_lock</a> </td>
+    <td> <b>互斥锁</b> </td>
 </tr>
 <tr>
-    <td> <a href="#1pthread_mutex_unlock函数">pthread_mutex_unlock</a> </td>
+    <td> <a href="#1pthread_mutex_lock和pthread_mutex_unlock函数">pthread_mutex_unlock</a> </td>
+    <td> <b>互斥锁</b> </td>
 </tr>
 <tr>
-    <td> <a href="#1pthread_cond_wait函数">pthread_cond_wait</a> </td>
+    <td> <a href="#1pthread_cond_wait和pthread_cond_signal函数">pthread_cond_wait</a> </td>
+    <td> <b>条件变量</b> </td>
 </tr>
 <tr>
-    <td> <a href="#1pthread_cond_signal函数">pthread_cond_signal</a> </td>
+    <td> <a href="#1pthread_cond_wait和pthread_cond_signal函数">pthread_cond_signal</a> </td>
+    <td> <b>条件变量</b> </td>
 </tr>
 <tr>
-    <td> <a href="#2pthread_cond_broadcast函数">pthread_cond_broadcast</a> </td>
+    <td> <a href="#2pthread_cond_broadcast和pthread_cond_timedwait函数">pthread_cond_broadcast</a> </td>
+    <td> <b>条件变量</b> </td>
 </tr>
 <tr>
-    <td> <a href="#2pthread_cond_timedwait函数">pthread_cond_timedwait</a> </td>
+    <td> <a href="#2pthread_cond_broadcast和pthread_cond_timedwait函数">pthread_cond_timedwait</a> </td>
+    <td> <b>条件变量</b> </td>
 </tr>
 </table>
 
