@@ -2153,3 +2153,41 @@ pthread_once函数：
 
 * **pthread_cond_broadcast**：有时候一个线程应该唤醒多个线程，这种情况下它可以调用该函数唤醒在相应条件变量上的所有线程
 * **pthread_cond_timedwait**：允许线程设置一个阻塞时间的限制。如果超时，返回ETIME错误。这个时间值是一个绝对时间，而不是一个时间增量。也就是说abstime参数是函数应该返回时刻的系统时间——从1970年1月1日UTC时间以来的秒数和纳秒数
+
+<br>
+
+# 十一.客户/服务器程序设计范式
+
+* 单进程服务器
+    - TCP迭代服务器
+* 多进程服务器
+    - [TCP并发服务器，每个客户一个子进程](https://github.com/arkingc/unpv13e/blob/master/server/serv01.c#L5) 
+    - [TCP预先派生子进程服务器，accept无上锁保护](https://github.com/arkingc/unpv13e/blob/master/server/serv02.c#L8)
+        + 服务器派生子进程函数：[child_make](https://github.com/arkingc/unpv13e/blob/master/server/child02.c#L5)
+        + 子进程执行的函数：[child_main](https://github.com/arkingc/unpv13e/blob/master/server/child02.c#L19)
+        + 优点
+            * 无须引入父进程执行fork的开销就能处理新到的客户
+        + 缺点
+            * 父进程必须在服务器启动阶段猜测需要预先派生多少子进程。如果某个时刻客户数恰好等于子进程总数，那么新到的客户将被忽略，直到至少有一个子进程重新可用
+            * 存在**惊群问题**：所有N个子进程均被唤醒，但其中只有最先运行的子进程获得客户连接，其余N-1个子进程继续回复睡眠，这回引入CPU开销。惊群问题会随预先分配的子进程数量的增加而越突出
+            * 允许多个进程在引用同一个监听套接字的描述符上调用accept的做法仅仅适用于在内核中实现accept的源自Berkeley的内核。作为一个库函数实现accept的System V内核可能不允许这么做
+    - [TCP预先派生子进程服务器，accept使用文件上锁保护]
+        + 锁的初始化函数：[my_lock_init](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L9)
+        + 上锁函数：[my_lock_wait](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L44)
+        + 解锁函数：[my_lock_release](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L57)
+        + 优点
+            * 在SVR4系统上照样可以工作，因此保证每次只有一个进程阻塞在accept调用中
+        + 缺点
+            * 围绕accept的上锁增加了服务器的进程控制CPU时间
+            * 上锁涉及文件系统操作，可能比较耗时
+    - [TCP预先派生子进程服务器，accept使用线程上锁保护]
+        + 优点
+            * 上锁不涉及文件系统操作，比上一版快
+            * 不仅适用于同一进程内各线程之间的上锁，而且适用于不同进程之间的上锁
+                - 不同进程之间使用线程上锁要求：
+                    + 1）互斥锁变量必须存放在由所有进程共享的内存区中
+                    + 2）必须告知线程函数库这是在不同进程之间共享的互斥锁
+        + 
+
+* 服务器处理客户端请求的函数：[web_child](https://github.com/arkingc/unpv13e/blob/master/server/web_child.c)
+* CPU使用统计函数：[pr_cpu_time](https://github.com/arkingc/unpv13e/blob/master/server/pr_cpu_time.c)
