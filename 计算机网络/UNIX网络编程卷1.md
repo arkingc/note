@@ -2134,7 +2134,7 @@ pthread_once函数：
 
 ## 5.条件变量
 
-条件变量可以在某个条件发生之前，将进程投入睡眠
+条件变量可以在某个条件发生之前，将线程投入睡眠
 
 **按照Pthread，条件变量是类型为pthread_cond_t的变量**
 
@@ -2158,36 +2158,133 @@ pthread_once函数：
 
 # 十一.客户/服务器程序设计范式
 
-* 单进程服务器
-    - TCP迭代服务器
-* 多进程服务器
-    - [TCP并发服务器，每个客户一个子进程](https://github.com/arkingc/unpv13e/blob/master/server/serv01.c#L5) 
-    - [TCP预先派生子进程服务器，accept无上锁保护](https://github.com/arkingc/unpv13e/blob/master/server/serv02.c#L8)
+* [客户端程序](https://github.com/arkingc/unpv13e/blob/master/server/client.c)
+* 服务器处理客户端请求的函数：[web_child](https://github.com/arkingc/unpv13e/blob/master/server/web_child.c)
+* CPU使用统计函数：[pr_cpu_time](https://github.com/arkingc/unpv13e/blob/master/server/pr_cpu_time.c)
+
+服务器的设计：
+
+* **单进程服务器**
+    - **1**）TCP迭代服务器
+        + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv00.c)
+* **多进程服务器**
+    - **2**）TCP并发服务器，每个客户一个子进程 
+        + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv01.c)
+    - **3**）[TCP预先派生子进程服务器，accept无上锁保护](#tcp预先派生子进程服务器，accept无上锁保护)
+        + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv02.c)
         + 服务器派生子进程函数：[child_make](https://github.com/arkingc/unpv13e/blob/master/server/child02.c#L5)
-        + 子进程执行的函数：[child_main](https://github.com/arkingc/unpv13e/blob/master/server/child02.c#L19)
-        + 优点
-            * 无须引入父进程执行fork的开销就能处理新到的客户
-        + 缺点
-            * 父进程必须在服务器启动阶段猜测需要预先派生多少子进程。如果某个时刻客户数恰好等于子进程总数，那么新到的客户将被忽略，直到至少有一个子进程重新可用
-            * 存在**惊群问题**：所有N个子进程均被唤醒，但其中只有最先运行的子进程获得客户连接，其余N-1个子进程继续回复睡眠，这回引入CPU开销。惊群问题会随预先分配的子进程数量的增加而越突出
-            * 允许多个进程在引用同一个监听套接字的描述符上调用accept的做法仅仅适用于在内核中实现accept的源自Berkeley的内核。作为一个库函数实现accept的System V内核可能不允许这么做
-    - [TCP预先派生子进程服务器，accept使用文件上锁保护]
+        + 子进程执行的函数：[child_main](https://github.com/arkingc/unpv13e/blob/master/server/child02.c#L19) 
+    - **4**）[TCP预先派生子进程服务器，accept使用文件上锁保护](#tcp预先派生子进程服务器，accept使用文件上锁保护)
+        + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv03.c)
         + 锁的初始化函数：[my_lock_init](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L9)
         + 上锁函数：[my_lock_wait](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L44)
         + 解锁函数：[my_lock_release](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L57)
-        + 优点
-            * 在SVR4系统上照样可以工作，因此保证每次只有一个进程阻塞在accept调用中
-        + 缺点
-            * 围绕accept的上锁增加了服务器的进程控制CPU时间
-            * 上锁涉及文件系统操作，可能比较耗时
-    - [TCP预先派生子进程服务器，accept使用线程上锁保护]
-        + 优点
-            * 上锁不涉及文件系统操作，比上一版快
-            * 不仅适用于同一进程内各线程之间的上锁，而且适用于不同进程之间的上锁
-                - 不同进程之间使用线程上锁要求：
-                    + 1）互斥锁变量必须存放在由所有进程共享的内存区中
-                    + 2）必须告知线程函数库这是在不同进程之间共享的互斥锁
-        + 
+    - **5**）[TCP预先派生子进程服务器，accept使用线程上锁保护](#tcp预先派生子进程服务器，accept使用线程上锁保护)
+        + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv04.c)
+        + 锁的初始化函数：[my_lock_init](https://github.com/arkingc/unpv13e/blob/master/server/lock_pthread.c#L8)
+        + 上锁函数：[my_lock_wait](https://github.com/arkingc/unpv13e/blob/master/server/lock_pthread.c#L32)
+        + 解锁函数：[my_lock_release](https://github.com/arkingc/unpv13e/blob/master/server/lock_pthread.c#L38)
+    - **6**）[TCP预先派生子进程服务器，传递描述符](#tcp预先派生子进程服务器，传递描述符)
+        + 主程序(https://github.com/arkingc/unpv13e/blob/master/server/serv05.c)
+        + 为每个子进程维护的信息结构：[Child](https://github.com/arkingc/unpv13e/blob/master/server/child.h)
+* **多线程服务器**
+    - **7**）[TCP并发服务器，每个客户一个线程](#tcp并发服务器，每个客户一个线程)
+        + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv06.c)
+    - **8**）[TCP预先创建线程服务器，每个线程各自accept](#tcp预先创建线程服务器，每个线程各自accept)
+        + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv07.c)
+        + [头文件](https://github.com/arkingc/unpv13e/blob/master/server/pthread07.h)
+        + 服务器创建线程的函数：[thread_make](https://github.com/arkingc/unpv13e/blob/master/server/pthread07.c#L5)
+        + 线程执行的函数：[thread_main](https://github.com/arkingc/unpv13e/blob/master/server/pthread07.c#L14)
+    - **9**）[TCP预先创建线程服务器，主线程统一accept](#tcp预先创建线程服务器，主线程统一accept)
+        + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv08.c)
+        + [头文件](https://github.com/arkingc/unpv13e/blob/master/server/pthread08.h)
+        + 服务器创建线程的函数：[thread_make](https://github.com/arkingc/unpv13e/blob/master/server/pthread08.c#L5)
+        + 线程执行的函数：[thread_main](https://github.com/arkingc/unpv13e/blob/master/server/pthread08.c#L14)
 
-* 服务器处理客户端请求的函数：[web_child](https://github.com/arkingc/unpv13e/blob/master/server/web_child.c)
-* CPU使用统计函数：[pr_cpu_time](https://github.com/arkingc/unpv13e/blob/master/server/pr_cpu_time.c)
+不同版本服务器的性能：
+
+<div align="center"> <img src="../pic/unp-design-2.png"/> </div>
+
+每个服务器子进程/线程处理的客户数的分布：
+
+<div align="center"> <img src="../pic/unp-design-4.png"/> </div>
+
+通过各个版本的比较，可以得出几点总结性的意见：
+
+* 当系统负载较轻时，每来一个客户请求现场派生一个子进程为之服务的传统并发服务器模型就足够了。这个模型甚至可以与inetd结合使用，也就是inetd处理每个连接的接受
+* 预先创建一个子进程池或一个子线程池的设计范式能够把进程控制CPU时间降低10倍或以上（一个优化是：监视闲置子进程个数，随着所服务客户数的动态变化而增加或减少这个数目）
+* 某些实现允许多个子进程或线程阻塞在同一个accept调用中，另一些实现却要求为accept调用安置某些类型的锁加以保护
+* 让所有子进程或线程自行调用accept通常比让父进程或主线程独自调用accept并把描述符传递给子进程或线程来得简单而快速
+* 由于潜在的select冲突，让所有子进程或线程阻塞在同一个accept调用中比让它们阻塞在同一select调用中更可取
+
+## 多进程服务器
+
+### TCP预先派生子进程服务器，accept无上锁保护
+
+* 优点
+    - 无须引入父进程执行fork的开销就能处理新到的客户
+* 缺点
+    - 父进程必须在服务器启动阶段猜测需要预先派生多少子进程。如果某个时刻客户数恰好等于子进程总数，那么新到的客户将被忽略，直到至少有一个子进程重新可用
+    - 存在**惊群问题**：所有N个子进程均被唤醒，但其中只有最先运行的子进程获得客户连接，其余N-1个子进程继续恢复睡眠，这回引入CPU开销。惊群问题会随预先分配的子进程数量的增加而越突出
+    - 允许多个进程在引用同一个监听套接字的描述符上调用accept的做法仅仅适用于在内核中实现accept的源自Berkeley的内核。作为一个库函数实现accept的System V内核可能不允许这么做
+
+惊群问题的规模与影响：
+
+<div align="center"> <img src="../pic/unp-design-3.png"/> </div>
+
+#### 内核如何实现多个子进程在同一监听描述符上调用accept？
+
+> 以下为4.4BSD上的实现
+
+父进程在派生任何子进程之前创建监听套接字，每次调用fork时，所有描述符也被复制：
+
+<div align="center"> <img src="../pic/unp-design-1.png"/> </div>
+
+描述符只是本进程引用file结构的proc结构中一个数组中某个元素的小标而已。子进程中一个给定描述符引用的file结构正是父进程中同一个描述符引用的file结构。每个file结构都有一个引用计数
+
+当打开一个文件或套接字时，内核将为之构造一个file结构，这个file结构被作为打开操作返回值的描述符引用，引用计数的初值为1；以后每当调用fork以派生子进程或对打开操作返回的描述符调用dup以赋复制描述符时，该file结构的引用计数就递增
+
+> **select冲突**：当多个进程在引用同一个套接字的描述符上调用select时会发生冲突，例如多个子进程在同一监听套接字上调用select，将该版本服务器从阻塞在accept上转为阻塞在select上。因为在socket结构中为存放本套接字就绪之时应该唤醒哪些进程而分配的仅仅是一个进程ID的空间。如果有多个进程在等待同一个套接字，那么内核必须唤醒的是阻塞在select调用中的所有进程，因为它不知道哪些进程受刚变得就绪的这个套接字影响。因此，**如果有多个进程阻塞在引用同一实体的描述符上，那么最好直接阻塞在诸如accept之类的函数而不是select之中**
+
+### TCP预先派生子进程服务器，accept使用文件上锁保护
+
+* 优点
+    - 在SVR4系统上照样可以工作，因此保证每次只有一个进程阻塞在accept调用中
+* 缺点
+    - 围绕accept的上锁增加了服务器的进程控制CPU时间
+    - 上锁涉及文件系统操作，可能比较耗时
+
+### TCP预先派生子进程服务器，accept使用线程上锁保护
+
+* 优点
+    - 上锁不涉及文件系统操作，比上一版快
+    - 不仅适用于同一进程内各线程之间的上锁，而且适用于不同进程之间的上锁
+        + 不同进程之间使用线程上锁要求：
+            * 1）互斥锁变量必须存放在由所有进程共享的内存区中
+            * 2）必须告知线程函数库这是在不同进程之间共享的互斥锁
+
+### TCP预先派生子进程服务器，传递描述符
+
+* 优点
+    - 父进程accept，将接受的已连接套接字传递给子进程，绕过了为所有子进程的accept调用提供上锁保护的可能需求
+* 缺点
+    - 从父进程到子进程传递描述符，需要跟踪子进程空闲状态，会使代码较为复杂
+
+## 多线程服务器
+
+### TCP并发服务器，每个客户一个线程
+
+* 优点
+    - 比每个客户一个进程的版本快很多倍
+
+### TCP预先创建线程服务器，每个线程各自accept
+
+* 优点
+    - 比为每个客户现场创建一个线程的版本更快，**所有版本中最快**
+
+### TCP预先创建线程服务器，主线程统一accept
+
+* 优点
+    - 相比于多进程传递描述符的版本，主线程不必将描述符传递到其它线程，只需知道描述符的值（描述符传递实际传递的并非值，而是套接字的引用，将返回一个不同于原值的描述符，因而套接字的引用计数也被递增）
+* 缺点
+    - 比每个线程各自accept的版本慢，原因在于该版本同时需要互斥锁和条件变量，前者只需互斥锁
