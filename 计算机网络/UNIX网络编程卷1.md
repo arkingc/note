@@ -2186,7 +2186,7 @@ pthread_once函数：
         + 上锁函数：[my_lock_wait](https://github.com/arkingc/unpv13e/blob/master/server/lock_pthread.c#L32)
         + 解锁函数：[my_lock_release](https://github.com/arkingc/unpv13e/blob/master/server/lock_pthread.c#L38)
     - **6**）**TCP预先派生子进程服务器**，[传递描述符](#传递描述符)
-        + 主程序(https://github.com/arkingc/unpv13e/blob/master/server/serv05.c)
+        + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv05.c)
         + 为每个子进程维护的信息结构：[Child](https://github.com/arkingc/unpv13e/blob/master/server/child.h)
 * **多线程服务器**
     - **7**）**TCP并发服务器**，[每个客户一个线程](#每个客户一个线程)
@@ -2204,13 +2204,13 @@ pthread_once函数：
 
 不同版本服务器的性能：
 
-<div align="center"> <img src="../pic/unp-design-2.png"/> </div>
+<div align="center"> <img src="../pic/unp-design-2.jpeg"/> </div>
 
 每个服务器子进程/线程处理的客户数的分布：
 
 <div align="center"> <img src="../pic/unp-design-4.png"/> </div>
 
-通过各个版本的比较，可以得出几点总结性的意见：
+通过各个版本的比较，可以得出**几点总结性的意见**：
 
 * 当系统负载较轻时，每来一个客户请求现场派生一个子进程为之服务的传统并发服务器模型就足够了。这个模型甚至可以与inetd结合使用，也就是inetd处理每个连接的接受
 * 预先创建一个子进程池或一个子线程池的设计范式能够把进程控制CPU时间降低10倍或以上（一个优化是：监视闲置子进程个数，随着所服务客户数的动态变化而增加或减少这个数目）
