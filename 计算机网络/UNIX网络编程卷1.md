@@ -69,6 +69,7 @@
     * [3.线程特定数据](#3线程特定数据)
     * [4.互斥锁](#4互斥锁)
     * [5.条件变量](#5条件变量)
+* [十一.客户/服务器程序设计范式](#十一客户服务器程序设计范式)
 
 <br>
 <br>
@@ -2165,37 +2166,37 @@ pthread_once函数：
 服务器的设计：
 
 * **单进程服务器**
-    - **1**）TCP迭代服务器
+    - **1**）**TCP迭代服务器**
         + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv00.c)
 * **多进程服务器**
-    - **2**）TCP并发服务器，每个客户一个子进程 
+    - **2**）**TCP并发服务器，每个客户一个子进程**
         + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv01.c)
-    - **3**）[TCP预先派生子进程服务器，accept无上锁保护](#tcp预先派生子进程服务器，accept无上锁保护)
+    - **3**）**TCP预先派生子进程服务器**，[accept无上锁保护](#accept无上锁保护)
         + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv02.c)
         + 服务器派生子进程函数：[child_make](https://github.com/arkingc/unpv13e/blob/master/server/child02.c#L5)
         + 子进程执行的函数：[child_main](https://github.com/arkingc/unpv13e/blob/master/server/child02.c#L19) 
-    - **4**）[TCP预先派生子进程服务器，accept使用文件上锁保护](#tcp预先派生子进程服务器，accept使用文件上锁保护)
+    - **4**）**TCP预先派生子进程服务器**，[accept使用文件上锁保护](#accept使用文件上锁保护)
         + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv03.c)
         + 锁的初始化函数：[my_lock_init](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L9)
         + 上锁函数：[my_lock_wait](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L44)
         + 解锁函数：[my_lock_release](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L57)
-    - **5**）[TCP预先派生子进程服务器，accept使用线程上锁保护](#tcp预先派生子进程服务器，accept使用线程上锁保护)
+    - **5**）**TCP预先派生子进程服务器**，[accept使用线程上锁保护](#accept使用线程上锁保护)
         + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv04.c)
         + 锁的初始化函数：[my_lock_init](https://github.com/arkingc/unpv13e/blob/master/server/lock_pthread.c#L8)
         + 上锁函数：[my_lock_wait](https://github.com/arkingc/unpv13e/blob/master/server/lock_pthread.c#L32)
         + 解锁函数：[my_lock_release](https://github.com/arkingc/unpv13e/blob/master/server/lock_pthread.c#L38)
-    - **6**）[TCP预先派生子进程服务器，传递描述符](#tcp预先派生子进程服务器，传递描述符)
+    - **6**）**TCP预先派生子进程服务器**，[传递描述符](#传递描述符)
         + 主程序(https://github.com/arkingc/unpv13e/blob/master/server/serv05.c)
         + 为每个子进程维护的信息结构：[Child](https://github.com/arkingc/unpv13e/blob/master/server/child.h)
 * **多线程服务器**
-    - **7**）[TCP并发服务器，每个客户一个线程](#tcp并发服务器，每个客户一个线程)
+    - **7**）**TCP并发服务器**，[每个客户一个线程](#每个客户一个线程)
         + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv06.c)
-    - **8**）[TCP预先创建线程服务器，每个线程各自accept](#tcp预先创建线程服务器，每个线程各自accept)
+    - **8**）**TCP预先创建线程服务器**，[每个线程各自accept](#每个线程各自accept)
         + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv07.c)
         + [头文件](https://github.com/arkingc/unpv13e/blob/master/server/pthread07.h)
         + 服务器创建线程的函数：[thread_make](https://github.com/arkingc/unpv13e/blob/master/server/pthread07.c#L5)
         + 线程执行的函数：[thread_main](https://github.com/arkingc/unpv13e/blob/master/server/pthread07.c#L14)
-    - **9**）[TCP预先创建线程服务器，主线程统一accept](#tcp预先创建线程服务器，主线程统一accept)
+    - **9**）**TCP预先创建线程服务器**，[主线程统一accept](#主线程统一accept)
         + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv08.c)
         + [头文件](https://github.com/arkingc/unpv13e/blob/master/server/pthread08.h)
         + 服务器创建线程的函数：[thread_make](https://github.com/arkingc/unpv13e/blob/master/server/pthread08.c#L5)
@@ -2219,7 +2220,7 @@ pthread_once函数：
 
 ## 多进程服务器
 
-### TCP预先派生子进程服务器，accept无上锁保护
+### accept无上锁保护
 
 * 优点
     - 无须引入父进程执行fork的开销就能处理新到的客户
@@ -2246,7 +2247,7 @@ pthread_once函数：
 
 > **select冲突**：当多个进程在引用同一个套接字的描述符上调用select时会发生冲突，例如多个子进程在同一监听套接字上调用select，将该版本服务器从阻塞在accept上转为阻塞在select上。因为在socket结构中为存放本套接字就绪之时应该唤醒哪些进程而分配的仅仅是一个进程ID的空间。如果有多个进程在等待同一个套接字，那么内核必须唤醒的是阻塞在select调用中的所有进程，因为它不知道哪些进程受刚变得就绪的这个套接字影响。因此，**如果有多个进程阻塞在引用同一实体的描述符上，那么最好直接阻塞在诸如accept之类的函数而不是select之中**
 
-### TCP预先派生子进程服务器，accept使用文件上锁保护
+### accept使用文件上锁保护
 
 * 优点
     - 在SVR4系统上照样可以工作，因此保证每次只有一个进程阻塞在accept调用中
@@ -2254,7 +2255,7 @@ pthread_once函数：
     - 围绕accept的上锁增加了服务器的进程控制CPU时间
     - 上锁涉及文件系统操作，可能比较耗时
 
-### TCP预先派生子进程服务器，accept使用线程上锁保护
+### accept使用线程上锁保护
 
 * 优点
     - 上锁不涉及文件系统操作，比上一版快
@@ -2263,7 +2264,7 @@ pthread_once函数：
             * 1）互斥锁变量必须存放在由所有进程共享的内存区中
             * 2）必须告知线程函数库这是在不同进程之间共享的互斥锁
 
-### TCP预先派生子进程服务器，传递描述符
+### 传递描述符
 
 * 优点
     - 父进程accept，将接受的已连接套接字传递给子进程，绕过了为所有子进程的accept调用提供上锁保护的可能需求
@@ -2272,17 +2273,17 @@ pthread_once函数：
 
 ## 多线程服务器
 
-### TCP并发服务器，每个客户一个线程
+### 每个客户一个线程
 
 * 优点
     - 比每个客户一个进程的版本快很多倍
 
-### TCP预先创建线程服务器，每个线程各自accept
+### 每个线程各自accept
 
 * 优点
     - 比为每个客户现场创建一个线程的版本更快，**所有版本中最快**
 
-### TCP预先创建线程服务器，主线程统一accept
+### 主线程统一accept
 
 * 优点
     - 相比于多进程传递描述符的版本，主线程不必将描述符传递到其它线程，只需知道描述符的值（描述符传递实际传递的并非值，而是套接字的引用，将返回一个不同于原值的描述符，因而套接字的引用计数也被递增）
