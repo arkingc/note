@@ -5,7 +5,8 @@
     * [4.STL六大部件](#4stl六大部件)
 * [二.空间分配器](#二空间分配器)
     * [1.空间分配器的标准接口](#1空间分配器的标准接口)
-    * [2.SGI特殊的空间配置器std::alloc](#2sgi特殊的空间配置器stdalloc)
+    * [2.SGI标准的空间分配器std::allocator](#2sgi标准的空间分配器stdallocator)
+    * [3.SGI特殊的空间配置器std::alloc](#3sgi特殊的空间配置器stdalloc)
 
 <br>
 <br>
@@ -145,9 +146,11 @@ void allocator::destroy(pointer p)
 * **只能有限度地搭配RW STL**，因为RW STL在很多容器身上运用了缓冲区，情况复杂很多
 * **完全无法应用于SGI STL**，因为SGI STL在这个项目上根本就脱离了STL标准规格，使用一个专属的、拥有次层配置能力的、效率优越的特殊分配器。事实上SGI STL仍然提供了一个标准的分配器接口，只是把它做了一层隐藏，这个标准接口的分配器名为simple\_alloc
 
-> 虽然SGI也定义有一个符合部分标准、名为[allocator](tass-sgi-stl-2.91.57-source/defalloc.h)的配置器，但SGI自己从未用过它，也**不建议我们使用**。**主要原因是效率不佳**，只把C++的::operator new和::operator delete做一层薄薄的包装而已
+## 2.SGI标准的空间分配器std::allocator
 
-## 2.SGI特殊的空间配置器std::alloc
+虽然SGI也定义有一个符合部分标准、名为[allocator](tass-sgi-stl-2.91.57-source/defalloc.h)的配置器，但SGI自己从未用过它，也**不建议我们使用**。**主要原因是效率不佳**，只把C++的::operator new和::operator delete做一层薄薄的包装而已
+
+## 3.SGI特殊的空间分配器std::alloc
 
 ```c++
 class Foo {...};
@@ -164,10 +167,10 @@ delete pf;
 
 STL标准规格规定配置器定义于```<memory>```中，SGI```<memory>```内含两个文件：
 
-* ```#include <stl_alloc.h> //负责内存空间的分配与释放```
+* [<stl_alloc.h>](tass-sgi-stl-2.91.57-source/stl_alloc.h)：负责内存空间的分配与释放
     - 内存分配：由alloc::allocate()负责
     - 内存释放：由alloc::deallocate()负责
-* ```#include <stl_construct.h> //负责对象内容的构造与析构```
+* [<stl_construct.h>](tass-sgi-stl-2.91.57-source/stl_construct.h)：负责对象内容的构造与析构
     - 对象构造：由alloc::construct()负责
     - 对象析构：由alloc::destroy负责
 
@@ -175,3 +178,8 @@ STL标准规格规定配置器定义于```<memory>```中，SGI```<memory>```内�
 
 <div align="center"> <img src="../pic/stl-2-1.png"/> </div>
 
+### 2.1 对象构造与析构
+
+
+
+### 2.2 内存分配与释放
