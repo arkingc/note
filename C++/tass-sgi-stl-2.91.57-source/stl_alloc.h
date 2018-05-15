@@ -317,6 +317,8 @@ typedef malloc_alloc single_client_alloc;
   enum {__NFREELISTS = __MAX_BYTES/__ALIGN};
 #endif
 
+//第二级分配器的定义
+//无”template型别参数“，第一个参数用于多线程环境，第二参数完全没派上用场
 template <bool threads, int inst>
 class __default_alloc_template {
 
@@ -328,10 +330,12 @@ private:
     enum {__MAX_BYTES = 128};
     enum {__NFREELISTS = __MAX_BYTES/__ALIGN};
 # endif
+  //将bytes上调至8的倍数
   static size_t ROUND_UP(size_t bytes) {
         return (((bytes) + __ALIGN-1) & ~(__ALIGN - 1));
   }
 __PRIVATE:
+  //free-list
   union obj {
         union obj * free_list_link;
         char client_data[1];    /* The client sees this.        */
@@ -341,21 +345,23 @@ private:
     static obj * __VOLATILE free_list[]; 
         // Specifying a size results in duplicate def for 4.1
 # else
+    //16个free-list
     static obj * __VOLATILE free_list[__NFREELISTS]; 
 # endif
+    //根据区块大小，决定使用第n号free-list。n从0算起
   static  size_t FREELIST_INDEX(size_t bytes) {
         return (((bytes) + __ALIGN-1)/__ALIGN - 1);
   }
 
-  // Returns an object of size n, and optionally adds to size n free list.
+  //返回一个大小为n的对象，并可能加入大小为n的其它区块到free-list
   static void *refill(size_t n);
-  // Allocates a chunk for nobjs of size "size".  nobjs may be reduced
-  // if it is inconvenient to allocate the requested number.
+  //分配一大块空间，可容纳nobjs个大小为”size“的区块
+  //如果分配nobjs个区块有所不便，nobjs可能会降低
   static char *chunk_alloc(size_t size, int &nobjs);
 
   // Chunk allocation state.
-  static char *start_free;
-  static char *end_free;
+  static char *start_free;  //内存池起始位置。只在chunk_alloc()中变化
+  static char *end_free;    //内存池结束位置。只在chunk_alloc()中变化
   static size_t heap_size;
 
 # ifdef __STL_SGI_THREADS
@@ -399,9 +405,11 @@ public:
     obj * __VOLATILE * my_free_list;
     obj * __RESTRICT result;
 
+    //大于128就调用第一级分配器
     if (n > (size_t) __MAX_BYTES) {
         return(malloc_alloc::allocate(n));
     }
+    //寻找16个free-list中适当的一个
     my_free_list = free_list + FREELIST_INDEX(n);
     // Acquire the lock here with a constructor call.
     // This ensures that it is released in exit or during stack
@@ -412,9 +420,11 @@ public:
 #       endif
     result = *my_free_list;
     if (result == 0) {
+        //没找到可用的free-list，准备重新填充free-list
         void *r = refill(ROUND_UP(n));
         return r;
     }
+    //调整free list
     *my_free_list = result -> free_list_link;
     return (result);
   };
@@ -429,6 +439,7 @@ public:
         malloc_alloc::deallocate(p, n);
         return;
     }
+    
     my_free_list = free_list + FREELIST_INDEX(n);
     // acquire lock
 #       ifndef _NOTHREADS

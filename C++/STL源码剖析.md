@@ -168,7 +168,7 @@ void allocator::destroy(pointer p)
 
 * **只能有限度搭配PJ STL**，因为PJ STL未完全遵循STL规格，其所供应的许多容器都需要一个非标准的空间分配器接口
 * **只能有限度地搭配RW STL**，因为RW STL在很多容器身上运用了缓冲区，情况复杂很多
-* **完全无法应用于SGI STL**，因为SGI STL在这个项目上根本就脱离了STL标准规格，使用一个专属的、拥有次层配置能力的、效率优越的特殊分配器
+* **完全无法应用于SGI STL**，因为SGI STL在这个项目上根本就脱离了STL标准规格，使用一个专属的、拥有次层配置能力的、效率优越的特殊分配器。但提供了一个对其进行了封装的名为simple_alloc的分配器，符合部分标准
 
 ## 2.SGI标准的空间分配器std::allocator
 
@@ -333,3 +333,102 @@ void * __malloc_alloc_template<inst>::oom_realloc(void *p, size_t n)
 * 实现出类似C++ new-handler的机制（**C++ new-handler机制是，可以要求系统在内存分配需求无法被满足时，调用一个你所指定的函数。换句话说，一旦::operator new无法完成任务，在丢出std::bad_alloc异常状态之前，会先调用由客户指定的处理例程，该处理例程通常即被称为new-handler**），不能直接运用C++ new-handler机制，因为它并非使用::operator new来分配内存
 
 #### 3）第二级分配器__default_alloc_template
+
+第二级分配器多了一些机制，避免太多小额区块造成内存的碎片，小额区块存在下列问题：
+
+* 产生内存碎片
+* 额外负担。额外负担是一些区块信息，用以管理内存。区块越小，额外负担所占的比例就越大，越显浪费
+
+<div align="center"> <img src="../pic/stl-2-5.png"/> </div>
+
+* 当区块大于128bytes时，视为大区块
+    - 转交第一级分配器处理
+* 当区块小于128bytes时，视为小额区块
+    - 以**内存池管理(也称为次层分配)**：每次分配一大块内存，并维护对应的自由链表(free-list)，下次若载有相同大小的内存需求，就直接从free-list中拨出。如果客户释放小额区块，就由分配器回收到free-list中。**维护有16个free-list**，各自管理大小分别为8，16，24，32，40，48，56，64，72，80，88，96，104，112，120，128bytes的小额区块
+    - SGI第二级分配器会主动将任何小额区块的内存需求量上调至8的倍数
+
+free-list使用如下结构表示：
+
+```c++
+//使用union解决free-list带来的额外负担：维护链表所必须的指针而造成内存的另一种浪费
+union obj{
+    union obj * free_list_link; //系统视角
+    char client_data[1];        //用户视角
+}
+```
+
+下图是free-list的实现技巧：
+
+<div align="center"> <img src="../pic/stl-2-6.png"/> </div>
+
+第2二级分配器__default_alloc_template也定义在头文件[<stl_alloc.h>](tass-sgi-stl-2.91.57-source/stl_alloc.h)中，以下为部分实现内容：
+
+```c++
+#ifdef __SUNPRO_CC
+// breaks if we make these template class members:
+  enum {__ALIGN = 8};                           //小型区块的上调边界
+  enum {__MAX_BYTES = 128};                     //小型区块的上限
+  enum {__NFREELISTS = __MAX_BYTES/__ALIGN};    //free-list的个数
+#endif
+
+//第二级分配器的定义
+//无”template型别参数“，第一个参数用于多线程环境，第二参数完全没派上用场
+template <bool threads, int inst>
+class __default_alloc_template {
+
+private:
+    //将bytes上调至8的倍数
+    static size_t ROUND_UP(size_t bytes) {
+        return (((bytes) + __ALIGN-1) & ~(__ALIGN - 1));
+    }
+private:
+    //free-list
+    union obj {
+        union obj * free_list_link;
+        char client_data[1];    /* The client sees this.        */
+    };
+private:
+    //16个free-list
+    static obj * volatile free_list[__NFREELISTS]; 
+    //根据区块大小，决定使用第n号free-list。n从0算起
+    static  size_t FREELIST_INDEX(size_t bytes) {
+        return (((bytes) + __ALIGN-1)/__ALIGN - 1);
+    }
+
+    //返回一个大小为n的对象，并可能加入大小为n的其它区块到free-list
+    static void *refill(size_t n);
+    //分配一大块空间，可容纳nobjs个大小为”size“的区块
+    //如果分配nobjs个区块有所不便，nobjs可能会降低
+    static char *chunk_alloc(size_t size, int &nobjs);
+
+    // Chunk allocation state.
+    static char *start_free;  //内存池起始位置。只在chunk_alloc()中变化
+    static char *end_free;    //内存池结束位置。只在chunk_alloc()中变化
+    static size_t heap_size;
+
+public:
+    static void * allocate(size_t n){ /*详述于后*/ }
+    static void deallocate(void *p, size_t n){ /*详述于后*/ }
+    static void * reallocate(void *p, size_t old_sz, size_t new_sz);
+};
+
+/*以下是static data member的定义与初始值*/
+
+template <bool threads, int inst>
+char *__default_alloc_template<threads, inst>::start_free = 0;
+
+template <bool threads, int inst>
+char *__default_alloc_template<threads, inst>::end_free = 0;
+
+template <bool threads, int inst>
+size_t __default_alloc_template<threads, inst>::heap_size = 0;
+
+template <bool threads, int inst>
+__default_alloc_template<threads, inst>::obj * volatile
+__default_alloc_template<threads, inst> ::free_list[__NFREELISTS] = 
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, };
+```
+
+* 空间分配函数[allocate()](tass-sgi-stl-2.91.57-source/stl_alloc.h#L403)
+
+<div align="center"> <img src="../pic/stl-2-7.png"/> </div>
