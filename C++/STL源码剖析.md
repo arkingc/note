@@ -6,7 +6,9 @@
 * [二.空间分配器](#二空间分配器)
     * [1.空间分配器的标准接口](#1空间分配器的标准接口)
     * [2.SGI标准的空间分配器std::allocator](#2sgi标准的空间分配器stdallocator)
-    * [3.SGI特殊的空间配置器std::alloc](#3sgi特殊的空间配置器stdalloc)
+    * [3.SGI特殊的空间分配器std::alloc](#3sgi特殊的空间分配器stdalloc)
+        - [3.1 对象构造与析构](#31-对象构造与析构)
+        - [3.2 内存分配与释放](#32-内存分配与释放)
 
 <br>
 <br>
@@ -103,6 +105,28 @@
 
 ## 1.空间分配器的标准接口
 
+通常，C++内存分配和释放的操作如下：
+
+```c++
+class Foo {...};
+Foo *pf = new Foo;
+delete pf;
+```
+
+* **new内含2阶段操作**：
+    - 调用::operator new分配内存
+    - 调用构造函数构造对象
+* **delete也含2阶段操作**：
+    - 调用析构函数析构对象
+    - 调用::operator delete释放内存
+
+STL allocator将new和delete的2阶段操作进行了分离：
+
+* 内存分配：由alloc::allocate()负责
+* 内存释放：由alloc::deallocate()负责
+* 对象构造：由alloc::construct()负责
+* 对象析构：由alloc::destroy负责
+
 根据**STL的规范**，以下是allocator的必要接口：
 
 ```c++
@@ -142,44 +166,170 @@ void allocator::construct(pointer p,const T& x)
 void allocator::destroy(pointer p)
 ```
 
-* **只能有限度搭配PJ STL**，因为PJ STL未完全遵循STL规格，其所供应的许多容器都需要一个非标准的空间分配器接口allocator::\_Charalloc()
+* **只能有限度搭配PJ STL**，因为PJ STL未完全遵循STL规格，其所供应的许多容器都需要一个非标准的空间分配器接口
 * **只能有限度地搭配RW STL**，因为RW STL在很多容器身上运用了缓冲区，情况复杂很多
-* **完全无法应用于SGI STL**，因为SGI STL在这个项目上根本就脱离了STL标准规格，使用一个专属的、拥有次层配置能力的、效率优越的特殊分配器。事实上SGI STL仍然提供了一个标准的分配器接口，只是把它做了一层隐藏，这个标准接口的分配器名为simple\_alloc
+* **完全无法应用于SGI STL**，因为SGI STL在这个项目上根本就脱离了STL标准规格，使用一个专属的、拥有次层配置能力的、效率优越的特殊分配器。事实上SGI STL仍然提供了一个标准的分配器接口
 
 ## 2.SGI标准的空间分配器std::allocator
 
-虽然SGI也定义有一个符合部分标准、名为[allocator](tass-sgi-stl-2.91.57-source/defalloc.h)的配置器，但SGI自己从未用过它，也**不建议我们使用**。**主要原因是效率不佳**，只把C++的::operator new和::operator delete做一层薄薄的包装而已
+虽然SGI也定义有一个符合部分标准、名为[allocator](tass-sgi-stl-2.91.57-source/defalloc.h)的分配器，但SGI自己从未用过它，也**不建议我们使用**。**主要原因是效率不佳**，只把C++的::operator new和::operator delete做一层薄薄的包装而已
 
 ## 3.SGI特殊的空间分配器std::alloc
 
-```c++
-class Foo {...};
-Foo *pf = new Foo;
-delete pf;
-```
-
-* **new内含2阶段操作**：
-    - 调用::operator new分配内存
-    - 调用构造函数构造对象
-* **delete也含2阶段操作**：
-    - 调用析构函数析构对象
-    - 调用::operator delete释放内存
-
-STL标准规格规定配置器定义于```<memory>```中，SGI```<memory>```内含两个文件：
-
-* [<stl_alloc.h>](tass-sgi-stl-2.91.57-source/stl_alloc.h)：负责内存空间的分配与释放
-    - 内存分配：由alloc::allocate()负责
-    - 内存释放：由alloc::deallocate()负责
-* [<stl_construct.h>](tass-sgi-stl-2.91.57-source/stl_construct.h)：负责对象内容的构造与析构
-    - 对象构造：由alloc::construct()负责
-    - 对象析构：由alloc::destroy负责
-
-因此，STL allocator将new和delete的2阶段操作进行了分离
+STL标准规定分配器定义于```<memory>```中，SGI```<memory>```内含两个文件，负责分离的2阶段操作
 
 <div align="center"> <img src="../pic/stl-2-1.png"/> </div>
 
-### 2.1 对象构造与析构
+> 真正在SGI STL中大显身手的分配器（即SGI特殊的空间分配器std::alloc）或为第一级分配器，或为第二级分配器
 
+### 3.1 对象构造与析构
 
+[<stl_construct.h>](tass-sgi-stl-2.91.57-source/stl_construct.h)
 
-### 2.2 内存分配与释放
+<div align="center"> <img src="../pic/stl-2-2.png"/> </div>
+
+> STL还规定分配器必须拥有名为construct()和destroy()的两个成员函数，然而SGI特殊的空间分配器std::alloc并未遵守这一规则，所以实际上这部分不属于std::alloc，属于STL allocator。换句话说，SGI特殊的空间分配器std::alloc不包含”3.1 对象构造与析构“，只包含”3.2 内存分配与释放“
+
+### 3.2 内存分配与释放
+
+SGI对内存分配与释放的设计哲学如下：
+
+* 向system heap申请空间
+* 考虑多线程状态
+* 考虑内存不足时的应变措施
+* 考虑过多“小型区块”可能造成的内存碎片问题（**SGI设计了双层级分配器**）
+
+**C++的内存分配基本操作是::operator new(),内存释放基本操作是::operator delete()。这两个全局函数相当于C的malloc()和free()函数。SGI正是以malloc和free()完成内存的分配与释放**
+
+#### 1）两级分配器
+
+考虑到小型区块所可能造成的内存碎片问题，SGI设计了双层级分配器：
+
+<div align="center"> <img src="../pic/stl-2-3.png"/> </div>
+
+* 第一级分配器
+    - 直接使用malloc()和free()
+* 第二级分配器
+    - 当分配区块超过128bytes时，视为“足够大”，调用第一级分配器
+    - 当分配区块小于128bytes时，视为“过小”，为了降低额外负担，采用复杂的memory pool整理方式，不再求助于第一级分配器
+
+无论alloc被定义为第一级或第二级分配器，SGI还为它再包装一个接口，使分配器的接口能够符合STL规格：
+
+```c++
+template<class T, class Alloc>
+class simple_alloc {
+
+public:
+    static T *allocate(size_t n)
+                { return 0 == n? 0 : (T*) Alloc::allocate(n * sizeof (T)); }
+    static T *allocate(void)
+                { return (T*) Alloc::allocate(sizeof (T)); }
+    static void deallocate(T *p, size_t n)
+                { if (0 != n) Alloc::deallocate(p, n * sizeof (T)); }
+    static void deallocate(T *p)
+                { Alloc::deallocate(p, sizeof (T)); }
+};
+```
+
+内部4个函数都是转调用分配器的成员函数。**这个接口使分配器的分配单位从bytes转为个别元素的大小**
+
+<div align="center"> <img src="../pic/stl-2-4.png"/> </div>
+
+#### 2）第一级分配器__malloc_alloc_template
+
+第一级分配器__malloc_alloc_template定义在头文件[<stl_alloc.h>](tass-sgi-stl-2.91.57-source/stl_alloc.h)中：
+
+```c++
+//一般而言是线程安全，并且对于空间的运用比较高效
+//无“template型别参数”，至于”非型别参数“inst，则完全没派上用场
+template <int inst>
+class __malloc_alloc_template {
+
+private:
+//oom：out of memory ，用来处理内存不足的情况
+static void *oom_malloc(size_t);
+
+static void *oom_realloc(void *, size_t);
+
+#ifndef __STL_STATIC_TEMPLATE_MEMBER_BUG
+    static void (* __malloc_alloc_oom_handler)();
+#endif
+
+public:
+
+static void * allocate(size_t n)
+{
+    void *result = malloc(n);//第一级分配器直接使用malloc()
+    //以下无法满足需求时，改用oom_malloc()
+    if (0 == result) result = oom_malloc(n);
+    return result;
+}
+
+static void deallocate(void *p, size_t /* n */)
+{
+    free(p);//第一级分配器直接使用free()
+}
+
+static void * reallocate(void *p, size_t /* old_sz */, size_t new_sz)
+{
+    void * result = realloc(p, new_sz);//第一级分配器直接使用realloc()
+    //以下无法满足需求时，改用oom_realloc()
+    if (0 == result) result = oom_realloc(p, new_sz);
+    return result;
+}
+
+//以下仿真C++的set_new_handler()。可以通过它指定自己的
+//out-of-memory handler
+//不能直接运用C++ new-handler机制，因为它并非使用::operator new来分配内存
+static void (* set_malloc_handler(void (*f)()))()
+{
+    void (* old)() = __malloc_alloc_oom_handler;
+    __malloc_alloc_oom_handler = f;
+    return(old);
+}
+
+};
+
+// malloc_alloc out-of-memory handling
+
+#ifndef __STL_STATIC_TEMPLATE_MEMBER_BUG
+//初值为0，有待客户设定
+template <int inst>
+void (* __malloc_alloc_template<inst>::__malloc_alloc_oom_handler)() = 0;
+#endif
+
+template <int inst>
+void * __malloc_alloc_template<inst>::oom_malloc(size_t n)
+{
+    void (* my_malloc_handler)();
+    void *result;
+
+    for (;;) {//不断尝试释放、分配、再释放、再分配...
+        my_malloc_handler = __malloc_alloc_oom_handler;
+        if (0 == my_malloc_handler) { __THROW_BAD_ALLOC; }
+        (*my_malloc_handler)(); //调用处理例程，企图释放内存
+        result = malloc(n);     //再次尝试分配内存
+        if (result) return(result);
+    }
+}
+
+template <int inst>
+void * __malloc_alloc_template<inst>::oom_realloc(void *p, size_t n)
+{
+    void (* my_malloc_handler)();
+    void *result;
+
+    for (;;) {//不断尝试释放、分配、再释放、再分配...
+        my_malloc_handler = __malloc_alloc_oom_handler;
+        if (0 == my_malloc_handler) { __THROW_BAD_ALLOC; }
+        (*my_malloc_handler)(); //调用处理例程，企图释放内存
+        result = realloc(p, n); //再次尝试分配内存
+        if (result) return(result);
+    }
+}
+```
+
+* 以malloc()、free()、realloc()等C函数执行实际的内存分配、释放、重分配操作
+* 实现出类似C++ new-handler的机制（**C++ new-handler机制是，可以要求系统在内存分配需求无法被满足时，调用一个你所指定的函数。换句话说，一旦::operator new无法完成任务，在丢出std::bad_alloc异常状态之前，会先调用由客户指定的处理例程，该处理例程通常即被称为new-handler**），不能直接运用C++ new-handler机制，因为它并非使用::operator new来分配内存
+
+#### 3）第二级分配器__default_alloc_template
