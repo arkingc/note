@@ -12,6 +12,7 @@
             + [1）两级分配器](#1两级分配器)
             + [2）第一级分配器__malloc_alloc_template](#2第一级分配器__malloc_alloc_template)
             + [3）第二级分配器__default_alloc_template](#3第二级分配器__default_alloc_template)
+        - [3.3 内存基本处理工具](#33-内存基本处理工具)
 
 <br>
 <br>
@@ -238,7 +239,7 @@ public:
 
 <div align="center"> <img src="../pic/stl-2-4.png"/> </div>
 
-> 上图中Alloc=alloc中的缺省alloc可以是第一级分配器，也可以是第二级分配器。不过，SGI STL已经把它设为第二级分配器
+> 上图中Alloc=alloc中的缺省alloc可以是第一级分配器，也可以是第二级分配器。SGI STL已经把它设为第二级分配器
 
 #### 2）第一级分配器__malloc_alloc_template
 
@@ -461,6 +462,25 @@ __default_alloc_template<threads, inst> ::free_list[__NFREELISTS] =
         + 如果malloc()获取失败，chunk_alloc()就四处寻找有无”尚有未用且区块足够大“的free-list。找到了就挖出一块交出
         + 如果上一步仍为成果，那么就调用第一级分配器，第一级分配器有out-of-memory处理机制，或许有机会释放其它的内存拿来此处使用。如果可以，就成功，否则抛出bad_alloc异常
     
-    <div align="center"> <img src="../pic/stl-2-8.png"/> </div>
+    <div align="center"> <img src="../pic/stl-2-9.png"/> </div>
 
-    上图中，一开始就调用chunk_alloc(32,20)，于是malloc()分配40个32bytes区块，其中第1个交出，另19个交给free-list[3]维护，余20个留给内存池；接下来客户调用chunk_alloc(64,20)，此时free_list[7]空空如也，必须向内存池申请。内存池只能供应(32\*20)/64=10个64bytes区块，就把这10个区块返回，第1个交给客户，余9个由free_list[7]维护。此时内存池全空。接下来再调用chunk_alloc(96,20)，此时free-list[11]空空如也，必须向内存池申请。而内存池此时也为空，于是以malloc()分配40+n(附加量)个96bytes区块，其中第1个交出，另19个交给free-list[11]维护，余20+n(附加量)个区块留给内存池...
+        上图中，一开始就调用chunk_alloc(32,20)，于是malloc()分配40个32bytes区块，其中第1个交出，另19个交给free-list[3]维护，余20个留给内存池；接下来客户调用chunk_alloc(64,20)，此时free_list[7]空空如也，必须向内存池申请。内存池只能供应(32\*20)/64=10个64bytes区块，就把这10个区块返回，第1个交给客户，余9个由free_list[7]维护。此时内存池全空。接下来再调用chunk_alloc(96,20)，此时free-list[11]空空如也，必须向内存池申请。而内存池此时也为空，于是以malloc()分配40+n(附加量)个96bytes区块，其中第1个交出，另19个交给free-list[11]维护，余20+n(附加量)个区块留给内存池...
+
+### 3.3 内存基本处理工具
+
+STL定义了5个全局函数，作用于未初始化空间上，有助于容器的实现：
+
+* 作用于单个对象（见[3.1 对象构造与析构](#31-对象构造与析构)，SGI STL定义在头文件[<stl_construct.h>](tass-sgi-stl-2.91.57-source/stl_construct.h)中）
+    - construct()函数（构造单个对象）
+    - destroy()函数（析构单个对象）
+* 作用于容器的区间（本节，SGI STL定义在头文件[<stl_uninitialized.h>](tass-sgi-stl-2.91.57-source/stl_uninitialized.h)中，它们是高层copy()、fill()、fill_n()的底层函数）
+    - [uninitialized_copy()](tass-sgi-stl-2.91.57-source/stl_construct.h#L76)函数
+    - [uninitialized_fill()](tass-sgi-stl-2.91.57-source/stl_construct.h#L171)函数
+    - [uninitialized_fill_n()](tass-sgi-stl-2.91.57-source/stl_construct.h#L218)函数
+
+容器的全区间构造函数通常分2步：
+
+1. 分配内存区块，足以包含范围内的所有元素
+2. 调用上述3个函数在全区间范围内构造对象（因此，这3个函数使我们能够将内存的分配与对象的构造行为分离；并且3个函数都具有”commit or rollback“语意，要么所有对象都构造成功，要么一个都没有构造）
+
+<div align="center"> <img src="../pic/stl-2-10.png"/> </div>
