@@ -435,17 +435,19 @@ public:
     obj *q = (obj *)p;
     obj * __VOLATILE * my_free_list;
 
+    //大于128就调用第一级分配器
     if (n > (size_t) __MAX_BYTES) {
         malloc_alloc::deallocate(p, n);
         return;
     }
-    
+    //寻找对应的free-list
     my_free_list = free_list + FREELIST_INDEX(n);
     // acquire lock
 #       ifndef _NOTHREADS
         /*REFERENCED*/
         lock lock_instance;
 #       endif /* _NOTHREADS */
+    //调整free-list，回收区块
     q -> free_list_link = *my_free_list;
     *my_free_list = q;
     // lock is released here
@@ -460,90 +462,104 @@ typedef __default_alloc_template<false, 0> single_client_alloc;
 
 
 
-/* We allocate memory in large chunks in order to avoid fragmenting     */
-/* the malloc heap too much.                                            */
-/* We assume that size is properly aligned.                             */
-/* We hold the allocation lock.                                         */
+// 假设size已经适当上调至8的倍数  
+// 注意参数nobjs是pass by reference
 template <bool threads, int inst>
 char*
 __default_alloc_template<threads, inst>::chunk_alloc(size_t size, int& nobjs)
 {
     char * result;
     size_t total_bytes = size * nobjs;
-    size_t bytes_left = end_free - start_free;
+    size_t bytes_left = end_free - start_free; //内存池剩余空间
 
     if (bytes_left >= total_bytes) {
+        //内存池剩余空间完全满足需求量
         result = start_free;
         start_free += total_bytes;
         return(result);
     } else if (bytes_left >= size) {
-        nobjs = bytes_left/size;
-        total_bytes = size * nobjs;
+        //内存池剩余空间不能完全满足需求量，但足够供应一个(含)以上的区块
+        //那么能分配多少区块，就分配多少区块
+        nobjs = bytes_left/size;    //可分配的区块数
+        total_bytes = size * nobjs; //总共可分配的字节数
         result = start_free;
         start_free += total_bytes;
         return(result);
-    } else {
+    } else {//内存池剩余空间连一个区块的大小都无法提供
+        //计算需要从heap申请的空间数量，用以补充内存池
         size_t bytes_to_get = 2 * total_bytes + ROUND_UP(heap_size >> 4);
-        // Try to make use of the left-over piece.
+        // 试着让内存池中的残余零头还有利用价值
         if (bytes_left > 0) {
+            //内存池中还有一些零头，先配给适当的free-list
+            //首先寻找适当的free-list
             obj * __VOLATILE * my_free_list =
                         free_list + FREELIST_INDEX(bytes_left);
-
+            //调整free-list，将内存池中的残余空间编入
             ((obj *)start_free) -> free_list_link = *my_free_list;
             *my_free_list = (obj *)start_free;
         }
+        //调用malloc，分配heap空间，用来补充内存池
         start_free = (char *)malloc(bytes_to_get);
         if (0 == start_free) {
+            //heap空间不足，malloc()失败
             int i;
             obj * __VOLATILE * my_free_list, *p;
-            // Try to make do with what we have.  That can't
-            // hurt.  We do not try smaller requests, since that tends
-            // to result in disaster on multi-process machines.
+            // 试着检视我们手上拥有的东西。这不会造成伤害。我们不打算尝试分配
+            // 较小的区块，因为那在多进程机器上容易导致灾难
+            // 以下搜寻适当的free-list
+            // 所谓适当是指”尚有未用区块，且区块够大“的free-list
             for (i = size; i <= __MAX_BYTES; i += __ALIGN) {
                 my_free_list = free_list + FREELIST_INDEX(i);
                 p = *my_free_list;
-                if (0 != p) {
+                if (0 != p) {//free-list内尚有未用区块
+                    //调整free-list以释出未用区块
                     *my_free_list = p -> free_list_link;
                     start_free = (char *)p;
                     end_free = start_free + i;
+                    //递归调用自身，为了修正nobjs
                     return(chunk_alloc(size, nobjs));
-                    // Any leftover piece will eventually make it to the
-                    // right free list.
+                    //任何残余零头终将被编入适当的free-list中备用
                 }
             }
-	    end_free = 0;	// In case of exception.
+	    end_free = 0;	// 山穷水尽，到处都没有内存可用
+        //调用第一级分配器，看看out-of-memory机制能否尽点力
             start_free = (char *)malloc_alloc::allocate(bytes_to_get);
-            // This should either throw an
-            // exception or remedy the situation.  Thus we assume it
-            // succeeded.
+            // 可能会抛出异常，或者内存不足的情况获得改善
         }
         heap_size += bytes_to_get;
         end_free = start_free + bytes_to_get;
+        //递归调用自身，为了修正nobjs
         return(chunk_alloc(size, nobjs));
     }
 }
 
 
-/* Returns an object of size n, and optionally adds to size n free list.*/
-/* We assume that n is properly aligned.                                */
-/* We hold the allocation lock.                                         */
+/* 返回一个大小为n的对象，并且有时候会为适当的free-list增加节点.*/
+/* 假设n已经适当上调至8的倍数                               */
+/* 需要获得分配锁                                          */
 template <bool threads, int inst>
 void* __default_alloc_template<threads, inst>::refill(size_t n)
 {
     int nobjs = 20;
+    //调用chunk_alloc()，尝试取得njobs个区块作为free-list的新节点
+    //参数nobjs是pass by reference
     char * chunk = chunk_alloc(n, nobjs);
     obj * __VOLATILE * my_free_list;
     obj * result;
     obj * current_obj, * next_obj;
     int i;
 
+    //如果只获得一个区块，这个区块就分配给调用者用，free-list无新节点
     if (1 == nobjs) return(chunk);
+    //否则准备调整free-list，纳入新节点
     my_free_list = free_list + FREELIST_INDEX(n);
 
-    /* Build free list in chunk */
-      result = (obj *)chunk;
+    /* 在chunk空间内建立free-list */
+      result = (obj *)chunk;    //这一块准备返回给客户
+      //以下引导free-list指向新分配的空间（取自内存池）
       *my_free_list = next_obj = (obj *)(chunk + n);
-      for (i = 1; ; i++) {
+      //以下将free-list的各节点串接起来
+      for (i = 1; ; i++) {//从1开始，因为第0个将返回给客户
         current_obj = next_obj;
         next_obj = (obj *)((char *)next_obj + n);
         if (nobjs - 1 == i) {

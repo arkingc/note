@@ -9,6 +9,9 @@
     * [3.SGI特殊的空间分配器std::alloc](#3sgi特殊的空间分配器stdalloc)
         - [3.1 对象构造与析构](#31-对象构造与析构)
         - [3.2 内存分配与释放](#32-内存分配与释放)
+            + [1）两级分配器](#1两级分配器)
+            + [2）第一级分配器__malloc_alloc_template](#2第一级分配器__malloc_alloc_template)
+            + [3）第二级分配器__default_alloc_template](#3第二级分配器__default_alloc_template)
 
 <br>
 <br>
@@ -235,6 +238,8 @@ public:
 
 <div align="center"> <img src="../pic/stl-2-4.png"/> </div>
 
+> 上图中Alloc=alloc中的缺省alloc可以是第一级分配器，也可以是第二级分配器。不过，SGI STL已经把它设为第二级分配器
+
 #### 2）第一级分配器__malloc_alloc_template
 
 第一级分配器__malloc_alloc_template定义在头文件[<stl_alloc.h>](tass-sgi-stl-2.91.57-source/stl_alloc.h)中：
@@ -361,7 +366,7 @@ union obj{
 
 <div align="center"> <img src="../pic/stl-2-6.png"/> </div>
 
-第2二级分配器__default_alloc_template也定义在头文件[<stl_alloc.h>](tass-sgi-stl-2.91.57-source/stl_alloc.h)中，以下为部分实现内容：
+第二级分配器__default_alloc_template也定义在头文件[<stl_alloc.h>](tass-sgi-stl-2.91.57-source/stl_alloc.h)中，以下为部分实现：
 
 ```c++
 #ifdef __SUNPRO_CC
@@ -430,5 +435,32 @@ __default_alloc_template<threads, inst> ::free_list[__NFREELISTS] =
 ```
 
 * 空间分配函数[allocate()](tass-sgi-stl-2.91.57-source/stl_alloc.h#L403)
+    - 若区块大于128bytes，就调用第一级分配器
+    - 若区块小于128bytes，检查对于的free-list
+        + 若free-list之内有可用的区块，则直接使用
+        + 若free-list之内没有可用区块，将区块大小调至8倍数边界，调用refill()，准备为free-list重新填充空间
 
 <div align="center"> <img src="../pic/stl-2-7.png"/> </div>
+
+ * 空间释放函数[deallocate()](tass-sgi-stl-2.91.57-source/stl_alloc.h#L433)
+     - 若区块大于128bytes，就调用第一级分配器
+     - 若区块小于128bytes，找出对应的free-list，将区块回收
+     
+<div align="center"> <img src="../pic/stl-2-8.png"/> </div>
+
+* 重新填充free-list的函数[refill()](tass-sgi-stl-2.91.57-source/stl_alloc.h#L537)
+    - 若free-list中没有可用区块时，会调用chunk_alloc从内存池中申请空间重新填充free-list。缺省申请20个新节点(新区块)，如果内存池空间不足，获得的节点数可能小于20
+
+* [chunk_alloc()](tass-sgi-stl-2.91.57-source/stl_alloc.h#L465)函数从内存池申请空间，根据end_free-start_free判断内存池中剩余的空间
+    - 如果剩余空间充足
+        + 直接调出20个区块返回给free-list
+    - 如果剩余空间不足以提供20个区块，但足够供应至少1个区块
+        + 拨出这不足20个区块的空间
+    - 如果剩余空间连一个区块都无法供应
+        + 利用malloc()从heap中分配内存（大小为需求量的2倍，加上一个随着分配次数增加而越来越大的附加量），为内存池注入新的可用空间（**详细例子见下图**）
+        + 如果malloc()获取失败，chunk_alloc()就四处寻找有无”尚有未用且区块足够大“的free-list。找到了就挖出一块交出
+        + 如果上一步仍为成果，那么就调用第一级分配器，第一级分配器有out-of-memory处理机制，或许有机会释放其它的内存拿来此处使用。如果可以，就成功，否则抛出bad_alloc异常
+    
+    <div align="center"> <img src="../pic/stl-2-8.png"/> </div>
+
+    上图中，一开始就调用chunk_alloc(32,20)，于是malloc()分配40个32bytes区块，其中第1个交出，另19个交给free-list[3]维护，余20个留给内存池；接下来客户调用chunk_alloc(64,20)，此时free_list[7]空空如也，必须向内存池申请。内存池只能供应(32\*20)/64=10个64bytes区块，就把这10个区块返回，第1个交给客户，余9个由free_list[7]维护。此时内存池全空。接下来再调用chunk_alloc(96,20)，此时free-list[11]空空如也，必须向内存池申请。而内存池此时也为空，于是以malloc()分配40+n(附加量)个96bytes区块，其中第1个交出，另19个交给free-list[11]维护，余20+n(附加量)个区块留给内存池...
