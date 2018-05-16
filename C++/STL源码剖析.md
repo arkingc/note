@@ -473,10 +473,10 @@ STL定义了5个全局函数，作用于未初始化空间上，有助于容器�
 * 作用于单个对象（见[3.1 对象构造与析构](#31-对象构造与析构)，SGI STL定义在头文件[<stl_construct.h>](tass-sgi-stl-2.91.57-source/stl_construct.h)中）
     - construct()函数（构造单个对象）
     - destroy()函数（析构单个对象）
-* 作用于容器的区间（本节，SGI STL定义在头文件[<stl_uninitialized.h>](tass-sgi-stl-2.91.57-source/stl_uninitialized.h)中，它们是高层copy()、fill()、fill_n()的底层函数）
-    - [uninitialized_copy()](tass-sgi-stl-2.91.57-source/stl_construct.h#L76)函数
-    - [uninitialized_fill()](tass-sgi-stl-2.91.57-source/stl_construct.h#L171)函数
-    - [uninitialized_fill_n()](tass-sgi-stl-2.91.57-source/stl_construct.h#L218)函数
+* 作用于容器的区间（本节，SGI STL定义在头文件[<stl_uninitialized.h>](tass-sgi-stl-2.91.57-source/stl_uninitialized.h)中，是高层copy()、fill()、fill_n()的底层函数）
+    - [uninitialized_copy()](tass-sgi-stl-2.91.57-source/stl_uninitialized.h#L76)函数
+    - [uninitialized_fill()](tass-sgi-stl-2.91.57-source/stl_uninitialized.h#L171)函数
+    - [uninitialized_fill_n()](tass-sgi-stl-2.91.57-source/stl_uninitialized.h#L218)函数
 
 容器的全区间构造函数通常分2步：
 
