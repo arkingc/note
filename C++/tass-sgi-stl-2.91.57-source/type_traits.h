@@ -58,25 +58,22 @@ struct __false_type {
 };
 
 template <class type>
-struct __type_traits { 
+struct __type_traits {
+   /* 不要移除这个成员，它通知”有能力自动将__type_traits特化“的编译器说，
+      我们现在看到的这个 __type_traits template是特殊的。这是为了确保万
+      一编译器也使用一个名为__type_traits而其实与此处定义并无任何关联的
+      template时，所有事情都将顺利运作*/ 
+
    typedef __true_type     this_dummy_member_must_be_first;
-                   /* Do not remove this member. It informs a compiler which
-                      automatically specializes __type_traits that this
-                      __type_traits template is special. It just makes sure that
-                      things work if an implementation is using a template
-                      called __type_traits for something unrelated. */
+                   
 
-   /* The following restrictions should be observed for the sake of
-      compilers which automatically produce type specific specializations 
-      of this class:
-          - You may reorder the members below if you wish
-          - You may remove any of the members below if you wish
-          - You must not rename members without making the corresponding
-            name change in the compiler
-          - Members you add will be treated like regular members unless
-            you add the appropriate support in the compiler. */
+   /* 以下条件应被遵守，因为编译器有可能自动为各类型产生专属的
+      __type_traits特例化版本:
+          - 你可以重新排列以下的成员顺序
+          - 你可以移除以下任何成员
+          - 绝对不可以将以下成员重新命名而没有改变编译器中的对应名称
+          - 新加入的成员会被视为一般成员，除非你在编译器中加上适当支持 */
  
-
    typedef __false_type    has_trivial_default_constructor;
    typedef __false_type    has_trivial_copy_constructor;
    typedef __false_type    has_trivial_assignment_operator;

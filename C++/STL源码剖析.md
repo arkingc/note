@@ -17,6 +17,7 @@
     - [1.迭代器相应类型](#1迭代器相应类型)
     - [2.traits编程技法](#2traits编程技法)
     - [3.std::iterator的保证](#3stditerator的保证)
+    - [4.SGI STL的__type_traits](#4sgi-stl的__type_traits)
 
 <br>
 <br>
@@ -573,6 +574,32 @@ struct iterator_traits<const T*>{
 };
 ```
 
+STL提供以下函数，简化迭代器相应类型的萃取：
+
+```c++
+//这个函数可以很方便地萃取category
+template <class Iterator>
+inline typename iterator_traits<Iterator>::iterator_category
+iterator_category(const Iterator&) {
+  typedef typename iterator_traits<Iterator>::iterator_category category;
+  return category();
+}
+
+//这个函数可以很方便地萃取distance type
+template <class Iterator>
+inline typename iterator_traits<Iterator>::difference_type*
+distance_type(const Iterator&) {
+  return static_cast<typename iterator_traits<Iterator>::difference_type*>(0);
+}
+
+//这个函数可以很方便地萃取value type
+template <class Iterator>
+inline typename iterator_traits<Iterator>::value_type*
+value_type(const Iterator&) {
+  return static_cast<typename iterator_traits<Iterator>::value_type*>(0);
+}
+```
+
 ### 2.1 迭代器类型
 
 设计算法时，如果可能，尽量针对某种迭代器提供一个明确定义，并针对更强化的某种迭代器提供另一种定义，这样才能在不同情况下提供最大效率，如下图的advanced()函数，用于移动迭代器：
@@ -617,3 +644,26 @@ struct ListIter : public std::iterator<std::forword_iterator_tag, Item>{
 };
 ```
 
+## 4.SGI STL的__type_traits
+
+SGI将STL的traits进一步扩大到迭代器以外，于是有了所谓的__type_traits，它属于SGI STL，不属于STL标准规范
+
+* iterator_traits：负责萃取迭代器的特性
+* __type_traits：负责萃取类型的特性，包括：
+    - 该类型是否具备non-trivial defalt ctor
+    - 该类型是否具备non-trivial copt ctor
+    - 该类型是否具备non-trivial assignment operator
+    - 该类型是否具备non-trivial dtor
+
+通过使用__type_traits，在对某个类型进行构造、析构、拷贝、赋值等操作时，就可以采用最有效率的措施。这对于大规模而操作频繁的容器，有着显著的效率提升
+
+萃取类型的特性时，我们希望得到一个”真“或”假“（以便决定采取什么策略），但其结果不应该只是个bool值，应该是个有着真/假性质的”对象”，因为我们希望利用响应的结果来进行参数推导，而编译器只有面对class object形式的参数，才会做参数推导，所以萃取类型的特性时，返回__true_type或__false_type：
+
+```c++
+struct __true_type { };
+struct __false_type { };
+```
+
+模板类__type_traits的泛化与特化/偏特化见下图：
+
+<div align="center"> <img src="../pic/stl-3-5.png"/> </div>
