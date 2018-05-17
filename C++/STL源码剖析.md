@@ -513,31 +513,106 @@ STL定义了5个全局函数，作用于未初始化空间上，有助于容器�
 
 <div align="center"> <img src="../pic/stl-3-2.png"/> </div>
 
-现在，不论面对的是迭代器MyIter，或是原生指针int\*或const int\*，都可以通过traits取出正确的value type
+<br>
 
-**当然，若要“特性萃取机”traits能够有效运作，每一个迭代器必须遵循约定，自行以内嵌类型定义的方式定义出相应类型。这是一个约定，谁不遵守这个约定，谁就不能兼容于STL这个大家庭**
+现在，不论面对的是迭代器MyIter，或是原生指针int\*或const int\*，都可以通过traits取出正确的value type
 
 <div align="center"> <img src="../pic/stl-3-3.png"/> </div>
 
+> 当然，若要“特性萃取机”traits能够有效运作，每一个迭代器必须遵循约定，自行以内嵌类型定义的方式定义出相应类型。这是一个约定，谁不遵守这个约定，谁就不能兼容于STL这个大家庭
+
 **根据经验，最常用到的迭代器相应类型有5种**：
 
-1. **value type**
-2. **difference type**
-3. **pointer**
-4. **reference**
-5. **iterator category**
+1. **value type**：指迭代器所指对象的类型
+2. **difference type**：用以表示两个迭代器之间的距离
+3. **pointer**：如果value type是T，那么pointer就是指向T的指针
+4. **reference**：如果value type是T，那么reference就是T的引用
+5. **iterator category**：迭代器的类型（[详见](#21-迭代器类型)）
+
+    <div align="center"> <img src="../pic/stl-3-4.png"/> </div>
 
 如果希望开发的容器能与STL相容，一定要为容器定义这5种相应类型。“特性萃取机”traits会很忠实地将特性萃取出来：
 
 ```c++
-template <class I>
+template <class Iterator>
 struct iterator_traits{
-    typedef typename I::iterator_category   iterator_category;
-    typedef typename I::value_type          value_type;
-    typedef typename I::difference_type     difference_type;
-    typedef typename I::pointer             pointer;
-    typedef typename I::reference           reference;
+    typedef typename Iterator::iterator_category   iterator_category;
+    typedef typename Iterator::value_type          value_type;
+    typedef typename Iterator::difference_type     difference_type;
+    typedef typename Iterator::pointer             pointer;
+    typedef typename Iterator::reference           reference;
 };
 ```
 
-iterator_traits必须针对传入的类型为pointer及pointer-to-const者设计偏特化版本
+iterator_traits必须针对传入的类型为pointer及pointer-to-const者设计偏特化版本：
+
+```c++
+//以C++内建的ptrdiff_t（定义于<cstddef>头文件）作为原生指针的difference type
+
+//针对原生指针的偏特化版本
+template <class T>
+struct iterator_traits<T*>{
+    //原生指针是一种Random Access Iterator
+    typedef random_access_iterator_tag   iterator_category;
+    typedef T                            value_type;
+    typedef ptrdiff_t                    difference_type;
+    typedef T*                           pointer;
+    typedef T&                           reference;
+};
+
+//针对原生pointer-to-const的偏特化版本
+template <class T>
+struct iterator_traits<const T*>{
+    //原生指针是一种Random Access Iterator
+    typedef random_access_iterator_tag   iterator_category;
+    typedef T                            value_type;
+    typedef ptrdiff_t                    difference_type;
+    typedef const T*                     pointer;
+    typedef const T&                     reference;
+};
+```
+
+### 2.1 迭代器类型
+
+设计算法时，如果可能，尽量针对某种迭代器提供一个明确定义，并针对更强化的某种迭代器提供另一种定义，这样才能在不同情况下提供最大效率，如下图的advanced()函数，用于移动迭代器：
+
+<div align="center"> <img src="../pic/stl-3-5.png"/> </div>
+
+在上图中，每个__advance()的最后一个参数都只声明类型，并未指定参数名称，因为它纯粹只是用来激活重载机制，函数之中根本不使用该参数。如果加上参数名称也没有错，但是没必要
+
+将advance()中的iterator_category(i)展开得到iterator_traits<InputIterator>::iterator_category()，这会产生一个临时对象，其类型隶属于几种迭代器中的一种。然后，根据这个类型，编译器才决定调用哪一个__advance()重载函数
+
+**上图以class来定义迭代器的各种分类标签，有下列好处**：
+
+* 可以促成重载机制的成功运作
+* **通过继承，可以不必再写“单纯只做传递调用”的函数（如__advance()的Forward Iterator版只是单纯的调用Input Iterator版，因此可以省略）,可以通过[这个例子](stlbookcode/c3/3tag-test.cpp)来模拟证实**
+
+
+## 3.std::iterator的保证
+
+为了符合规范，任何迭代器都应该提供5个内嵌相应类型，以便于traits萃取，否则便是自别于整个STL架构，可能无法与其它STL组件顺利搭配。然而，写代码难免会有遗漏。因此，STL提供了一个iterators class如下，如果每个新设计的迭代器都继承自它，就可保证符合STL所需的规范；
+
+```c++
+template <class Category,
+          class T,
+          class Distance = ptrdiff_t,
+          class Pointer = T*,
+          class Reference = T&>
+struct iterator{
+    typedef Category    iterator_category;
+    typedef T           value_type;
+    typedef Distance    difference_type;
+    typedef Pointer     pointer;
+    typedef Reference   reference;
+};
+```
+
+iterator class不含任何成员，存粹只是类型定义，所以继承它不会导致任何额外负担。由于后3个参数皆有默认值，故新的迭代器只需提供前2个参数即可。以下为一个继承示例：
+
+```c++
+template <class Item>
+struct ListIter : public std::iterator<std::forword_iterator_tag, Item>{
+    ...
+};
+```
+
