@@ -13,6 +13,9 @@
             + [2）第一级分配器__malloc_alloc_template](#2第一级分配器__malloc_alloc_template)
             + [3）第二级分配器__default_alloc_template](#3第二级分配器__default_alloc_template)
         - [3.3 内存基本处理工具](#33-内存基本处理工具)
+* [三.迭代器与traits编程技法](#三迭代器与traits编程技法)
+    - [1.迭代器相应类型](#1迭代器相应类型)
+    - [2.traits编程技法](#2traits编程技法)
 
 <br>
 <br>
@@ -484,3 +487,57 @@ STL定义了5个全局函数，作用于未初始化空间上，有助于容器�
 2. 调用上述3个函数在全区间范围内构造对象（因此，这3个函数使我们能够将内存的分配与对象的构造行为分离；并且3个函数都具有”commit or rollback“语意，要么所有对象都构造成功，要么一个都没有构造）
 
 <div align="center"> <img src="../pic/stl-2-10.png"/> </div>
+
+<br>
+
+# 三.迭代器与traits编程技法
+
+## 1.迭代器相应类型
+
+在算法中运用迭代器时，很可能会用到其相应类型。所谓相应类型，迭代器所指之物的类型便是其中之一，算法可以在函数体中使用迭代器所指之物的类型来定义变量，也可能将迭代器所指之物的类型作为算法的返回值：
+
+<div align="center"> <img src="../pic/stl-3-1.png"/> </div>
+
+* **在函数体中使用迭代器所指之物的类型**
+    - C++支持sizeof()，但并未支持typeof()。即便动用RTTI性质中的typeid()，获得的也只是类型名称，不能拿来做变量声明
+    - 这里利用函数模板的参数推导机制解决。算法func()作为对外接口，算法的所有逻辑另外封装在一个实现函数func_impl()中，由于它是一个函数模板，一旦被调用，编译器就会自动进行参数推导，导出类型T
+* **迭代器所指之物的类型作为算法的返回类型**
+    - 函数模板的参数推导机制推导的是参数，无法推导函数的返回类型
+    - 这里使用嵌套类型声明解决。但是，对于类类型的迭代器，可以正常工作，但是**非类类型的原生指针无法处理**
+
+通过上图，可以了解到在算法中对迭代器相应类型的需求。除了迭代器所指之物的类型(value type)，迭代器相应类型还包括另外4种，在traits编程技法中将会介绍，并且会提到如何使用traits来解决上面的问题（这也是STL中实际使用的方法）
+
+## 2.traits编程技法
+
+上一节所使用的方法，在value type作为返回类型时，无法处理非类类型的原生指针。下图使用traits来解决，使用了模板偏特化来处理非类类型的原生指针：
+
+<div align="center"> <img src="../pic/stl-3-2.png"/> </div>
+
+现在，不论面对的是迭代器MyIter，或是原生指针int\*或const int\*，都可以通过traits取出正确的value type
+
+**当然，若要“特性萃取机”traits能够有效运作，每一个迭代器必须遵循约定，自行以内嵌类型定义的方式定义出相应类型。这是一个约定，谁不遵守这个约定，谁就不能兼容于STL这个大家庭**
+
+<div align="center"> <img src="../pic/stl-3-3.png"/> </div>
+
+**根据经验，最常用到的迭代器相应类型有5种**：
+
+1. **value type**
+2. **difference type**
+3. **pointer**
+4. **reference**
+5. **iterator category**
+
+如果希望开发的容器能与STL相容，一定要为容器定义这5种相应类型。“特性萃取机”traits会很忠实地将特性萃取出来：
+
+```c++
+template <class I>
+struct iterator_traits{
+    typedef typename I::iterator_category   iterator_category;
+    typedef typename I::value_type          value_type;
+    typedef typename I::difference_type     difference_type;
+    typedef typename I::pointer             pointer;
+    typedef typename I::reference           reference;
+};
+```
+
+iterator_traits必须针对传入的类型为pointer及pointer-to-const者设计偏特化版本
