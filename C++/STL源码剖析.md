@@ -16,6 +16,7 @@
 * [三.迭代器与traits编程技法](#三迭代器与traits编程技法)
     - [1.迭代器相应类型](#1迭代器相应类型)
     - [2.traits编程技法](#2traits编程技法)
+    - [3.std::iterator的保证](#3stditerator的保证)
 
 <br>
 <br>
@@ -580,7 +581,7 @@ struct iterator_traits<const T*>{
 
 在上图中，每个__advance()的最后一个参数都只声明类型，并未指定参数名称，因为它纯粹只是用来激活重载机制，函数之中根本不使用该参数。如果加上参数名称也没有错，但是没必要
 
-将advance()中的iterator_category(i)展开得到iterator_traits<InputIterator>::iterator_category()，这会产生一个临时对象，其类型隶属于几种迭代器中的一种。然后，根据这个类型，编译器才决定调用哪一个__advance()重载函数
+将advance()中的iterator_category(i)展开得到iterator_traits\<InputIterator\>::iterator_category()，这会产生一个临时对象，其类型隶属于几种迭代器中的一种。然后，根据这个类型，编译器才决定调用哪一个__advance()重载函数
 
 **上图以class来定义迭代器的各种分类标签，有下列好处**：
 
