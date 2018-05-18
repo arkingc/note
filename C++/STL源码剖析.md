@@ -719,13 +719,13 @@ protected:
 
 常见的vector操作包括：
 
-* [vector(size_type n,const T &value)](tass-sgi-stl-2.91.57-source/stl_vector#L98)
-    - [fill_initialize(size_type n,const T &value)](tass-sgi-stl-2.91.57-source/stl_vector#L98)
-        + [allocate_and_fill(size_type n, const T& x)](tass-sgi-stl-2.91.57-source/stl_vector#L213)
-* [push_back(const T &x)](tass-sgi-stl-2.91.57-source/stl_vector#L144)
-    - [insert_aux(iterator position,const T &x)](tass-sgi-stl-2.91.57-source/stl_vector#L323)
-* [pop_back()](tass-sgi-stl-2.91.57-source/stl_vector#L186)
-* [erase(iterator first, iterator last)](tass-sgi-stl-2.91.57-source/stl_vector#L197)
-* [erase(iterator position)](tass-sgi-stl-2.91.57-source/stl_vector#L190)
-* [insert(iterator position, size_type n, const T& x)](tass-sgi-stl-2.91.57-source/stl_vector#L361)
+* [vector(size_type n,const T &value)](tass-sgi-stl-2.91.57-source/stl_vector.h#L98)
+    - [fill_initialize(size_type n,const T &value)](tass-sgi-stl-2.91.57-source/stl_vector.h#L98)
+        + [allocate_and_fill(size_type n, const T& x)](tass-sgi-stl-2.91.57-source/stl_vector.h#L213)
+* [push_back(const T &x)](tass-sgi-stl-2.91.57-source/stl_vector.h#L144)
+    - [insert_aux(iterator position,const T &x)](tass-sgi-stl-2.91.57-source/stl_vector.h#L323)
+* [pop_back()](tass-sgi-stl-2.91.57-source/stl_vector.h#L186)
+* [erase(iterator first, iterator last)](tass-sgi-stl-2.91.57-source/stl_vector.h#L197)
+* [erase(iterator position)](tass-sgi-stl-2.91.57-source/stl_vector.h#L190)
+* [insert(iterator position, size_type n, const T& x)](tass-sgi-stl-2.91.57-source/stl_vector.h#L361)
 
