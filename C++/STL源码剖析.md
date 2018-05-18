@@ -18,6 +18,8 @@
     - [2.traits编程技法](#2traits编程技法)
     - [3.std::iterator的保证](#3stditerator的保证)
     - [4.SGI STL的__type_traits](#4sgi-stl的__type_traits)
+* [四.顺序容器](#四顺序容器)
+    - [1.vector](#1vector)
 
 <br>
 <br>
@@ -667,3 +669,63 @@ struct __false_type { };
 模板类__type_traits的泛化与特化/偏特化见下图：
 
 <div align="center"> <img src="../pic/stl-3-5.png"/> </div>
+
+<br>
+
+# 四.顺序容器
+
+<div align="center"> <img src="../pic/stl-4-1.png"/> </div>
+
+上图中的“衍生”并非“派生”，而是内含关系。例如heap内含一个vector，priority-queue内含一个heap，stack和queue都含一个deque，set/map/multiset/multimap都内含一个RB-tree，has_x都内含一个hashtable
+
+## 1.vector
+
+array是静态空间，一旦配置了就不能改变；vector与array非常相似，但是vector是动态空间，随着元素的加入，内部机制会自动扩充以容纳新元素
+
+SGI STL中[vector的定义](tass-sgi-stl-2.91.57-source/stl_vector#L12)
+
+<div align="center"> <img src="../pic/stl-4-2.png"/> </div>
+
+### 1.1 迭代器
+
+vector维护的是一个连续线性空间，所以不论其元素类型为何，普通指针都可以作为vector的迭代器而满足所有必要条件，因为vector迭代器所需要的操作行为，如operator\*，operator->，operator++，operator--，operator+，operator-，operator+=，operator-=，普通指针天生就具备。vector支持随机存取，而普通指针正有着这样的能力。所以，vector提供的是Random Access Iterators：
+
+```c++
+template <class T,class Alloc = alloc>
+class vector{
+public:
+    typedef T               value_type;
+    typedef value_type*     iterator;   //vector的迭代器时普通指针
+...
+};
+```
+
+### 1.2 分配器
+
+vector缺省使用alloc作为空间分配器，并据此另外定义了一个data_allocator，为的是更方便以元素大小为配置单位：
+
+```c++
+template<class T,class Alloc = alloc>
+class vector{
+protected:
+    typedef simple_alloc<value_type,Alloc> data_allocator;
+...
+};
+```
+
+因此，data_allocator::allocate(n)表示分配n个元素空间
+
+### 1.3 vector操作的实现
+
+常见的vector操作包括：
+
+* [vector(size_type n,const T &value)](tass-sgi-stl-2.91.57-source/stl_vector#L98)
+    - [fill_initialize(size_type n,const T &value)](tass-sgi-stl-2.91.57-source/stl_vector#L98)
+        + [allocate_and_fill(size_type n, const T& x)](tass-sgi-stl-2.91.57-source/stl_vector#L213)
+* [push_back(const T &x)](tass-sgi-stl-2.91.57-source/stl_vector#L144)
+    - [insert_aux(iterator position,const T &x)](tass-sgi-stl-2.91.57-source/stl_vector#L323)
+* [pop_back()](insert_aux(iterator position,const T &x)](tass-sgi-stl-2.91.57-source/stl_vector#L186)
+* [erase(iterator first, iterator last)](tass-sgi-stl-2.91.57-source/stl_vector#L197)
+* [erase(iterator position)](tass-sgi-stl-2.91.57-source/stl_vector#L190)
+* [insert(iterator position, size_type n, const T& x)](tass-sgi-stl-2.91.57-source/stl_vector#L361)
+

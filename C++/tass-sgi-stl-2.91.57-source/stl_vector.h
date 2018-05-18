@@ -321,14 +321,14 @@ vector<T, Alloc>& vector<T, Alloc>::operator=(const vector<T, Alloc>& x) {
 
 template <class T, class Alloc>
 void vector<T, Alloc>::insert_aux(iterator position, const T& x) {
-  if (finish != end_of_storage) {
+  if (finish != end_of_storage) {//还有备用空间
     construct(finish, *(finish - 1));
     ++finish;
     T x_copy = x;
     copy_backward(position, finish - 2, finish - 1);
     *position = x_copy;
   }
-  else {
+  else {//已无备用空间
     const size_type old_size = size();
     const size_type len = old_size != 0 ? 2 * old_size : 1;
     iterator new_start = data_allocator::allocate(len);
@@ -347,8 +347,10 @@ void vector<T, Alloc>::insert_aux(iterator position, const T& x) {
       throw;
     }
 #       endif /* __STL_USE_EXCEPTIONS */
+    //析构并释放原vector
     destroy(begin(), end());
     deallocate();
+    //调整迭代器，指向新vector
     start = new_start;
     finish = new_finish;
     end_of_storage = new_start + len;
@@ -357,18 +359,18 @@ void vector<T, Alloc>::insert_aux(iterator position, const T& x) {
 
 template <class T, class Alloc>
 void vector<T, Alloc>::insert(iterator position, size_type n, const T& x) {
-  if (n != 0) {
-    if (size_type(end_of_storage - finish) >= n) {
+  if (n != 0) {//插入的元素个数不为0才有效
+    if (size_type(end_of_storage - finish) >= n) {//备用空间大于等于“新增元素个数”
       T x_copy = x;
-      const size_type elems_after = finish - position;
+      const size_type elems_after = finish - position;//计算插入点之后现有元素个数
       iterator old_finish = finish;
-      if (elems_after > n) {
+      if (elems_after > n) {//1.“插入点之后的现有元素个数”大于”新增元素个数“
         uninitialized_copy(finish - n, finish, finish);
         finish += n;
         copy_backward(position, old_finish - n, old_finish);
         fill(position, position + n, x_copy);
       }
-      else {
+      else {//2.“插入点之后的现有元素个数”小于等于”新增元素个数“
         uninitialized_fill_n(finish, n - elems_after, x_copy);
         finish += n - elems_after;
         uninitialized_copy(position, old_finish, finish);
@@ -376,15 +378,15 @@ void vector<T, Alloc>::insert(iterator position, size_type n, const T& x) {
         fill(position, old_finish, x_copy);
       }
     }
-    else {
+    else {//3.备用空间小于“新增元素个数”（因此，必须分配额外内存）
       const size_type old_size = size();        
-      const size_type len = old_size + max(old_size, n);
-      iterator new_start = data_allocator::allocate(len);
+      const size_type len = old_size + max(old_size, n);//新长度为旧长2倍或新增元素个数加旧长
+      iterator new_start = data_allocator::allocate(len);//分配新的vector空间
       iterator new_finish = new_start;
       __STL_TRY {
-        new_finish = uninitialized_copy(start, position, new_start);
-        new_finish = uninitialized_fill_n(new_finish, n, x);
-        new_finish = uninitialized_copy(position, finish, new_finish);
+        new_finish = uninitialized_copy(start, position, new_start);//将插入点之前的元素复制到新空间
+        new_finish = uninitialized_fill_n(new_finish, n, x);//将新增元素填入新空间
+        new_finish = uninitialized_copy(position, finish, new_finish);//将插入点后的元素复制到新空间
       }
 #         ifdef  __STL_USE_EXCEPTIONS 
       catch(...) {
@@ -393,8 +395,10 @@ void vector<T, Alloc>::insert(iterator position, size_type n, const T& x) {
         throw;
       }
 #         endif /* __STL_USE_EXCEPTIONS */
+      //清除并释放旧的vector
       destroy(start, finish);
       deallocate();
+      //调整vector的3个指针指向新空间
       start = new_start;
       finish = new_finish;
       end_of_storage = new_start + len;
