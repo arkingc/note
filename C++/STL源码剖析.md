@@ -20,6 +20,7 @@
     - [4.SGI STL的__type_traits](#4sgi-stl的__type_traits)
 * [四.顺序容器](#四顺序容器)
     - [1.vector](#1vector)
+    - [2.list](#2list)
 
 <br>
 <br>
@@ -682,7 +683,7 @@ struct __false_type { };
 
 array是静态空间，一旦配置了就不能改变；vector与array非常相似，但是vector是动态空间，随着元素的加入，内部机制会自动扩充以容纳新元素
 
-SGI STL中[vector的定义](tass-sgi-stl-2.91.57-source/stl_vector#L12)
+SGI STL中[vector的定义](tass-sgi-stl-2.91.57-source/stl_vector.h#L12)
 
 <div align="center"> <img src="../pic/stl-4-2.png"/> </div>
 
@@ -728,4 +729,153 @@ protected:
 * [erase(iterator first, iterator last)](tass-sgi-stl-2.91.57-source/stl_vector.h#L197)
 * [erase(iterator position)](tass-sgi-stl-2.91.57-source/stl_vector.h#L190)
 * [insert(iterator position, size_type n, const T& x)](tass-sgi-stl-2.91.57-source/stl_vector.h#L361)
+
+**插入操作可能造成vector的3个指针重新配置，导致原有的迭代器全部失效**
+
+## 2.list
+
+SGI STL中[list的定义](tass-sgi-stl-2.91.57-source/stl_list.h#L124)
+
+### 2.1 节点
+
+<div align="center"> <img src="../pic/stl-4-3.png"/> </div>
+
+```c++
+template <class T>
+struct __list_node{
+    typedef void* void_pointer;
+    void_pointer prev;  //类型为void*
+    void_pointer next;
+};
+```
+
+### 2.2 迭代器
+
+list不再能够像vector一样以普通指针作为迭代器，因为其节点不保证在存储空间中连续存在
+
+list迭代器必须有能力指向list的节点，并有能力进行正确的递增、递减、取值、成员存取等操作。list中，迭代器与节点的关系见下图：
+
+<div align="center"> <img src="../pic/stl-4-4.png"/> </div>
+
+由于STL list是一个双向链表，迭代器必须具备前移、后移的能力，所以list提供的是Bidirectional Iterators
+
+**list的插入和接合操作都不会造成原有的list迭代器失效，对于删除操作，也只有”指向被删除元素“的那个迭代器失效，其它迭代器不受任何影响**
+
+```c++
+template<class T, class Ref, class Ptr>
+struct __list_iterator {
+  typedef __list_iterator<T, T&, T*>             iterator;
+  typedef __list_iterator<T, const T&, const T*> const_iterator;
+  typedef __list_iterator<T, Ref, Ptr>           self;
+
+  typedef bidirectional_iterator_tag iterator_category;
+  typedef T value_type;
+  typedef Ptr pointer;
+  typedef Ref reference;
+  typedef __list_node<T>* link_type;//节点指针类型link_type
+  typedef size_t size_type;
+  typedef ptrdiff_t difference_type;
+
+  link_type node;//迭代器内部的指针，指向list的节点
+
+  __list_iterator(link_type x) : node(x) {}
+  __list_iterator() {}
+  __list_iterator(const iterator& x) : node(x.node) {}
+
+  bool operator==(const self& x) const { return node == x.node; }
+  bool operator!=(const self& x) const { return node != x.node; }
+  //对迭代器取值，取的是节点的数据值
+  reference operator*() const { return (*node).data; }
+
+#ifndef __SGI_STL_NO_ARROW_OPERATOR
+  //以下是迭代器的成员存取运算子的标准做法
+  pointer operator->() const { return &(operator*()); }
+#endif /* __SGI_STL_NO_ARROW_OPERATOR */
+
+  //对迭代器累加1，就是前进一个节点
+  self& operator++() { 
+    node = (link_type)((*node).next);
+    return *this;
+  }
+  self operator++(int) { 
+    self tmp = *this;
+    ++*this;
+    return tmp;
+  }
+
+  //对迭代器递减1，就是后退一个节点
+  self& operator--() { 
+    node = (link_type)((*node).prev);
+    return *this;
+  }
+  self operator--(int) { 
+    self tmp = *this;
+    --*this;
+    return tmp;
+  }
+};
+```
+
+### 2.3 list的数据结构
+
+SGI list不仅是一个双向链表，还是一个环状双向链表。所以它只需要一个指针，便可完整表现整个链表：
+
+```c++
+template <class T, class Alloc = alloc>
+class list {
+protected:
+    typedef __list_node<T> list_node;
+public:
+    typedef list_node* link_type;
+
+protected:
+    link_type node; //只要一个指针，便可表示整个环状双向链表
+};
+
+iterator begin() { return (link_type)((*node).next); }
+iterator end() { return node; }
+size_type size() const {
+    size_type result = 0;
+    distance(begin(), end(), result);
+    return result;
+}
+```
+
+<div align="center"> <img src="../pic/stl-4-5.png"/> </div>
+
+### 2.4 分配器
+
+list缺省使用alloc作为空间分配器，并据此另外定义了一个list_node_allocator，为的是更方便以节点大小为配置单位：
+
+```c++
+template <class T, class Alloc = alloc>
+class list {
+protected:
+    typedef simple_alloc<list_node, Alloc> list_node_allocator;
+...
+};
+```
+
+因此，list_node_allocator::allocate(n)表示分配n个节点空间
+
+### 2.5 list操作的实现
+
+* 节点操作
+    - 分配一个节点：[get_node](tass-sgi-stl-2.91.57-source/stl_list.h#L156)
+    - 释放一个节点：[put_node](tass-sgi-stl-2.91.57-source/stl_list.h#L157)
+    - 生成（分配并构造）一个节点：[create_node](tass-sgi-stl-2.91.57-source/stl_list.h#L159)
+    - 销毁（析构并释放）一个节点：[destroy_node](tass-sgi-stl-2.91.57-source/stl_list.h#L167)
+    - 节点插入：[push_back](tass-sgi-stl-2.91.57-source/stl_list.h#L269)和[push_front](tass-sgi-stl-2.91.57-source/stl_list.h#L268)
+        + [insert](tass-sgi-stl-2.91.57-source/stl_list.h#L243)
+    - 节点移除：[erase](tass-sgi-stl-2.91.57-source/stl_list.h#L270),[pop_front](tass-sgi-stl-2.91.57-source/stl_list.h#L283)和[pop_back](tass-sgi-stl-2.91.57-source/stl_list.h#L284)
+    - 移除某一数值的所有节点：[remove](tass-sgi-stl-2.91.57-source/stl_list.h#L468)
+    - 移除数值相同的连续节点：[unique](tass-sgi-stl-2.91.57-source/stl_list.h#L480)
+* 链表操作
+    - 创建一个空链表：[list()](tass-sgi-stl-2.91.57-source/stl_list.h#L217)
+        + [empty_initialize](tass-sgi-stl-2.91.57-source/stl_list.h#L173)
+    - 链表清空：[clear](tass-sgi-stl-2.91.57-source/stl_list.h#L438)
+* 链表拼接：[splice](tass-sgi-stl-2.91.57-source/stl_list.h#L328)
+    - 将[first,last)内的元素移动到position之前：[transfer](tass-sgi-stl-2.91.57-source/stl_list.h#L315)（[first,last)区间可以在同一个list之中，transfer并非公开接口，公开的是splice）
+    
+    <div align="center"> <img src="../pic/stl-4-6.png"/> </div>
 

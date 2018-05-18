@@ -55,11 +55,11 @@ struct __list_iterator {
   typedef T value_type;
   typedef Ptr pointer;
   typedef Ref reference;
-  typedef __list_node<T>* link_type;
+  typedef __list_node<T>* link_type;//节点指针类型link_type
   typedef size_t size_type;
   typedef ptrdiff_t difference_type;
 
-  link_type node;
+  link_type node;//迭代器内部的指针，指向list的节点
 
   __list_iterator(link_type x) : node(x) {}
   __list_iterator() {}
@@ -67,12 +67,15 @@ struct __list_iterator {
 
   bool operator==(const self& x) const { return node == x.node; }
   bool operator!=(const self& x) const { return node != x.node; }
+  //对迭代器取值，取的是节点的数据值
   reference operator*() const { return (*node).data; }
 
 #ifndef __SGI_STL_NO_ARROW_OPERATOR
+  //以下是迭代器的成员存取运算子的标准做法
   pointer operator->() const { return &(operator*()); }
 #endif /* __SGI_STL_NO_ARROW_OPERATOR */
 
+  //对迭代器累加1，就是前进一个节点
   self& operator++() { 
     node = (link_type)((*node).next);
     return *this;
@@ -82,6 +85,8 @@ struct __list_iterator {
     ++*this;
     return tmp;
   }
+
+  //对迭代器递减1，就是后退一个节点
   self& operator--() { 
     node = (link_type)((*node).prev);
     return *this;
@@ -320,20 +325,20 @@ protected:
   }
 
 public:
-  void splice(iterator position, list& x) {
+  void splice(iterator position, list& x) {//将x接合于position所指位置之前。x必须不同于*this
     if (!x.empty()) 
       transfer(position, x.begin(), x.end());
   }
-  void splice(iterator position, list&, iterator i) {
-    iterator j = i;
+  void splice(iterator position, list&, iterator i) {//将i所直接元素接合于position所指位置之前
+    iterator j = i;                                  //position和i可指向同一list
     ++j;
     if (position == i || position == j) return;
     transfer(position, i, j);
   }
-  void splice(iterator position, list&, iterator first, iterator last) {
-    if (first != last) 
-      transfer(position, first, last);
-  }
+  void splice(iterator position, list&, iterator first, iterator last) { //将[first,last)内的所有
+    if (first != last)                                                   //元素接合于position所指
+      transfer(position, first, last);                           //位置之前。position和[first,last)
+  }                                               //可指向同一个list，但position不能位于[first,last)内
   void remove(const T& value);
   void unique();
   void merge(list& x);
@@ -432,12 +437,13 @@ void list<T, Alloc>::resize(size_type new_size, const T& x)
 template <class T, class Alloc> 
 void list<T, Alloc>::clear()
 {
-  link_type cur = (link_type) node->next;
-  while (cur != node) {
+  link_type cur = (link_type) node->next; //begin()
+  while (cur != node) { //遍历每一个节点
     link_type tmp = cur;
     cur = (link_type) cur->next;
-    destroy_node(tmp);
+    destroy_node(tmp);  //销毁（析构并释放）一个节点
   }
+  //恢复node原始状态
   node->next = node;
   node->prev = node;
 }
@@ -462,10 +468,10 @@ template <class T, class Alloc>
 void list<T, Alloc>::remove(const T& value) {
   iterator first = begin();
   iterator last = end();
-  while (first != last) {
+  while (first != last) { //遍历每一个节点
     iterator next = first;
     ++next;
-    if (*first == value) erase(first);
+    if (*first == value) erase(first);  //找到就移除
     first = next;
   }
 }
