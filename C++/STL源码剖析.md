@@ -724,7 +724,7 @@ protected:
         + [allocate_and_fill(size_type n, const T& x)](tass-sgi-stl-2.91.57-source/stl_vector#L213)
 * [push_back(const T &x)](tass-sgi-stl-2.91.57-source/stl_vector#L144)
     - [insert_aux(iterator position,const T &x)](tass-sgi-stl-2.91.57-source/stl_vector#L323)
-* [pop_back()](insert_aux(iterator position,const T &x)](tass-sgi-stl-2.91.57-source/stl_vector#L186)
+* [pop_back()](tass-sgi-stl-2.91.57-source/stl_vector#L186)
 * [erase(iterator first, iterator last)](tass-sgi-stl-2.91.57-source/stl_vector#L197)
 * [erase(iterator position)](tass-sgi-stl-2.91.57-source/stl_vector#L190)
 * [insert(iterator position, size_type n, const T& x)](tass-sgi-stl-2.91.57-source/stl_vector#L361)
