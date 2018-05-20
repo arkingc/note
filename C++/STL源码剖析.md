@@ -990,7 +990,7 @@ protected:
 
 * deque构造与初始化：[deque](tass-sgi-stl-2.91.57-source/stl_deque.h#L360)
     - 元素初始化[fill_initialize](tass-sgi-stl-2.91.57-source/stl_deque.h#L847)
-        + 空间分配与成员设定create_map_and_nodes(tass-sgi-stl-2.91.57-source/stl_deque.h#L797)
+        + 空间分配与成员设定[create_map_and_nodes](tass-sgi-stl-2.91.57-source/stl_deque.h#L797)
 * 插入操作：
     - 在队列末尾插入：[push_back](tass-sgi-stl-2.91.57-source/stl_deque.h#L439)
         + 最后缓冲区只有1个可用空间时：[push_back_aux](tass-sgi-stl-2.91.57-source/stl_deque.h#L898)
