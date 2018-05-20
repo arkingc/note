@@ -21,6 +21,7 @@
 * [四.顺序容器](#四顺序容器)
     - [1.vector](#1vector)
     - [2.list](#2list)
+    - [3.deque](#3deque)
 
 <br>
 <br>
@@ -879,3 +880,134 @@ protected:
     
     <div align="center"> <img src="../pic/stl-4-6.png"/> </div>
 
+## 3.deque
+
+deque是一种双向开口的连续线性空间
+
+deque和vector最大的差异：
+
+1. deque允许于常数时间内对起头端进行元素的插入或移除操作
+2. deque没有所谓容量观念，因为它是动态地以分段连续空间组合而成，随时可以增加一段新的空间并链接起来（deque没有必要提供所谓的空间保留功能）
+
+### 3.1 迭代器
+
+deque是分段连续空间。维持其”整体连续“假象的任务，落在了迭代器的operator++和operator--两个云算子身上
+
+deque迭代器必须能够指出分段连续空间（即缓冲区）在哪；必须能够判断自己是否已经处于其所在缓冲器的边缘。为了能够正确跳跃，迭代器必须随时掌握中控器map
+
+```c++
+template <class T, class Ref, class Ptr, size_t BufSiz>
+struct __deque_iterator {   //未继承std::iterator
+  typedef __deque_iterator<T, T&, T*, BufSiz>             iterator;
+  typedef __deque_iterator<T, const T&, const T*, BufSiz> const_iterator;
+  static size_t buffer_size() {return __deque_buf_size(BufSiz, sizeof(T)); }
+
+  //为继承std::iterator，所以必须自行撰写5个必要的迭代器相应类型
+  typedef random_access_iterator_tag iterator_category; // (1)
+  typedef T value_type;                                 // (2)
+  typedef Ptr pointer;                                  // (3)
+  typedef Ref reference;                                // (4)
+  typedef size_t size_type;
+  typedef ptrdiff_t difference_type;                    // (5)
+  typedef T** map_pointer;
+
+  typedef __deque_iterator self;
+
+  //保持与容器的联结
+  T* cur;           //此迭代器所指缓冲区中的当前元素
+  T* first;         //此迭代器所指缓冲区的头
+  T* last;          //此迭代器所指缓冲区的尾(含备用空间)
+  map_pointer node; //指向中控器map
+...
+};
+```
+
+迭代器操作：
+
+* 更新迭代器指向的缓冲区：set_node
+* [解引用\*](tass-sgi-stl-2.91.57-source/stl_deque.h#L130) 
+* [成员选择->](tass-sgi-stl-2.91.57-source/stl_deque.h#L132)
+* [迭代器相减-](135)
+* [前置++](tass-sgi-stl-2.91.57-source/stl_deque.h#L140)和[后置++](tass-sgi-stl-2.91.57-source/stl_deque.h#L148)
+* [前置--](tass-sgi-stl-2.91.57-source/stl_deque.h#L154)和[后置--](tass-sgi-stl-2.91.57-source/stl_deque.h#L162)
+* 复合赋值[+=](tass-sgi-stl-2.91.57-source/stl_deque.h#L168)和[-=](tass-sgi-stl-2.91.57-source/stl_deque.h#L187)
+* 迭代器[+n](tass-sgi-stl-2.91.57-source/stl_deque.h#L182)和[-n](tass-sgi-stl-2.91.57-source/stl_deque.h#L189)
+* 随机存取[\[\]](tass-sgi-stl-2.91.57-source/stl_deque.h#L194)
+* 相等判断[==](tass-sgi-stl-2.91.57-source/stl_deque.h#L196)，[!=](tass-sgi-stl-2.91.57-source/stl_deque.h#L197)和[<](tass-sgi-stl-2.91.57-source/stl_deque.h#L198)
+
+### 3.3 deque的数据结构
+
+deque采用一块所谓的map作为**主控(中控器)**。这里所谓的map是指一小块连续空间，其中每个元素都是一个指针，指向另一段（较大的）连续线性空间，称为缓冲区。缓冲区才是deque的存储空间主体。SGI STL允许我们指定缓冲区大小，默认值0表示使用512bytes缓冲区
+
+<div align="center"> <img src="../pic/stl-4-7.png"/> </div>
+
+deque除了维护一个指向map的指针外，也维护start，finish两个迭代器。分别指向第一缓冲区的第一个元素和最后缓冲区的最后一个元素（的下一位置）。此外，也必须记住目前的map大小。因为一旦map所提供的节点不足，就必须重新配置更大的一块map
+
+```c++
+temlate <class T,class Alloc = alloc,size_t BufSiz = 0>
+class deque{
+public:     //Basic types
+    typedef T value_type;
+    typedef value_type* pointer;
+    typedef size_t size_type;
+    ...
+
+public:
+    typedef __deque_iterator<T,T&.T*,BufSiz> iterator;  //迭代器类型
+
+protected:  //Internal typedefs
+    //元素的指针的指针
+    typedef pointer* map_pointer;
+
+protected:  //Data members
+    iterator start;         //第一个节点的迭代器
+    iterator finish;        //最后一个节点的迭代器
+
+    map_pointer map;        //指向map，map是块连续空间
+                            //其每个元素都是个指针，指向一个节点(缓冲区)
+    size_type map_size;     //map的大小，即内有多少个指针
+...
+};
+```
+
+deque的中控器、缓冲区、迭代器的关系如下图：
+
+<div align="center"> <img src="../pic/stl-4-8.png"/> </div>
+
+### 3.4 分配器
+
+deque自行定义了2个专属的空间配置器：
+
+```c++
+protected:
+    //专属的空间分配器，每次分配一个元素大小
+    typedef simple_alloc<value_type,Alloc> data_allocator;
+    //专属的空间分配器，每次分配一个指针大小
+    typedef simple_alloc<pointer,Alloc> map_allocator;
+```
+
+### 3.5 deque操作的实现
+
+* deque构造与初始化：[deque](tass-sgi-stl-2.91.57-source/stl_deque.h#L360)
+    - 元素初始化[fill_initialize](tass-sgi-stl-2.91.57-source/stl_deque.h#L847)
+        + 空间分配与成员设定create_map_and_nodes(tass-sgi-stl-2.91.57-source/stl_deque.h#L797)
+* 插入操作：
+    - 在队列末尾插入：[push_back](tass-sgi-stl-2.91.57-source/stl_deque.h#L439)
+        + 最后缓冲区只有1个可用空间时：[push_back_aux](tass-sgi-stl-2.91.57-source/stl_deque.h#L898)
+            * map不足时：[reserve_map_at_back](tass-sgi-stl-2.91.57-source/stl_deque.h#L632)
+                - [reallocate_map](tass-sgi-stl-2.91.57-source/stl_deque.h#L1289)
+    - 在队列首部插入：[push_front](tass-sgi-stl-2.91.57-source/stl_deque.h#L448)
+        + 第一个缓冲区没有可用空间时：[push_front_aux](tass-sgi-stl-2.91.57-source/stl_deque.h#L912)
+            * map不足时：[reserve_map_at_front](tass-sgi-stl-2.91.57-source/stl_deque.h#L639)
+                - [reallocate_map](tass-sgi-stl-2.91.57-source/stl_deque.h#L1289)
+    - 指定位置插入一个元素：[insert](tass-sgi-stl-2.91.57-source/stl_deque.h#L447)
+        + 在首部插入：push_front
+        + 在尾部插入：push_back
+        + 在中间插入：[insert_aux](tass-sgi-stl-2.91.57-source/stl_deque.h#L994)
+* 弹出操作：
+    - 弹出队列末尾元素：[pop_back](tass-sgi-stl-2.91.57-source/stl_deque.h#L457)
+        + 最后缓冲区没有元素时：[pop_back_aux](tass-sgi-stl-2.91.57-source/stl_deque.h#L933)
+    - 弹出队列首部元素：[pop_front](tass-sgi-stl-2.91.57-source/stl_deque.h#L466)
+        + 第一个缓冲区仅有一个元素时：[pop_front_aux](tass-sgi-stl-2.91.57-source/stl_deque.h#L945)
+* 清除所有元素：[clear](tass-sgi-stl-2.91.57-source/stl_deque.h#L774)
+* 清除某个区间的元素：[erase](tass-sgi-stl-2.91.57-source/stl_deque.h#L743)
