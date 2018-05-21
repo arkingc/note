@@ -40,6 +40,7 @@ template <class RandomAccessIterator, class Distance, class T>
 void __push_heap(RandomAccessIterator first, Distance holeIndex,
                  Distance topIndex, T value) {
   Distance parent = (holeIndex - 1) / 2;
+  //从while的第二个条件可以看出是创建最大堆
   while (holeIndex > topIndex && *(first + parent) < value) {
     *(first + holeIndex) = *(first + parent);
     holeIndex = parent;
@@ -108,7 +109,8 @@ void __adjust_heap(RandomAccessIterator first, Distance holeIndex,
 template <class RandomAccessIterator, class T, class Distance>
 inline void __pop_heap(RandomAccessIterator first, RandomAccessIterator last,
                        RandomAccessIterator result, T value, Distance*) {
-  *result = *first;
+  *result = *first; //设定尾值为首值
+                    //这个元素即为需要删除的元素
   __adjust_heap(first, Distance(0), Distance(last - first), value);
 }
 
@@ -139,6 +141,7 @@ void __adjust_heap(RandomAccessIterator first, Distance holeIndex,
     *(first + holeIndex) = *(first + (secondChild - 1));
     holeIndex = secondChild - 1;
   }
+  //执行一次上溯
   __push_heap(first, holeIndex, topIndex, value, comp);
 }
 

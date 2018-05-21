@@ -22,6 +22,11 @@
     - [1.vector](#1vector)
     - [2.list](#2list)
     - [3.deque](#3deque)
+    - [4.stack](#4stack)（容器适配器）
+    - [5.queue](#5queue)（容器适配器）
+    - [6.heap](#6heap)（以算法形式呈现）
+    - [7.priority_queue](#7priority_queue)（容器适配器）
+    - [8.slist](#8slist)（非标准）
 
 <br>
 <br>
@@ -1011,3 +1016,301 @@ protected:
         + 第一个缓冲区仅有一个元素时：[pop_front_aux](tass-sgi-stl-2.91.57-source/stl_deque.h#L945)
 * 清除所有元素：[clear](tass-sgi-stl-2.91.57-source/stl_deque.h#L774)
 * 清除某个区间的元素：[erase](tass-sgi-stl-2.91.57-source/stl_deque.h#L743)
+
+## 4.stack
+
+具有”修改某物接口，形成另一种风貌“的性质者，称为适配器。因此，STL stack往往不被归类为容器，而被归类为容器适配器
+
+SGI STL以deque作为缺省情况下的stack底部结构，定义如下：
+
+```c++
+template <class T, class Sequence = deque<T> >
+class stack {
+  //以下__STL_NULL_TMPL_ARGS会展开为 <>
+  friend bool operator== __STL_NULL_TMPL_ARGS (const stack&, const stack&);
+  friend bool operator< __STL_NULL_TMPL_ARGS (const stack&, const stack&);
+public:
+  typedef typename Sequence::value_type value_type;
+  typedef typename Sequence::size_type size_type;
+  typedef typename Sequence::reference reference;
+  typedef typename Sequence::const_reference const_reference;
+protected:
+  Sequence c;   //底层容器
+public:
+  //以下完全利用Sequence c的操作，完成stack的操作
+  bool empty() const { return c.empty(); }
+  size_type size() const { return c.size(); }
+  reference top() { return c.back(); }
+  const_reference top() const { return c.back(); }
+  //deque是两头可进出，stack是后进后出
+  void push(const value_type& x) { c.push_back(x); }
+  void pop() { c.pop_back(); }
+};
+
+template <class T, class Sequence>
+bool operator==(const stack<T, Sequence>& x, const stack<T, Sequence>& y) {
+  return x.c == y.c;
+}
+
+template <class T, class Sequence>
+bool operator<(const stack<T, Sequence>& x, const stack<T, Sequence>& y) {
+  return x.c < y.c;
+}
+```
+
+只有stack顶端的元素有机会被外界取用，stack不提供遍历功能，也**不提供迭代器**
+
+**指定其它容器作为stack的底层容器的方法：**
+
+```c++
+stack<int,list<int> > istack;
+```
+
+## 5.queue
+
+queue（队列）是一种先进先出的数据结构，尾端插入，首部移出
+
+SGI STL以deque作为缺省情况下的queue底部结构，定义如下：
+
+```c++
+template <class T, class Sequence = deque<T> >
+class queue {
+  //以下__STL_NULL_TMPL_ARGS会展开为 <>
+  friend bool operator== __STL_NULL_TMPL_ARGS (const queue& x, const queue& y);
+  friend bool operator< __STL_NULL_TMPL_ARGS (const queue& x, const queue& y);
+public:
+  typedef typename Sequence::value_type value_type;
+  typedef typename Sequence::size_type size_type;
+  typedef typename Sequence::reference reference;
+  typedef typename Sequence::const_reference const_reference;
+protected:
+  Sequence c;   //底层容器
+public:
+  //以下完全利用Sequence c的操作，完成stack的操作
+  bool empty() const { return c.empty(); }
+  size_type size() const { return c.size(); }
+  reference front() { return c.front(); }
+  const_reference front() const { return c.front(); }
+  reference back() { return c.back(); }
+  const_reference back() const { return c.back(); }
+  deque是两头可进出，queue是尾端紧、首部出
+  void push(const value_type& x) { c.push_back(x); }
+  void pop() { c.pop_front(); }
+};
+
+template <class T, class Sequence>
+bool operator==(const queue<T, Sequence>& x, const queue<T, Sequence>& y) {
+  return x.c == y.c;
+}
+
+template <class T, class Sequence>
+bool operator<(const queue<T, Sequence>& x, const queue<T, Sequence>& y) {
+  return x.c < y.c;
+}
+```
+
+只有首部元素才有机会被外界取用，queue不提供遍历功能，也**不提供迭代器**
+
+**指定其它容器作为queue的底层容器的方法：**
+
+```c++
+queue<int,list<int> > iqueue;
+```
+
+## 6.heap
+
+heap并不归属与STL容器组件，它是个幕后英雄，扮演priority queue的助手
+
+heap是一颗完全二叉树，完全二叉树使用数组实现，因此使用一个vector作为heap的结构，然后通过一组xxx_heap算法，使其符合heap的性质
+
+* 上溯（在此之前应该push_back）：[push_heap](tass-sgi-stl-2.91.57-source/stl_heap.h#L60)
+    - [__push_heap_aux](tass-sgi-stl-2.91.57-source/stl_heap.h#L53)
+        + [__push_heap](tass-sgi-stl-2.91.57-source/stl_heap.h#L40)
+    
+    <div align="center"> <img src="../pic/stl-4-13.png"/> </div>
+
+* [pop_heap](tass-sgi-stl-2.91.57-source/stl_heap.h#L124)（在此之后应该pop_back）
+    - [__pop_heap_aux](tass-sgi-stl-2.91.57-source/stl_heap.h#L118)
+        + [__pop_heap](tass-sgi-stl-2.91.57-source/stl_heap.h#L110)
+            * [__adjust_heap](tass-sgi-stl-2.91.57-source/stl_heap.h#L91)
+    
+    <div align="center"> <img src="../pic/stl-4-12.png"/> </div>
+
+* [sort_heap](tass-sgi-stl-2.91.57-source/stl_heap.h#L209)
+    
+    <div align="center"> <img src="../pic/stl-4-11.png"/> </div>
+
+* [make_heap](tass-sgi-stl-2.91.57-source/stl_heap.h#L203)
+    - [__make_heap](tass-sgi-stl-2.91.57-source/stl_heap.h#L189)
+
+## 7.priority_queue
+
+顾名思义，priority_queue就是具有优先级的queue，允许首部移出，尾端插入。缺省情况下利用一个max-heap完成，因此首部元素优先级最高
+
+以下为SGI STL中priority_queue的定义：
+
+```c++
+template <class T, class Sequence = vector<T>, 
+          class Compare = less<typename Sequence::value_type> >
+class  priority_queue {
+public:
+  typedef typename Sequence::value_type value_type;
+  typedef typename Sequence::size_type size_type;
+  typedef typename Sequence::reference reference;
+  typedef typename Sequence::const_reference const_reference;
+protected:
+  Sequence c;       //底层容器
+  Compare comp;     //元素大小比较标准
+public:
+  priority_queue() : c() {}
+  explicit priority_queue(const Compare& x) :  c(), comp(x) {}
+
+  //以下用到的make_heap()、push_heap()、pop_heap()都是泛型算法
+  //构造一个priority queue，首先根据传入的迭代器区间初始化底层容器c，然后调用
+  //make_heap()使用底层容器建堆
+  template <class InputIterator>
+  priority_queue(InputIterator first, InputIterator last, const Compare& x)
+    : c(first, last), comp(x) { make_heap(c.begin(), c.end(), comp); }
+  template <class InputIterator>
+  priority_queue(InputIterator first, InputIterator last) 
+    : c(first, last) { make_heap(c.begin(), c.end(), comp); }
+
+  bool empty() const { return c.empty(); }
+  size_type size() const { return c.size(); }
+  const_reference top() const { return c.front(); }
+  void push(const value_type& x) {
+    //先利用底层容器的push_back()将新元素推入末端，再重排heap
+    __STL_TRY {
+      c.push_back(x); 
+      push_heap(c.begin(), c.end(), comp);
+    }
+    __STL_UNWIND(c.clear());
+  }
+  void pop() {
+    //从heap内取出一个元素。但不是真正弹出，而是重排heap，然后以底层容器的pop_back()
+    //取得被弹出的元素
+    __STL_TRY {
+      pop_heap(c.begin(), c.end(), comp);
+      c.pop_back();
+    }
+    __STL_UNWIND(c.clear());
+  }
+};
+```
+
+和queue一样，priority queue只有首部的元素有机会被外界取用。不提供遍历功能，也**不提供迭代器**
+
+## 8.slist
+
+slist**并不在标准规格之内**，由SGI STL提供，slist和list不同的是slist是单链表
+
+单链表每个节点的消耗更小，但是只支持单向遍历，所以功能会受到许多限制
+
+SGI STL中[slist的定义](tass-sgi-stl-2.91.57-source/stl_slist.h#L175)
+
+### 8.1 slist的节点
+
+<div align="center"> <img src="../pic/stl-4-9.png"/> </div>
+
+节点相关的结构：
+
+```c++
+//单向链表的节点基本结构
+struct __slist_node_base
+{
+    __slist_node_base *next;
+};
+
+//单向链表的节点结构
+template <class T>
+struct __slist_node : public __slist_node_base
+{
+    T data;
+}
+```
+
+节点相关的全局函数：
+
+```c++
+//已知某一节点prev_node，将新节点new_node插入其后
+inline __slist_node_base* __slist_make_link(
+    __slist_node_base *prev_node,
+    __slist_node_base *new_node)
+{
+    //令new节点的下一节点为prev节点的下一节点
+    new_node->next = prev_node->next;
+    prev_node->next = new_node; //令prev节点的下一节点指向new节点
+    return new_node;
+}
+
+//单向链表的大小（元素个数）
+inline size_t __slist_size(__slist_node_base *node)
+{
+    size_t result = 0;
+    for(;node != 0;node = node->next)
+        ++result;   //一个个累计
+    return result;
+}
+```
+
+### 8.2 slist的迭代器
+
+<div align="center"> <img src="../pic/stl-4-10.png"/> </div>
+
+迭代器的定义如下：
+
+```c++
+//单向链表的迭代器基本结构
+struct __slist_iterator_base
+{
+  typedef size_t size_type;
+  typedef ptrdiff_t difference_type;
+  typedef forward_iterator_tag iterator_category;   //单向
+
+  __slist_node_base* node;  //指向节点基本结构
+
+  __slist_iterator_base(__slist_node_base* x) : node(x) {}
+
+  void incr() { node = node->next; }    //前进一个节点
+
+  bool operator==(const __slist_iterator_base& x) const {
+    return node == x.node;
+  }
+  bool operator!=(const __slist_iterator_base& x) const {
+    return node != x.node;
+  }
+};
+
+//单向链表的迭代器结构
+template <class T, class Ref, class Ptr>
+struct __slist_iterator : public __slist_iterator_base
+{
+  typedef __slist_iterator<T, T&, T*>             iterator;
+  typedef __slist_iterator<T, const T&, const T*> const_iterator;
+  typedef __slist_iterator<T, Ref, Ptr>           self;
+
+  typedef T value_type;
+  typedef Ptr pointer;
+  typedef Ref reference;
+  typedef __slist_node<T> list_node;
+
+  __slist_iterator(list_node* x) : __slist_iterator_base(x) {}
+  __slist_iterator() : __slist_iterator_base(0) {}
+  __slist_iterator(const iterator& x) : __slist_iterator_base(x.node) {}
+
+  reference operator*() const { return ((list_node*) node)->data; }
+  pointer operator->() const { return &(operator*()); }
+
+  self& operator++()
+  {
+    incr(); //前进一个节点
+    return *this;
+  }
+  self operator++(int)
+  {
+    self tmp = *this;
+    incr(); //前进一个节点
+    return tmp;
+  }
+};
+```

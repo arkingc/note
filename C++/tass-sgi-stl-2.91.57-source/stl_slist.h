@@ -193,9 +193,9 @@ private:
   typedef simple_alloc<list_node, Alloc> list_node_allocator;
 
   static list_node* create_node(const value_type& x) {
-    list_node* node = list_node_allocator::allocate();
+    list_node* node = list_node_allocator::allocate();  //分配空间
     __STL_TRY {
-      construct(&node->data, x);
+      construct(&node->data, x);  //构造元素
       node->next = 0;
     }
     __STL_UNWIND(list_node_allocator::deallocate(node));
@@ -203,8 +203,8 @@ private:
   }
   
   static void destroy_node(list_node* node) {
-    destroy(&node->data);
-    list_node_allocator::deallocate(node);
+    destroy(&node->data); //将元素析构
+    list_node_allocator::deallocate(node);  //释放空间
   }
 
   void fill_initialize(size_type n, const value_type& x) {
@@ -242,7 +242,7 @@ private:
 #endif /* __STL_MEMBER_TEMPLATES */
 
 private:
-  list_node_base head;
+  list_node_base head;  //slist的成员。注意，它不是一个指针
 
 public:
   slist() { head.next = 0; }
@@ -274,19 +274,21 @@ public:
   ~slist() { clear(); }
 
 public:
-
+  //头结点是head的next成员指向的节点
   iterator begin() { return iterator((list_node*)head.next); }
   const_iterator begin() const { return const_iterator((list_node*)head.next);}
 
   iterator end() { return iterator(0); }
   const_iterator end() const { return const_iterator(0); }
 
+  //从head成员的下一节点开始计数，计算链表长度
   size_type size() const { return __slist_size(head.next); }
   
   size_type max_size() const { return size_type(-1); }
 
   bool empty() const { return head.next == 0; }
 
+  //两个slist互换，只要将head交换互指即可
   void swap(slist& L)
   {
     list_node_base* tmp = head.next;
@@ -299,12 +301,17 @@ public:
                                               const slist<T, Alloc>& L2);
 
 public:
-
+  //front返回头部节点的data成员
   reference front() { return ((list_node*) head.next)->data; }
   const_reference front() const { return ((list_node*) head.next)->data; }
+  //在head于head->next之间插入一个由x构造的新节点，新节点成为slist的第一个元素
   void push_front(const value_type& x)   {
     __slist_make_link(&head, create_node(x));
   }
+
+  //没有push_back
+
+  //从头部取走元素
   void pop_front() {
     list_node* node = (list_node*) head.next;
     head.next = node->next;
