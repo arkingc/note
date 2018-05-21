@@ -22,11 +22,11 @@
     - [1.vector](#1vector)
     - [2.list](#2list)
     - [3.deque](#3deque)
-    - [4.stack](#4stack)（容器适配器）
-    - [5.queue](#5queue)（容器适配器）
-    - [6.heap](#6heap)（以算法形式呈现）
-    - [7.priority_queue](#7priority_queue)（容器适配器）
-    - [8.slist](#8slist)（非标准）
+    - [4.stack](#4stack)
+    - [5.queue](#5queue)
+    - [6.heap](#6heap)
+    - [7.priority_queue](#7priority_queue)
+    - [8.slist](#8slist)
 
 <br>
 <br>
@@ -681,7 +681,7 @@ struct __false_type { };
 
 # 四.顺序容器
 
-<div align="center"> <img src="../pic/stl-4-1.png"/> </div>
+<div align="center"> <img src="../pic/stl-4-1.jpeg"/> </div>
 
 上图中的“衍生”并非“派生”，而是内含关系。例如heap内含一个vector，priority-queue内含一个heap，stack和queue都含一个deque，set/map/multiset/multimap都内含一个RB-tree，has_x都内含一个hashtable
 
