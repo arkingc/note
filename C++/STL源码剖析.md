@@ -27,6 +27,7 @@
     - [6.heap](#6heap)
     - [7.priority_queue](#7priority_queue)
     - [8.slist](#8slist)
+* [五.关联容器](五关联容器)
 
 <br>
 <br>
@@ -1314,3 +1315,199 @@ struct __slist_iterator : public __slist_iterator_base
   }
 };
 ```
+
+<br>
+
+# 五.关联容器
+
+<div align="center"> <img src="../pic/stl-4-1.jpeg"/> </div>
+
+标准的STL关联容器分为set(集合)和map(映射表)两大类，以及这两大类的衍生体multiset(多键集合)和multimap(多键映射表)。这些容器的底层机制均以RB-tree(红黑树)完成。RB-tree也是一个独立容器，但并不开放给外界使用
+
+此外，SGI STL还提供了一个不在标准规格之列的关联容器：hash table，以及以此hash table为底层机制而完成的hash_set(散列集合)、hash_map(散列映射表)、hash_multiset(散列多键集合)、hash_multimap(散列多键映射表)
+
+## 1.RB-tree
+
+### 1.1 RB-tree的节点
+
+```c++
+typedef bool __rb_tree_color_type;
+const __rb_tree_color_type __rb_tree_red = false;   //红色为0
+const __rb_tree_color_type __rb_tree_black = true;  //黑色为1
+
+//RB-tree节点的基类
+struct __rb_tree_node_base
+{
+  typedef __rb_tree_color_type color_type;
+  typedef __rb_tree_node_base* base_ptr;
+
+  color_type color; //颜色
+  base_ptr parent;  //指向父节点的指针
+  base_ptr left;    //指向左子节点的指针
+  base_ptr right;   //指向右子节点的指针
+
+  //静态函数，获取以x为根节点的RB-tree最小节点的指针
+  static base_ptr minimum(base_ptr x)
+  {
+    while (x->left != 0) x = x->left;
+    return x;
+  }
+
+  //静态函数，获取以x为根节点的RB-tree最大节点的指针
+  static base_ptr maximum(base_ptr x)
+  {
+    while (x->right != 0) x = x->right;
+    return x;
+  }
+};
+
+//RB-tree节点类
+template <class Value>
+struct __rb_tree_node : public __rb_tree_node_base
+{
+  typedef __rb_tree_node<Value>* link_type;
+  Value value_field;    //RB-tree节点的value
+};
+```
+
+**键和值都包含在value_field中**
+
+### 1.2 RB-tree的迭代器
+
+SGI将RB-tree迭代器实现为两层：
+
+<div align="center"> <img src="../pic/stl-5-1.jpeg"/> </div>
+
+RB-tree迭代器属于双向迭代器，但不具备随机定位能力。前进操作operator++()调用了基类迭代器的increment()，后退操作operator--()调用了基类迭代器的decrement()。前进或后退的举止行为完全依据二叉搜索树的节点排列法则
+
+```c++
+//迭代器基类
+struct __rb_tree_base_iterator
+{
+  typedef __rb_tree_node_base::base_ptr base_ptr;
+  typedef bidirectional_iterator_tag iterator_category;
+  typedef ptrdiff_t difference_type;
+
+  base_ptr node;    //节点基类类型的指针，将迭代器连接到RB-tree的节点
+
+  void increment()
+  {
+    if (node->right != 0) {//如果node右子树不为空，则找到右子树的最左子节点
+      node = node->right;
+      while (node->left != 0)
+        node = node->left;
+    }
+    else {//如果node右子树为空，则找到第一个“该节点位于其左子树”的节点
+      base_ptr y = node->parent;
+      while (node == y->right) {
+        node = y;
+        y = y->parent;
+      }
+      if (node->right != y)
+        node = y;
+    }
+  }
+
+  void decrement()
+  {
+    if (node->color == __rb_tree_red &&
+        node->parent->parent == node)//这种情况发生于node为header时（亦即node为
+      node = node->right;            //end()时）header右子节点即mostright，指向max节点
+    else if (node->left != 0) {//如果左子树不为空，则找到左子树的最右子节点
+      base_ptr y = node->left;
+      while (y->right != 0)
+        y = y->right;
+      node = y;
+    }
+    else {//如果左子树为空，则找到第一个“该节点位于其右子树”的节点
+      base_ptr y = node->parent;
+      while (node == y->left) {
+        node = y;
+        y = y->parent;
+      }
+      node = y;
+    }
+  }
+};
+
+//迭代器类
+template <class Value, class Ref, class Ptr>
+struct __rb_tree_iterator : public __rb_tree_base_iterator
+{
+  typedef Value value_type;
+  typedef Ref reference;
+  typedef Ptr pointer;
+  typedef __rb_tree_iterator<Value, Value&, Value*>             iterator;
+  typedef __rb_tree_iterator<Value, const Value&, const Value*> const_iterator;
+  typedef __rb_tree_iterator<Value, Ref, Ptr>                   self;
+  typedef __rb_tree_node<Value>* link_type; //指向RB-tree节点的指针类型
+
+  __rb_tree_iterator() {}
+  __rb_tree_iterator(link_type x) { node = x; }
+  __rb_tree_iterator(const iterator& it) { node = it.node; }
+
+  //解引用操作为获取所指RB-tree节点的value
+  reference operator*() const { return link_type(node)->value_field; }
+#ifndef __SGI_STL_NO_ARROW_OPERATOR
+  pointer operator->() const { return &(operator*()); }
+#endif /* __SGI_STL_NO_ARROW_OPERATOR */
+
+  //调用父类的increment()，函数会修改node成员，使其指向后一个RB-tree节点
+  self& operator++() { increment(); return *this; }
+  self operator++(int) {
+    self tmp = *this;
+    increment();
+    return tmp;
+  }
+    
+  //调用父类的decrement()，函数会修改node成员，使其指向前一个RB-tree节点
+  self& operator--() { decrement(); return *this; }
+  self operator--(int) {
+    self tmp = *this;
+    decrement();
+    return tmp;
+  }
+};
+```
+
+### 1.3 RB-tree操作的实现
+
+SGI STL中[RB-tree的定义](tass-sgi-stl-2.91.57-source/stl_tree.h#L428)
+
+* 节点操作：
+    - 涉及内存管理的操作
+        + 分配节点：[get_node](tass-sgi-stl-2.91.57-source/stl_tree.h#L447)
+        + 释放节点：[put_node](tass-sgi-stl-2.91.57-source/stl_tree.h#L449)
+        + 创建节点：[create_node](tass-sgi-stl-2.91.57-source/stl_tree.h#L452)
+        + 拷贝节点：[clone_node](tass-sgi-stl-2.91.57-source/stl_tree.h#L462)
+        + 销毁节点：[destroy_node](tass-sgi-stl-2.91.57-source/stl_tree.h#L471)
+    - [获取节点成员](tass-sgi-stl-2.91.57-source/stl_tree.h#L489)：
+        + left
+        + right
+        + parent
+        + value
+        + key
+        + color
+* RB-tree操作
+    - 创建空RB-tree：[rb_tree](tass-sgi-stl-2.91.57-source/stl_tree.h#L542)
+        + 初始化：[init](tass-sgi-stl-2.91.57-source/stl_tree.h#L532)
+    - 获取root节点：[root](tass-sgi-stl-2.91.57-source/stl_tree.h#L485)
+    - 获取最左子节点：[leftmost](tass-sgi-stl-2.91.57-source/stl_tree.h#L486)
+    - 获取最右子节点：[rightmost](tass-sgi-stl-2.91.57-source/stl_tree.h#L487)
+    - 获取起始节点：[begin](tass-sgi-stl-2.91.57-source/stl_tree.h#L575)
+    - 获取末尾节点：[end](tass-sgi-stl-2.91.57-source/stl_tree.h#L577)
+    - 是否为空：[empty](tass-sgi-stl-2.91.57-source/stl_tree.h#L587)
+    - 大小：[size](tass-sgi-stl-2.91.57-source/stl_tree.h#L588)
+    - **插入节点**：
+        + 节点值独一无二：[insert_unique](tass-sgi-stl-2.91.57-source/stl_tree.h#L753)
+            * [__insert](tass-sgi-stl-2.91.57-source/stl_tree.h#L698)
+                - [__rb_tree_rebalance](tass-sgi-stl-2.91.57-source/stl_tree.h#L249)
+                    + [__rb_tree_rotate_left](tass-sgi-stl-2.91.57-source/stl_tree.h#L210)
+                    + [__rb_tree_rotate_right](tass-sgi-stl-2.91.57-source/stl_tree.h#L229) 
+        + 允许节点值重复：[insert_equal](tass-sgi-stl-2.91.57-source/stl_tree.h#L736)
+            * __insert（同上）
+                - __rb_tree_rebalance（同上）
+                    + __rb_tree_rotate_left（同上）
+                    + __rb_tree_rotate_right（同上）
+    - **元素搜索**：
+        + [find](tass-sgi-stl-2.91.57-source/stl_tree.h#L964)
