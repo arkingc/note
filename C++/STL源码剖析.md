@@ -1855,5 +1855,7 @@ SGI STL中[hash_multimap的定义](tass-sgi-stl-2.91.57-source/stl_multimap.h#L4
 
 hash_multimap和hash_map实现上的唯一差别在于，前者的元素插入操作采用底层机制hashtable的insert_equal()，后者则是采用insert_unique()
 
+<br>
+
 # 六.算法
 
