@@ -295,7 +295,7 @@ public:
 
   pair<iterator, bool> insert_unique(const value_type& obj)
   {
-    resize(num_elements + 1);
+    resize(num_elements + 1);  //判断是否需要重建表格，如需要就扩充
     return insert_unique_noresize(obj);
   }
 
@@ -454,24 +454,24 @@ private:
     num_elements = 0;
   }
 
-  size_type bkt_num_key(const key_type& key) const
+  size_type bkt_num_key(const key_type& key) const //版本3
   {
-    return bkt_num_key(key, buckets.size());
+    return bkt_num_key(key, buckets.size()); //调用版本4
   }
 
-  size_type bkt_num(const value_type& obj) const
+  size_type bkt_num(const value_type& obj) const //版本2
   {
-    return bkt_num_key(get_key(obj));
+    return bkt_num_key(get_key(obj)); //调用版本3
   }
 
-  size_type bkt_num_key(const key_type& key, size_t n) const
+  size_type bkt_num_key(const key_type& key, size_t n) const //版本4
   {
-    return hash(key) % n;
+    return hash(key) % n; //返回key和buckets数目取模的结果
   }
 
-  size_type bkt_num(const value_type& obj, size_t n) const
+  size_type bkt_num(const value_type& obj, size_t n) const //版本1
   {
-    return bkt_num_key(get_key(obj), n);
+    return bkt_num_key(get_key(obj), n); //调用版本4
   }
 
   node* new_node(const value_type& obj)
@@ -623,16 +623,21 @@ template <class V, class K, class HF, class Ex, class Eq, class A>
 pair<typename hashtable<V, K, HF, Ex, Eq, A>::iterator, bool> 
 hashtable<V, K, HF, Ex, Eq, A>::insert_unique_noresize(const value_type& obj)
 {
-  const size_type n = bkt_num(obj);
-  node* first = buckets[n];
+  const size_type n = bkt_num(obj);  //计算obj应位于哪个bucket
+  node* first = buckets[n];          //获取指针bucket头结点的指针
 
+  //遍历到节点串查找是否存在键值重复的节点
   for (node* cur = first; cur; cur = cur->next) 
+    //如果中途找到了一个键值相同的节点，那么直接返回
     if (equals(get_key(cur->val), get_key(obj)))
       return pair<iterator, bool>(iterator(cur, this), false);
 
+  //根据obj构造新节点
   node* tmp = new_node(obj);
+  //将新节点插入串首
   tmp->next = first;
   buckets[n] = tmp;
+  //更新元素个数并返回
   ++num_elements;
   return pair<iterator, bool>(iterator(tmp, this), true);
 }
@@ -644,7 +649,9 @@ hashtable<V, K, HF, Ex, Eq, A>::insert_equal_noresize(const value_type& obj)
   const size_type n = bkt_num(obj);
   node* first = buckets[n];
 
+  //遍历节点串查找是否存在键值相同的节点
   for (node* cur = first; cur; cur = cur->next) 
+    //如果找到键值相同的节点，直接构建新节点，并将其插入到键值相同的节点后，返回
     if (equals(get_key(cur->val), get_key(obj))) {
       node* tmp = new_node(obj);
       tmp->next = cur->next;
@@ -653,6 +660,7 @@ hashtable<V, K, HF, Ex, Eq, A>::insert_equal_noresize(const value_type& obj)
       return iterator(tmp, this);
     }
 
+  //如果没找到键值相同的节点，则在节点串的首部插入新节点
   node* tmp = new_node(obj);
   tmp->next = first;
   buckets[n] = tmp;
@@ -832,23 +840,28 @@ hashtable<V, K, HF, Ex, Eq, A>::erase(const const_iterator& it)
 template <class V, class K, class HF, class Ex, class Eq, class A>
 void hashtable<V, K, HF, Ex, Eq, A>::resize(size_type num_elements_hint)
 {
-  const size_type old_n = buckets.size();
-  if (num_elements_hint > old_n) {
-    const size_type n = next_size(num_elements_hint);
+  const size_type old_n = buckets.size();  //bucket的个数
+  if (num_elements_hint > old_n) {//如果元素大于bucket的数量，就进行重新分配
+    const size_type n = next_size(num_elements_hint); //找出下一个质数
     if (n > old_n) {
       vector<node*, A> tmp(n, (node*) 0);
       __STL_TRY {
+        //处理每一个旧的bucket
         for (size_type bucket = 0; bucket < old_n; ++bucket) {
-          node* first = buckets[bucket];
-          while (first) {
+          node* first = buckets[bucket];//指向bucket中节点串的起点
+          while (first) {//节点串不为空
+            //找到节点对应新的bucket号
             size_type new_bucket = bkt_num(first->val, n);
+            //令目前处理的旧bucket起始节点为下一个节点
             buckets[bucket] = first->next;
+            //将当前节点链入新的bucket的节点串中
             first->next = tmp[new_bucket];
             tmp[new_bucket] = first;
+            //继续处理旧bucket的下一个节点
             first = buckets[bucket];          
           }
         }
-        buckets.swap(tmp);
+        buckets.swap(tmp); //新旧两个buckets对调
       }
 #         ifdef __STL_USE_EXCEPTIONS
       catch(...) {
@@ -903,26 +916,33 @@ hashtable<V, K, HF, Ex, Eq, A>::erase_bucket(const size_type n, node* last)
 template <class V, class K, class HF, class Ex, class Eq, class A>
 void hashtable<V, K, HF, Ex, Eq, A>::clear()
 {
+  //遍历每一个bucket
   for (size_type i = 0; i < buckets.size(); ++i) {
     node* cur = buckets[i];
     while (cur != 0) {
       node* next = cur->next;
-      delete_node(cur);
-      cur = next;
+      delete_node(cur); //释放当前节点
+      cur = next;       //继续处理下一节点
     }
-    buckets[i] = 0;
+    buckets[i] = 0; //将bucket的节点串设为空
   }
-  num_elements = 0;
+  num_elements = 0; //将hashtable的元素个数设为0
 }
 
     
 template <class V, class K, class HF, class Ex, class Eq, class A>
 void hashtable<V, K, HF, Ex, Eq, A>::copy_from(const hashtable& ht)
 {
+  //先清除自己的节点
   buckets.clear();
+  //根据ht的bucket数量为自己预留空间
+  //如果本身空间已经足够就不进行处理，否则会增大
   buckets.reserve(ht.buckets.size());
+  //从自己的buckets vector尾端开始，插入n个源，值为Null
+  //此时bucket vector为空，所以所谓的尾端，就是起始处
   buckets.insert(buckets.end(), ht.buckets.size(), (node*) 0);
   __STL_TRY {
+    //遍历bt的每一个bucket，赋值每一个bucket中的节点
     for (size_type i = 0; i < ht.buckets.size(); ++i) {
       if (const node* cur = ht.buckets[i]) {
         node* copy = new_node(cur->val);
@@ -934,7 +954,7 @@ void hashtable<V, K, HF, Ex, Eq, A>::copy_from(const hashtable& ht)
         }
       }
     }
-    num_elements = ht.num_elements;
+    num_elements = ht.num_elements; //更新节点数
   }
   __STL_UNWIND(clear());
 }

@@ -29,6 +29,16 @@
     - [8.slist](#8slist)
 * [五.关联容器](#五关联容器)
     - [1.RB-tree](#1rb-tree)
+    - [2.set](#2set)
+    - [3.map](#3map)
+    - [4.multiset](#4multiset)
+    - [5.multimap](#5multimap)
+    - [6.hashtable](#6hashtable)
+    - [7.hash_set](#7hash_set)
+    - [8.hash_map](#8hash_map)
+    - [9.hash_multiset](#9hash_multiset)
+    - [10.hash_multimap](#10hash_multimap)
+* [六.算法](#六算法)
 
 <br>
 <br>
@@ -1142,7 +1152,7 @@ heap是一颗完全二叉树，完全二叉树使用数组实现，因此使用�
     
     <div align="center"> <img src="../pic/stl-4-11.png"/> </div>
 
-* [make_heap](tass-sgi-stl-2.91.57-source/stl_heap.h#L203)
+* [make_heap](tass-sgi-stl-2.91.57-source/stl_heap.h#L184)
     - [__make_heap](tass-sgi-stl-2.91.57-source/stl_heap.h#L189)
 
 ## 7.priority_queue
@@ -1377,7 +1387,7 @@ struct __rb_tree_node : public __rb_tree_node_base
 
 SGI将RB-tree迭代器实现为两层：
 
-<div align="center"> <img src="../pic/stl-5-1.jpeg"/> </div>
+<div align="center"> <img src="../pic/stl-5-1.png"/> </div>
 
 RB-tree迭代器属于双向迭代器，但不具备随机定位能力。前进操作operator++()调用了基类迭代器的increment()，后退操作operator--()调用了基类迭代器的decrement()。前进或后退的举止行为完全依据二叉搜索树的节点排列法则
 
@@ -1512,3 +1522,338 @@ SGI STL中[RB-tree的定义](tass-sgi-stl-2.91.57-source/stl_tree.h#L428)
                     + __rb_tree_rotate_right（同上）
     - **元素搜索**：
         + [find](tass-sgi-stl-2.91.57-source/stl_tree.h#L964)
+
+## 2.set
+
+SGI STL中[set的定义](tass-sgi-stl-2.91.57-source/stl_set.h#L45)
+
+set的所有元素都会根据元素的键值自动被排序。元素的键值就是实值，实值就是键值、set不允许两个元素具有相同的键值
+
+```c++
+template <class Key, class Compare = less<Key>, class Alloc = alloc>
+class set {
+public:
+    ...
+    //键值和实值类型相同，比较函数也是同一个
+    typedef Key key_type;
+    typedef Key value_type;
+    typedef Compare key_compare;
+    typedef Compare value_compare;
+private:
+    ...
+    typedef rb_tree<key_type, value_type, 
+                  identity<value_type>, key_compare, Alloc> rep_type;
+    rep_type t;  // 内含一棵RB-tree，使用RB-tree来表现set
+public:
+    ...
+    //iterator定义为RB-tree的const_iterator，表示set的迭代器无法执行写操作
+    typedef typename rep_type::const_iterator iterator;
+    ...
+};
+```
+
+set的元素值就是键值，关系到set元素的排列规则。因此不能通过set的迭代器改变set的元素值。set将其迭代器定义为RB-tree的const_iterator以防止修改
+
+set所开放的各种操作接口，RB-tree也提供了，所以几乎所有的set操作行为，都只是转调用RB-tree的操作行为而已
+
+## 3.map
+
+SGI STL中[map的定义](tass-sgi-stl-2.91.57-source/stl_map.h#L58)
+
+map的所有元素会根据元素的键值自动被排序。所有元素都是pair，同时拥有键值和实值，第一个元素被视为键值，第二个元素被视为实值。map不允许两个元素拥有相同的键值
+
+```c++
+template <class Key, class T, class Compare = less<Key>, class Alloc = alloc>
+class map {
+public:
+  typedef Key key_type;     //键值类型
+  typedef T data_type;      //实值类型
+  typedef T mapped_type;    
+  typedef pair<const Key, T> value_type;    //键值对，RB-tree节点中的value类型
+  typedef Compare key_compare;  //键值比较函数
+
+  ...
+
+private:
+  typedef rb_tree<key_type, value_type, 
+                  select1st<value_type>, key_compare, Alloc> rep_type;
+  rep_type t;  // 内含一棵RB-tree，使用RB-tree来表现map
+public:
+  ...
+  //迭代器和set不同，允许修改实值
+  typedef typename rep_type::iterator iterator;
+  ...
+
+  //下标操作
+  T& operator[](const key_type& k) {
+    return (*((insert(value_type(k, T()))).first)).second;
+  }
+
+  //插入操作
+  pair<iterator,bool> insert(const value_type& x) { return t.insert_unique(x); }
+
+  ...
+};
+```
+
+可以通过map的迭代器修改元素的实值，不能修改元素的键值
+
+map所开放的各种操作接口，RB-tree也都提供了，所以几乎所有的map操作行为，都只是转调用RB-tree的操作行为而已
+
+## 4.multiset
+
+SGI STL中[set的定义](tass-sgi-stl-2.91.57-source/stl_multiset.h#L45)
+
+multiset的特性及用法和set完全相同，唯一的差别在于它允许键值重复，插入操作采用的是底层机制RB-tree的insert_equal()而非insert_unique()
+
+## 5.multimap
+
+SGI STL中[map的定义](tass-sgi-stl-2.91.57-source/stl_multimap.h#L45)
+
+multimap的特性及用法和map完全相同，唯一的差别在于它允许键值重复，插入操作采用的是底层机制RB-tree的insert_equal()而非insert_unique()
+
+## 6.hashtable
+
+<div align="center"> <img src="../pic/stl-5-2.png"/> </div>
+
+SGI STL中以开哈希实现hash table，hash table表格中的元素为桶，每个桶中包含了哈希到这个桶中的节点，节点定义如下：
+
+```c++
+template <class Value>
+struct __hashtable_node
+{
+    __hashtable_node *next;
+    Value val;
+};
+```
+
+### 6.1 hashtable的迭代器
+
+```c++
+template <class Value, class Key, class HashFcn,
+          class ExtractKey, class EqualKey, class Alloc>
+struct __hashtable_iterator {
+  typedef hashtable<Value, Key, HashFcn, ExtractKey, EqualKey, Alloc>
+          hashtable;
+  typedef __hashtable_iterator<Value, Key, HashFcn, 
+                               ExtractKey, EqualKey, Alloc>
+          iterator;
+  typedef __hashtable_const_iterator<Value, Key, HashFcn, 
+                                     ExtractKey, EqualKey, Alloc>
+          const_iterator;
+  typedef __hashtable_node<Value> node;
+
+  typedef forward_iterator_tag iterator_category;
+  typedef Value value_type;
+  typedef ptrdiff_t difference_type;
+  typedef size_t size_type;
+  typedef Value& reference;
+  typedef Value* pointer;
+
+  node* cur;        //迭代器目前所指的节点
+  hashtable* ht;    //指向相应的hashtable
+
+  __hashtable_iterator(node* n, hashtable* tab) : cur(n), ht(tab) {}
+  __hashtable_iterator() {}
+  reference operator*() const { return cur->val; }
+  pointer operator->() const { return &(operator*()); }
+  iterator& operator++();
+  iterator operator++(int);
+  bool operator==(const iterator& it) const { return cur == it.cur; }
+  bool operator!=(const iterator& it) const { return cur != it.cur; }
+};
+```
+
+前进操作首先尝试从目前所指的节点出发，前进一个位置(节点)，由于节点被安置于list内，所以利用节点的next指针即可轻易完成。如果目前节点正好是list的尾端，就跳至下一个bucket身，它正好指向下一个list的头部节点：
+
+```c++
+template <class V, class K, class HF, class ExK, class EqK, class A>
+__hashtable_iterator<V, K, HF, ExK, EqK, A>&
+__hashtable_iterator<V, K, HF, ExK, EqK, A>::operator++()
+{
+  const node* old = cur;
+  cur = cur->next;  //如果存在，就是它。否则进入以下if流程
+  if (!cur) {
+    //根据元素值，定位出下一个bucket，其起头处就是我们的目的地
+    size_type bucket = ht->bkt_num(old->val);
+    while (!cur && ++bucket < ht->buckets.size())
+      cur = ht->buckets[bucket];
+  }
+  return *this;
+}
+
+template <class V, class K, class HF, class ExK, class EqK, class A>
+inline __hashtable_iterator<V, K, HF, ExK, EqK, A>
+__hashtable_iterator<V, K, HF, ExK, EqK, A>::operator++(int)
+{
+  iterator tmp = *this;
+  ++*this;
+  return tmp;
+}
+```
+
+hashtable的迭代器没有后退操作，hashtable也没有定义所谓的逆向迭代器
+
+### 6.2 hashtable的实现
+
+SGI STL中[hashtable的定义](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L165)
+
+```c++
+template <class Value, class Key, class HashFcn,
+          class ExtractKey, class EqualKey, class Alloc = alloc>
+class hashtable;
+
+...
+
+template <class Value, class Key, class HashFcn,
+          class ExtractKey, class EqualKey,
+          class Alloc> //先前声明时，已给出Alloc默认值alloc
+class hashtable {
+public:
+  typedef HashFcn hasher;
+  typedef EqualKey key_equal;
+  ...
+private:
+  //以下3者都是function  objects
+  hasher hash;
+  key_equal equals;
+  ExtractKey get_key;
+
+  typedef __hashtable_node<Value> node;  //hashtable节点类型
+  typedef simple_alloc<node, Alloc> node_allocator;
+
+  vector<node*,Alloc> buckets; //hashtable的桶数组，以vector完成
+  size_type num_elements;      //元素个数
+  ...
+};
+```
+
+SGI STL以质数来设计表格大小，并且先将28个质数（逐渐呈现大约2倍的关系）计算好，以备随时访问，同时提供一个函数，用来查询在这28个质数中，“最接近某数并大于某数”的质数：
+
+```c++
+static const int __stl_num_primes = 28;
+static const unsigned long __stl_prime_list[__stl_num_primes] =
+{
+  53,         97,           193,         389,       769,
+  1543,       3079,         6151,        12289,     24593,
+  49157,      98317,        196613,      393241,    786433,
+  1572869,    3145739,      6291469,     12582917,  25165843,
+  50331653,   100663319,    201326611,   402653189, 805306457, 
+  1610612741, 3221225473ul, 4294967291ul
+};
+
+//该函数被next_size()所调用
+inline unsigned long __stl_next_prime(unsigned long n)
+{
+  const unsigned long* first = __stl_prime_list;
+  const unsigned long* last = __stl_prime_list + __stl_num_primes;
+  const unsigned long* pos = lower_bound(first, last, n);
+  return pos == last ? *(last - 1) : *pos;
+}
+```
+
+### 6.3 hashtable操作的实现
+
+* **节点操作**
+    - 涉及内存管理
+        + 创建节点：[new_node](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L477)
+        + 销毁节点：[delete_node](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L488)
+* **hashtable操作**
+    - 创建满足n个bucket的hashtable：[hashtable](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L217)
+        + [initialize_buckets](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L499)
+    - 插入节点
+        + 不允许键值重复： [insert_unique](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L296)
+            * 判断和重新分配bucket：[resize](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L841)
+            * [insert_unique_noresize](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L624)
+        + 允许键值重复：[insert_equal](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L302)
+            * 判断和重新分配bucket：resize（同上）
+            * [insert_equal_noresize](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L647)
+    - 哈希映射寻找bucket
+        + 接受实值和buckets个数：[bkt_num](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L472)
+        + 只接受实值：[bkt_num](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L462)
+        + 只接受键值：[bkt_num_key](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L457)
+        + 接受键值和buckets个数：[bkt_num_key](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L467)
+    - 清除：[clear](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L917)
+    - 复制：[copy_from](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L934)
+    - 查找元素：[find](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L400)
+    - 统计元素个数：[count](tass-sgi-stl-2.91.57-source/stl_hashtable.h#L422)
+
+### 6.4 hash functions
+
+hash function是计算元素位置的函数，SGI将这项任务赋予了bkt_num()，再由它来调用这里提供的hash function，取得一个可以对hashtable进行模运算的值。针对char，int，long等整数类型，大部分的hash functions什么也没做，只是忠实返回原值
+
+```c++
+inline size_t __stl_hash_string(const char* s)
+{
+  unsigned long h = 0; 
+  for ( ; *s; ++s)
+    h = 5*h + *s;
+  
+  return size_t(h);
+}
+
+__STL_TEMPLATE_NULL struct hash<char*>
+{
+  size_t operator()(const char* s) const { return __stl_hash_string(s); }
+};
+
+__STL_TEMPLATE_NULL struct hash<const char*>
+{
+  size_t operator()(const char* s) const { return __stl_hash_string(s); }
+};
+
+__STL_TEMPLATE_NULL struct hash<char> {
+  size_t operator()(char x) const { return x; }
+};
+__STL_TEMPLATE_NULL struct hash<unsigned char> {
+  size_t operator()(unsigned char x) const { return x; }
+};
+__STL_TEMPLATE_NULL struct hash<signed char> {
+  size_t operator()(unsigned char x) const { return x; }
+};
+__STL_TEMPLATE_NULL struct hash<short> {
+  size_t operator()(short x) const { return x; }
+};
+__STL_TEMPLATE_NULL struct hash<unsigned short> {
+  size_t operator()(unsigned short x) const { return x; }
+};
+__STL_TEMPLATE_NULL struct hash<int> {
+  size_t operator()(int x) const { return x; }
+};
+__STL_TEMPLATE_NULL struct hash<unsigned int> {
+  size_t operator()(unsigned int x) const { return x; }
+};
+__STL_TEMPLATE_NULL struct hash<long> {
+  size_t operator()(long x) const { return x; }
+};
+__STL_TEMPLATE_NULL struct hash<unsigned long> {
+  size_t operator()(unsigned long x) const { return x; }
+};
+```
+
+## 7.hash_set
+
+SGI STL中[hash_set的定义](tass-sgi-stl-2.91.57-source/stl_hash_set.h#L47)
+
+hash_set以hashtable为底层机制，由于hash_set所供应的操作接口hashtable都提供了，所以几乎所有的hash_set操作行为，都只是转调用hashtable的操作行为而已
+
+## 8.hash_map
+
+SGI STL中[hash_map的定义](tass-sgi-stl-2.91.57-source/stl_hash_map.h#L49)
+
+hash_map以hashtable为底层机制，由于hash_map所供应的操作接口hashtable都提供了，所以几乎所有的hash_map操作行为，都只是转调用hashtable的操作行为而已
+
+## 9.hash_multiset
+
+SGI STL中[hash_multiset的定义](tass-sgi-stl-2.91.57-source/stl_multiset.h#L45)
+
+hash_multiset和hash_set实现上的唯一差别在于，前者的元素插入操作采用底层机制hashtable的insert_equal()，后者则是采用insert_unique()
+
+## 10.hash_multimap
+
+SGI STL中[hash_multimap的定义](tass-sgi-stl-2.91.57-source/stl_multimap.h#L45)
+
+hash_multimap和hash_map实现上的唯一差别在于，前者的元素插入操作采用底层机制hashtable的insert_equal()，后者则是采用insert_unique()
+
+# 六.算法
+
