@@ -1924,7 +1924,7 @@ SGI SLT中[set_union的实现](tass-sgi-stl-2.91.57-source/stl_algo.h#L2104)，�
 
 这个函数求集合s1和s2的交集。s1和s2及其交集都是以排序区间表示。函数返回一个迭代器，指向输出区间的尾端
 
-SGI SLT中[set_union的实现](tass-sgi-stl-2.91.57-source/stl_algo.h#L2155)，操作示例如下：
+SGI SLT中[set_intersection的实现](tass-sgi-stl-2.91.57-source/stl_algo.h#L2155)，操作示例如下：
 
 <div align="center"> <img src="../pic/stl-6-9.png"/> </div>
 
