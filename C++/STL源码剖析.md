@@ -1876,14 +1876,14 @@ SGI STL的copy算法用尽各种办法，包括函数重载、类型特性、偏
 
 * 泛化版本
     - [copy](tass-sgi-stl-2.91.57-source/stl_algobase.h#L177)
-        + 泛化版本[__copy_dispatch](tass-sgi-stl-2.91.57-source/stl_algobase.h#L135)
+        + 泛化版本：[__copy_dispatch](tass-sgi-stl-2.91.57-source/stl_algobase.h#L135)
             * 版本一：[__copy](tass-sgi-stl-2.91.57-source/stl_algobase.h#L108)
             * 版本二：[__copy](tass-sgi-stl-2.91.57-source/stl_algobase.h#L128)
                 - [__copy_d](tass-sgi-stl-2.91.57-source/stl_algobase.h#L118)
-        + 偏特化版[__copy_dispatch](tass-sgi-stl-2.91.57-source/stl_algobase.h#L157)
+        + 偏特化版本：[__copy_dispatch](tass-sgi-stl-2.91.57-source/stl_algobase.h#L157)
             * [__copy_t](tass-sgi-stl-2.91.57-source/stl_algobase.h#L146)（指针所指对象具有trivial...）
             * [__copy_t](tass-sgi-stl-2.91.57-source/stl_algobase.h#L152)（指针所指对象具有non-trivial...）
-        + 偏特化版[__copy_dispatch](tass-sgi-stl-2.91.57-source/stl_algobase.h#L166)
+        + 偏特化版本：[__copy_dispatch](tass-sgi-stl-2.91.57-source/stl_algobase.h#L166)
             * __copy_t（同上）
 
 * 特化版本
@@ -1922,11 +1922,17 @@ SGI SLT中[set_union的实现](tass-sgi-stl-2.91.57-source/stl_algo.h#L2104)，�
 
 ### 2.2 set_intersection
 
+这个函数求集合s1和s2的交集。s1和s2及其交集都是以排序区间表示。函数返回一个迭代器，指向输出区间的尾端
+
 SGI SLT中[set_union的实现](tass-sgi-stl-2.91.57-source/stl_algo.h#L2155)，操作示例如下：
 
 <div align="center"> <img src="../pic/stl-6-9.png"/> </div>
 
 ### 2.3 set_difference
+
+该函数计算两个集合的差集，即当s1为第一个参数，s2为第二个参数时，计算s1-s2。内含“出现于s1但不出现于s2”的每一个元素。s1和s2及其差集都是以排序区间表示。函数返回一个迭代器，指向输出区间的尾端
+
+
 
 ### 2.4 set_symmetric_difference
 
