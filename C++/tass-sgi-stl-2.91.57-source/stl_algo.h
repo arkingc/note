@@ -2104,6 +2104,7 @@ template <class InputIterator1, class InputIterator2, class OutputIterator>
 OutputIterator set_union(InputIterator1 first1, InputIterator1 last1,
                          InputIterator2 first2, InputIterator2 last2,
                          OutputIterator result) {
+  //当两个区间都尚未到达尾端时，执行以下操作...
   while (first1 != last1 && first2 != last2) {
     if (*first1 < *first2) {
       *result = *first1;
@@ -2120,6 +2121,9 @@ OutputIterator set_union(InputIterator1 first1, InputIterator1 last1,
     }
     ++result;
   }
+  //只要两个区间中有一个到达尾端，就结束上述循环
+  //以下将尚未到达尾端的区间的所有剩余元素拷贝到目的端
+  //此刻的[first1,last1)和[first2,last2)中至少有一个是空白区间
   return copy(first2, last2, copy(first1, last1, result));
 }
 
@@ -2151,7 +2155,10 @@ template <class InputIterator1, class InputIterator2, class OutputIterator>
 OutputIterator set_intersection(InputIterator1 first1, InputIterator1 last1,
                                 InputIterator2 first2, InputIterator2 last2,
                                 OutputIterator result) {
+  //当两个区间都尚未到达尾端时，执行以下操作...
   while (first1 != last1 && first2 != last2) 
+    //在两区间内分别移动迭代器，直到遇到元素值相同，暂停，将该值记录于目标区，
+    //再继续移动迭代器...直到两区间中有一区间到达尾端
     if (*first1 < *first2) 
       ++first1;
     else if (*first2 < *first1) 
@@ -2188,6 +2195,7 @@ template <class InputIterator1, class InputIterator2, class OutputIterator>
 OutputIterator set_difference(InputIterator1 first1, InputIterator1 last1,
                               InputIterator2 first2, InputIterator2 last2,
                               OutputIterator result) {
+  
   while (first1 != last1 && first2 != last2)
     if (*first1 < *first2) {
       *result = *first1;

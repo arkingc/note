@@ -39,6 +39,8 @@
     - [9.hash_multiset](#9hash_multiset)
     - [10.hash_multimap](#10hash_multimap)
 * [六.算法](#六算法)
+    - [1.区间拷贝](#1区间拷贝)
+    - [2.set相关算法](#2set相关算法)
 
 <br>
 <br>
@@ -687,7 +689,7 @@ struct __false_type { };
 
 模板类__type_traits的泛化与特化/偏特化见下图：
 
-<div align="center"> <img src="../pic/stl-3-5.png"/> </div>
+<div align="center"> <img src="../pic/stl-3-6.png"/> </div>
 
 <br>
 
@@ -908,7 +910,7 @@ deque和vector最大的差异：
 
 ### 3.1 迭代器
 
-deque是分段连续空间。维持其”整体连续“假象的任务，落在了迭代器的operator++和operator--两个云算子身上
+deque是分段连续空间。维持其”整体连续“假象的任务，落在了迭代器的operator++和operator--两个运算子身上
 
 deque迭代器必须能够指出分段连续空间（即缓冲区）在哪；必须能够判断自己是否已经处于其所在缓冲器的边缘。为了能够正确跳跃，迭代器必须随时掌握中控器map
 
@@ -1105,7 +1107,7 @@ public:
   const_reference front() const { return c.front(); }
   reference back() { return c.back(); }
   const_reference back() const { return c.back(); }
-  deque是两头可进出，queue是尾端紧、首部出
+  //deque是两头可进出，queue是尾端进、首部出
   void push(const value_type& x) { c.push_back(x); }
   void pop() { c.pop_front(); }
 };
@@ -1858,4 +1860,76 @@ hash_multimap和hash_map实现上的唯一差别在于，前者的元素插入�
 <br>
 
 # 六.算法
+
+<div align="center"> <img src="../pic/stl-6-1.png"/> </div>
+<div align="center"> <img src="../pic/stl-6-2.png"/> </div>
+<div align="center"> <img src="../pic/stl-6-3.png"/> </div>
+<div align="center"> <img src="../pic/stl-6-4.png"/> </div>
+
+## 1.区间拷贝
+
+### 1.1 copy
+
+SGI STL的copy算法用尽各种办法，包括函数重载、类型特性、偏特化等编程技巧来尽可能地加强效率
+
+<div align="center"> <img src="../pic/stl-6-5.png"/> </div>
+
+* 泛化版本
+    - [copy](tass-sgi-stl-2.91.57-source/stl_algobase.h#L177)
+        + 泛化版本[__copy_dispatch](tass-sgi-stl-2.91.57-source/stl_algobase.h#L135)
+            * 版本一：[__copy](tass-sgi-stl-2.91.57-source/stl_algobase.h#L108)
+            * 版本二：[__copy](tass-sgi-stl-2.91.57-source/stl_algobase.h#L128)
+                - [__copy_d](tass-sgi-stl-2.91.57-source/stl_algobase.h#L118)
+        + 偏特化版[__copy_dispatch](tass-sgi-stl-2.91.57-source/stl_algobase.h#L157)
+            * [__copy_t](tass-sgi-stl-2.91.57-source/stl_algobase.h#L146)（指针所指对象具有trivial...）
+            * [__copy_t](tass-sgi-stl-2.91.57-source/stl_algobase.h#L152)（指针所指对象具有non-trivial...）
+        + 偏特化版[__copy_dispatch](tass-sgi-stl-2.91.57-source/stl_algobase.h#L166)
+            * __copy_t（同上）
+
+* 特化版本
+    - [copy](tass-sgi-stl-2.91.57-source/stl_algobase.h#L183)（针对const char\*）
+    - [copy](tass-sgi-stl-2.91.57-source/stl_algobase.h#L188)（针对const wchar_t\*）
+
+copy将输入区间```[first,last)```内的元素复制到输出区间```[result,result+(last-first))```内，也就是说，它会执行赋值操作```*result = *first,*(result+1) = *(first+1),...```依次类推。返回一个迭代器：```result+(last-first)```。copy对其template参数所要求的条件非常宽松。其输入区间只需由inputIterators构成即可，输出区间只需要由OutputIterator构成即可。这**意味着可以使用copy算法，将任何容器的任何一段区间的内容，复制到任何容器的任何一段区间上**
+
+<div align="center"> <img src="../pic/stl-6-6.png"/> </div>
+
+由于拷贝的顺序，对于没有使用memmove()的版本，要特别注意目的区间与源区间重合的情况。memmove()能处理区间重合的情况
+
+copy会为输出区间内的元素赋予新值，而不是产生新的元素。它不能改变输出区间的迭代器个数。换句话说，copy不能直接用来将元素插入空容器中。如果想将元素插入序列之内，要么使用序列容器的insert成员函数，要么使用copy算法并搭配insert_iterator
+
+### 1.2 copy_backward
+
+copy_backward将```[first,last)```区间的每一个元素，以逆行的方向复制到以result-1为起点，方向亦为逆行的区间上。换句话说，copy_backward算法会执行赋值操作```*(result-1) = *(last - 1),*(result-2) = *(last - 2),...```以此类推，返回一个迭代器：```result-(last-first)```
+
+<div align="center"> <img src="../pic/stl-6-7.png"/> </div>
+
+copy_backward所接受的迭代器必须是BidirectionalIterators，才能够“倒行逆施”
+
+## 2 set相关算法
+
+这部分介绍的4个算法所接受的set，必须是有序区间，元素可能重复。换句话说，它们可以接受STL的set/multiset容器作为输入区间。hash_set/hash_multiset两种容器，以hashtable为底层机制，其内的元素并未呈现排序状态，所以虽然名称中也有set字样，却不可应用于这里的4个算法
+
+### 2.1 set_union
+
+这个函数求集合s1和s2的并集。s1和s2及其并集都是以排序区间表示。函数返回一个迭代器，指向输出区间的尾端
+
+s1和s2内的每个元素都不需要唯一，因此，如果某个值在s1出现n此，在s2出现m次，那么该值在输出区间中会出现max(m,n)次
+
+SGI SLT中[set_union的实现](tass-sgi-stl-2.91.57-source/stl_algo.h#L2104)，操作示例如下：
+
+<div align="center"> <img src="../pic/stl-6-8.png"/> </div>
+
+### 2.2 set_intersection
+
+SGI SLT中[set_union的实现](tass-sgi-stl-2.91.57-source/stl_algo.h#L2155)，操作示例如下：
+
+<div align="center"> <img src="../pic/stl-6-9.png"/> </div>
+
+### 2.3 set_difference
+
+### 2.4 set_symmetric_difference
+
+
+
 
