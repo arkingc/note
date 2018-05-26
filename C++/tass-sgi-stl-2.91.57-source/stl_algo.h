@@ -167,13 +167,13 @@ ForwardIterator1 __search(ForwardIterator1 first1, ForwardIterator1 last1,
   Distance2 d2 = 0;
   distance(first2, last2, d2);
 
-  if (d1 < d2) return last1;
+  if (d1 < d2) return last1;  //如果序列二大于序列一，不可能成为其子序列
 
   ForwardIterator1 current1 = first1;
   ForwardIterator2 current2 = first2;
 
-  while (current2 != last2) 
-    if (*current1 == *current2) {
+  while (current2 != last2) //遍历整个第二个序列
+    if (*current1 == *current2) { //如果这个元素相同
       ++current1;
       ++current2;
     }
@@ -323,7 +323,7 @@ OutputIterator transform(InputIterator1 first1, InputIterator1 last1,
 
 template <class ForwardIterator, class T>
 void replace(ForwardIterator first, ForwardIterator last, const T& old_value,
-             const T& new_value) {
+             const T& new_value) { //将区间中的所有old_value都以new_value取代
   for ( ; first != last; ++first)
     if (*first == old_value) *first = new_value;
 }
@@ -332,7 +332,7 @@ template <class ForwardIterator, class Predicate, class T>
 void replace_if(ForwardIterator first, ForwardIterator last, Predicate pred,
                 const T& new_value) {
   for ( ; first != last; ++first)
-    if (pred(*first)) *first = new_value;
+    if (pred(*first)) *first = new_value; //pred评估为true的元素将以新值new_value取代
 }
 
 template <class InputIterator, class OutputIterator, class T>
@@ -381,7 +381,7 @@ template <class InputIterator, class OutputIterator, class Predicate>
 OutputIterator remove_copy_if(InputIterator first, InputIterator last,
                               OutputIterator result, Predicate pred) {
   for ( ; first != last; ++first)
-    if (!pred(*first)) {
+    if (!pred(*first)) {//被pred评估为true的元素将会移除，false的元素将会保留
       *result = *first;
       ++result;
     }
@@ -498,7 +498,7 @@ ForwardIterator unique(ForwardIterator first, ForwardIterator last,
 
 template <class BidirectionalIterator>
 void __reverse(BidirectionalIterator first, BidirectionalIterator last, 
-               bidirectional_iterator_tag) {
+               bidirectional_iterator_tag) {//双向迭代器只支持++和--，不支持first<last
   while (true)
     if (first == last || first == --last)
       return;
@@ -533,15 +533,15 @@ template <class ForwardIterator, class Distance>
 void __rotate(ForwardIterator first, ForwardIterator middle,
               ForwardIterator last, Distance*, forward_iterator_tag) {
   for (ForwardIterator i = middle; ;) {
-    iter_swap(first, i);
-    ++first;
+    iter_swap(first, i);        //前段、后段的元素一一交换
+    ++first;                    //双双前进1
     ++i;
-    if (first == middle) {
-      if (i == last) return;
-      middle = i;
+    if (first == middle) {      //如果前段先结束
+      if (i == last) return;    //如果后段同时也结束，整个就结束了
+      middle = i;               //否则调整，对新的前、后段再作交换
     }
-    else if (i == last)
-      i = middle;
+    else if (i == last)         //如果后段先结束
+      i = middle;               //调整，整备对新的前、后段再作交换
   }
 }
 
@@ -554,7 +554,7 @@ void __rotate(BidirectionalIterator first, BidirectionalIterator middle,
   reverse(first, last);
 }
 
-template <class EuclideanRingElement>
+template <class EuclideanRingElement> //最大公因子，利用辗转相除法
 EuclideanRingElement __gcd(EuclideanRingElement m, EuclideanRingElement n)
 {
   while (n != 0) {
@@ -586,7 +586,7 @@ template <class RandomAccessIterator, class Distance>
 void __rotate(RandomAccessIterator first, RandomAccessIterator middle,
               RandomAccessIterator last, Distance*,
               random_access_iterator_tag) {
-  Distance n = __gcd(last - first, middle - first);
+  Distance n = __gcd(last - first, middle - first); //取全长和前段长度的最大公因子
   while (n--)
     __rotate_cycle(first, last, first + n, middle - first,
                    value_type(first));
@@ -748,26 +748,26 @@ random_sample(InputIterator first, InputIterator last,
 
 
 
-template <class BidirectionalIterator, class Predicate>
-BidirectionalIterator partition(BidirectionalIterator first,
+template <class BidirectionalIterator, class Predicate>       //将pred判定为true的元素都放到前段
+BidirectionalIterator partition(BidirectionalIterator first,  //将pred判定为false的元素都放到后段
                                 BidirectionalIterator last, Predicate pred) {
   while (true) {
     while (true)
-      if (first == last)
-        return first;
-      else if (pred(*first))
-        ++first;
-      else
-        break;
-    --last;
-    while (true)
-      if (first == last)
-        return first;
-      else if (!pred(*last))
-        --last;
-      else
-        break;
-    iter_swap(first, last);
+      if (first == last)      //头指针等于尾指针
+        return first;         //所有操作结束
+      else if (pred(*first))  //头指针所指的元素符合不移动的条件
+        ++first;              //元素继续保留在该处，头指针前进1
+      else                    //头指针所指元素符合移动的条件
+        break;                //跳出循环
+    --last;                   //尾指针回溯1
+    while (true)              
+      if (first == last)      //头指针等于尾指针
+        return first;         //所有操作结束
+      else if (!pred(*last))  //尾指针所指的元素符合不移动的条件
+        --last;               //元素继续保留在该处，尾指针回溯1
+      else                    //尾指针所指的元素符合移动的条件
+        break;                //跳出循环
+    iter_swap(first, last);   //交换头尾指针所指的元素
     ++first;
   }
 }
@@ -2458,17 +2458,17 @@ ForwardIterator1 __find_end(ForwardIterator1 first1, ForwardIterator1 last1,
                             ForwardIterator2 first2, ForwardIterator2 last2,
                             forward_iterator_tag, forward_iterator_tag)
 {
-  if (first2 == last2)
-    return last1;
+  if (first2 == last2)  //如果查找的区间二为空
+    return last1;       //返回last1，表示该“空子序列”的最后出现点
   else {
     ForwardIterator1 result = last1;
     while (1) {
-      ForwardIterator1 new_result = search(first1, last1, first2, last2);
+      ForwardIterator1 new_result = search(first1, last1, first2, last2);//利用search查找区间二首次出现点
       if (new_result == last1)
         return result;
       else {
-        result = new_result;
-        first1 = new_result;
+        result = new_result;  //更新结果
+        first1 = new_result;  //更新first1，准备在区间1的剩余部分继续查找
         ++first1;
       }
     }
@@ -2510,16 +2510,16 @@ __find_end(BidirectionalIterator1 first1, BidirectionalIterator1 last1,
 {
   typedef reverse_iterator<BidirectionalIterator1> reviter1;
   typedef reverse_iterator<BidirectionalIterator2> reviter2;
-
+  //由于查找的是“最后出现的地点”，因此反向查找比较快。利用reverse_iterator
   reviter1 rlast1(first1);
   reviter2 rlast2(first2);
-  reviter1 rresult = search(reviter1(last1), rlast1, reviter2(last2), rlast2);
+  reviter1 rresult = search(reviter1(last1), rlast1, reviter2(last2), rlast2);//查找时将两个序列逆转方向
 
-  if (rresult == rlast1)
+  if (rresult == rlast1)  //没找到
     return last1;
-  else {
-    BidirectionalIterator1 result = rresult.base();
-    advance(result, -distance(first2, last2));
+  else {                  //找到了
+    BidirectionalIterator1 result = rresult.base(); //转回正常（非迭代）迭代器
+    advance(result, -distance(first2, last2));      //调整回到子序列的起头处
     return result;
   }
 }

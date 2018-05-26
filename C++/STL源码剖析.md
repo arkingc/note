@@ -1932,10 +1932,101 @@ SGI SLT中[set_intersection的实现](tass-sgi-stl-2.91.57-source/stl_algo.h#L21
 
 该函数计算两个集合的差集，即当s1为第一个参数，s2为第二个参数时，计算s1-s2。内含“出现于s1但不出现于s2”的每一个元素。s1和s2及其差集都是以排序区间表示。函数返回一个迭代器，指向输出区间的尾端
 
+SGI SLT中[set_difference的实现](tass-sgi-stl-2.91.57-source/stl_algo.h#L2195)，操作示例如下：
 
+<div align="center"> <img src="../pic/stl-6-10.png"/> </div>
 
 ### 2.4 set_symmetric_difference
 
+这个函数求集合s1和s2的对称差集，也就是说，它能构造出集合s1-s2与集合s2-s1的并集，内含“出现于s1但不出现于s2”以及“出现于s2但不出现于s1”的每一个元素。s1、s2及其对称差集都是以排序区间表示，返回值是一个迭代器，指向输出区间的尾端
 
+由于s1和s2内的每个元素不需要唯一，因此如果某个值在s1出现n此，在s2出现m次，那么该值在输出区间中会出现|n-m|次
 
+SGI SLT中[set_symmetric_difference的实现](tass-sgi-stl-2.91.57-source/stl_algo.h#L2235)，操作示例如下：
 
+<div align="center"> <img src="../pic/stl-6-11.png"/> </div>
+
+## 3.其它算法
+
+* **查找**
+    - adjacent_find（查找第一对满足条件的相邻元素，返回第一个元素的迭代器）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L97)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L108)
+    - [find](tass-sgi-stl-2.91.57-source/stl_algo.h#L84)
+    - [find_if](tass-sgi-stl-2.91.57-source/stl_algo.h#L90)（可以指定操作）
+    - find_end（在区间一中查找区间二最后一次出现的位置）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L2557)
+            * 单向迭代器版：[__find_end](tass-sgi-stl-2.91.57-source/stl_algo.h#L2457)
+            * 双向迭代器版：[__find_end](tass-sgi-stl-2.91.57-source/stl_algo.h#L2507)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L2575)（可以指定操作）
+            * 单向迭代器版：[__find_end](tass-sgi-stl-2.91.57-source/stl_algo.h#L2480)
+            * 双向迭代器版：[__find_end](tass-sgi-stl-2.91.57-source/stl_algo.h#L2530)
+    - find_first_of（在区间一中查找区间二中任一元素第一次出现点）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L2430)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L2441)（允许指定操作）
+    - max_element
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L2284)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L2293)（允许指定比较操作）
+    - min_element
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L2303)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L2312)（允许指定比较操作）
+* **统计**
+    - count（统计等于某值的个数）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L139)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L120)（计数变量作为参数传入）
+    - count_if（可以指定操作）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L149)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L128)（计数变量作为参数传入）
+* **遍历操作**
+    - [for_each](tass-sgi-stl-2.91.57-source/stl_algo.h#L77)（将仿函数f施行于指定区间，f不允许修改元素，因为迭代器类型是InputIterators）
+    - [generate](tass-sgi-stl-2.91.57-source/stl_algo.h#L357)（将仿函数gen的运算结果赋值到指定区间的所有元素上）
+    - [generate_n](tass-sgi-stl-2.91.57-source/stl_algo.h#L363)（将仿函数gen的运算结果赋值到迭代器first开始的n个元素上）
+    - [partition](tass-sgi-stl-2.91.57-source/stl_algo.h#L752)（不保证元素的原始相对位置）
+
+    <div align="center"> <img src="../pic/stl-6-14.png"/> </div>
+
+    - [stable_partition](tass-sgi-stl-2.91.57-source/stl_algo.h#L849)（保留元素的原始相对位置）
+    - [remove](tass-sgi-stl-2.91.57-source/stl_algo.h#L392)（区间大小并不发送变化，需要移除的元素会被后面的覆盖，区间尾部会有残余，返回指向第一个残余元素的迭代器）
+        + [remove_copy](tass-sgi-stl-2.91.57-source/stl_algo.h#L370)
+    - [remove_if](tass-sgi-stl-2.91.57-source/stl_algo.h#L400)
+        + [remove_copy_if](tass-sgi-stl-2.91.57-source/stl_algo.h#L381)
+
+    <div align="center"> <img src="../pic/stl-6-15.png"/> </div>
+
+    - [replace](tass-sgi-stl-2.91.57-source/stl_algo.h#L325)
+    - [replace_copy](tass-sgi-stl-2.91.57-source/stl_algo.h#L339)
+    - [repalce_if](tass-sgi-stl-2.91.57-source/stl_algo.h#L332)
+    - [replace_copy_if](tass-sgi-stl-2.91.57-source/stl_algo.h#L348)
+    - [reverse](tass-sgi-stl-2.91.57-source/stl_algo.h#L516)
+        + 迭代器为双向迭代器：[__reverse](tass-sgi-stl-2.91.57-source/stl_algo.h#L500)
+        + 迭代器为随机迭代器：[__reverse](tass-sgi-stl-2.91.57-source/stl_algo.h#L510)
+    - [reverse_copy](tass-sgi-stl-2.91.57-source/stl_algo.h#L521)
+    - [rotate]()（将[first,middle)和[middle,last)的元素互换，middle所指元素将成为容器第一个元素）
+        + 迭代器为向前迭代器：[__rotate](tass-sgi-stl-2.91.57-source/stl_algo.h#L533)
+
+        <div align="center"> <img src="../pic/stl-6-16.png"/> </div>
+
+        + 迭代器为双向迭代器：[__rotate](tass-sgi-stl-2.91.57-source/stl_algo.h#L549)
+
+        <div align="center"> <img src="../pic/stl-6-17.png"/> </div>
+
+        + 迭代器为随机迭代器：[__rotate](tass-sgi-stl-2.91.57-source/stl_algo.h#L586)
+            * [__gcd](tass-sgi-stl-2.91.57-source/stl_algo.h#L558)
+            * [__rotate_cycle](tass-sgi-stl-2.91.57-source/stl_algo.h#L569)
+    - [rotate_copy](tass-sgi-stl-2.91.57-source/stl_algo.h#L604)
+* **双区间操作**
+    - includes（判断区间二是否“涵盖于”区间一，两个区间必须有序）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L2076)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L2090)
+
+    <div align="center"> <img src="../pic/stl-6-12.png"/> </div>
+
+    - merged（合并两个区间，置于另一段空间，返回指向结果序列最后元素下一位位置的迭代器）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L1761)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L1780)（允许指定操作）
+
+    <div align="center"> <img src="../pic/stl-6-13.png"/> </div>
+    
+    - search（在序列一的区间中查找序列二的首次出现点）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L193)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L234)（允许指定操作）
