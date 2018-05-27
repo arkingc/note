@@ -177,11 +177,11 @@ ForwardIterator1 __search(ForwardIterator1 first1, ForwardIterator1 last1,
       ++current1;
       ++current2;
     }
-    else {
-      if (d1 == d2)
-        return last1;
-      else {
-        current1 = ++first1;
+    else {                  //如果这个元素不等
+      if (d1 == d2)         //如果两个序列一样长，那么不可能成功了
+        return last1;       
+      else {                //如果两个序列不一样长（至此肯定是序列一大于序列二，
+        current1 = ++first1;//因为在函数体前有个if判断序列一是否小于序列二）
         current2 = first2;
         --d1;
       }
@@ -1002,7 +1002,7 @@ void __final_insertion_sort(RandomAccessIterator first,
 }
 
 template <class Size>
-inline Size __lg(Size n) {
+inline Size __lg(Size n) { //找出2^k <= n的最大k值
   Size k;
   for (k = 0; n > 1; n >>= 1) ++k;
   return k;
@@ -1012,17 +1012,17 @@ template <class RandomAccessIterator, class T, class Size>
 void __introsort_loop(RandomAccessIterator first,
                       RandomAccessIterator last, T*,
                       Size depth_limit) {
-  while (last - first > __stl_threshold) {
-    if (depth_limit == 0) {
-      partial_sort(first, last, last);
+  while (last - first > __stl_threshold) {  // >16
+    if (depth_limit == 0) {                 //至此分割恶化
+      partial_sort(first, last, last);      //改用heapsort
       return;
     }
     --depth_limit;
-    RandomAccessIterator cut = __unguarded_partition
+    RandomAccessIterator cut = __unguarded_partition  //三中取中法选择轴值
       (first, last, T(__median(*first, *(first + (last - first)/2),
                                *(last - 1))));
-    __introsort_loop(cut, last, value_type(first), depth_limit);
-    last = cut;
+    __introsort_loop(cut, last, value_type(first), depth_limit);  //对右半段递归进行sort
+    last = cut; //准备对左半段递归进行sort
   }
 }
 
@@ -1046,7 +1046,7 @@ void __introsort_loop(RandomAccessIterator first,
 
 template <class RandomAccessIterator>
 inline void sort(RandomAccessIterator first, RandomAccessIterator last) {
-  if (first != last) {
+  if (first != last) {//__lg用来控制分割恶化的情况
     __introsort_loop(first, last, value_type(first), __lg(last - first) * 2);
     __final_insertion_sort(first, last);
   }
@@ -1871,15 +1871,15 @@ BidirectionalIterator1 __rotate_adaptive(BidirectionalIterator1 first,
                                          BidirectionalIterator2 buffer,
                                          Distance buffer_size) {
   BidirectionalIterator2 buffer_end;
-  if (len1 > len2 && len2 <= buffer_size) {
+  if (len1 > len2 && len2 <= buffer_size) {  //缓冲区足够安置序列二（较短）
     buffer_end = copy(middle, last, buffer);
     copy_backward(first, middle, last);
-    return copy(buffer, buffer_end, first);
+    return copy(buffer, buffer_end, first); //缓冲区足够安置序列一
   } else if (len1 <= buffer_size) {
     buffer_end = copy(first, middle, buffer);
     copy(middle, last, first);
     return copy_backward(buffer, buffer_end, last);
-  } else  {
+  } else  {  //缓冲区任然不足，改用rotate算法（不需要缓冲区）
     rotate(first, middle, last);
     advance(first, len2);
     return first;
@@ -1983,38 +1983,38 @@ void __merge_adaptive(BidirectionalIterator first,
                       BidirectionalIterator middle, 
                       BidirectionalIterator last, Distance len1, Distance len2,
                       Pointer buffer, Distance buffer_size, Compare comp) {
-  if (len1 <= len2 && len1 <= buffer_size) {
+  if (len1 <= len2 && len1 <= buffer_size) {//case1. 缓冲区足够安置序列1
     Pointer end_buffer = copy(first, middle, buffer);
     merge(buffer, end_buffer, middle, last, first, comp);
   }
-  else if (len2 <= buffer_size) {
+  else if (len2 <= buffer_size) {//case2. 缓冲区足够安置序列2
     Pointer end_buffer = copy(middle, last, buffer);
     __merge_backward(first, middle, buffer, end_buffer, last, comp);
   }
-  else {
+  else {//case3. 缓冲区不足安置任何一个序列
     BidirectionalIterator first_cut = first;
     BidirectionalIterator second_cut = middle;
     Distance len11 = 0;
     Distance len22 = 0;
-    if (len1 > len2) {
+    if (len1 > len2) {  //如果序列1更长
       len11 = len1 / 2;
-      advance(first_cut, len11);
-      second_cut = lower_bound(middle, last, *first_cut, comp);
+      advance(first_cut, len11);  //取序列1的一半
+      second_cut = lower_bound(middle, last, *first_cut, comp); 
       distance(middle, second_cut, len22);   
     }
-    else {
+    else {  //如果序列2更长
       len22 = len2 / 2;
-      advance(second_cut, len22);
-      first_cut = upper_bound(first, middle, *second_cut, comp);
-      distance(first, first_cut, len11);
+      advance(second_cut, len22); //取序列2的一半
+      first_cut = upper_bound(first, middle, *second_cut, comp);  
+      distance(first, first_cut, len11);  
     }
     BidirectionalIterator new_middle =
       __rotate_adaptive(first_cut, middle, second_cut, len1 - len11,
                         len22, buffer, buffer_size);
     __merge_adaptive(first, first_cut, new_middle, len11, len22, buffer,
-                     buffer_size, comp);
+                     buffer_size, comp); //针对左段，递归调用
     __merge_adaptive(new_middle, second_cut, last, len1 - len11,
-                     len2 - len22, buffer, buffer_size, comp);
+                     len2 - len22, buffer, buffer_size, comp); //针对右段，递归调用
   }
 }
 
@@ -2026,11 +2026,11 @@ inline void __inplace_merge_aux(BidirectionalIterator first,
   distance(first, middle, len1);
   Distance len2 = 0;
   distance(middle, last, len2);
-
+  //算法会使用额外的内存空间（暂时缓冲区）
   temporary_buffer<BidirectionalIterator, T> buf(first, last);
-  if (buf.begin() == 0)
+  if (buf.begin() == 0) //内存配置失败
     __merge_without_buffer(first, middle, last, len1, len2);
-  else
+  else                  //内存配置成功
     __merge_adaptive(first, middle, last, len1, len2,
                      buf.begin(), Distance(buf.size()));
 }

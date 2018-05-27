@@ -41,6 +41,8 @@
 * [六.算法](#六算法)
     - [1.区间拷贝](#1区间拷贝)
     - [2.set相关算法](#2set相关算法)
+    - [3.排序sort](#3排序sort)
+    - [4.其它算法](#4其它算法)
 
 <br>
 <br>
@@ -1906,7 +1908,7 @@ copy_backward将```[first,last)```区间的每一个元素，以逆行的方向�
 
 copy_backward所接受的迭代器必须是BidirectionalIterators，才能够“倒行逆施”
 
-## 2 set相关算法
+## 2.set相关算法
 
 这部分介绍的4个算法所接受的set，必须是有序区间，元素可能重复。换句话说，它们可以接受STL的set/multiset容器作为输入区间。hash_set/hash_multiset两种容器，以hashtable为底层机制，其内的元素并未呈现排序状态，所以虽然名称中也有set字样，却不可应用于这里的4个算法
 
@@ -1946,7 +1948,34 @@ SGI SLT中[set_symmetric_difference的实现](tass-sgi-stl-2.91.57-source/stl_al
 
 <div align="center"> <img src="../pic/stl-6-11.png"/> </div>
 
-## 3.其它算法
+## 3.排序sort
+
+sort要求传入的迭代器为随机迭代器，因此只能对vector和deque进行排序
+
+STL的sort算法，数据量大时采用Quick Sort，分段递归排序。一旦分段后的数据量小于某个门槛，为避免Quick Sort的递归调用带来过大的额外负荷，就改用Insertion Sort。如果递归层次过深，还会改用Heap Sort
+
+以下为SGI SLT的sort实现：
+
+* [sort](tass-sgi-stl-2.91.57-source/stl_algo.h#L1048)
+    - [__lg](tass-sgi-stl-2.91.57-source/stl_algo.h#L1005)
+    - [__introsort_loop](tass-sgi-stl-2.91.57-source/stl_algo.h#L1012)
+        + 当子区间大于__stl_threshold(16)时才运行，否则直接返回
+            - 当深度限制为0时，使用堆排序
+            - 当深度限制大于0时，继续递归排序
+    - [__final_insertion_sort](tass-sgi-stl-2.91.57-source/stl_algo.h#L983)（此时，已经基本有序）
+        + 当数组区间大于__stl_threshold(16)时
+            - 对前面大小为16的区间调用：[__insertion_sort](tass-sgi-stl-2.91.57-source/stl_algo.h#L940)
+                * [__linear_insert](tass-sgi-stl-2.91.57-source/stl_algo.h#L916)
+                    + [__unguarded_linear_insert](tass-sgi-stl-2.91.57-source/stl_algo.h#L891)
+            - 对后面的区间调用：[__unguarded_insertion_sort](tass-sgi-stl-2.91.57-source/stl_algo.h#L962)
+                * [__unguarded_insertion_sort_aux](tass-sgi-stl-2.91.57-source/stl_algo.h#L955)
+                    + [__unguarded_linear_insert](tass-sgi-stl-2.91.57-source/stl_algo.h#L891)
+        + 当数组区间小于等于__stl_threshold(16)时
+            - 调用：__insertion_sort（同上）
+
+## 4.其它算法
+
+**相对简单的算法**：
 
 * **查找**
     - adjacent_find（查找第一对满足条件的相邻元素，返回第一个元素的迭代器）
@@ -1970,6 +1999,12 @@ SGI SLT中[set_symmetric_difference的实现](tass-sgi-stl-2.91.57-source/stl_al
     - min_element
         + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L2303)
         + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L2312)（允许指定比较操作）
+    - search（在序列一的区间中查找序列二的首次出现点）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L193)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L234)（允许指定操作）
+    - search_n（在序列一中查找连续n个满足条件的元素的起点）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L242)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L266)
 * **统计**
     - count（统计等于某值的个数）
         + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L139)
@@ -1977,7 +2012,7 @@ SGI SLT中[set_symmetric_difference的实现](tass-sgi-stl-2.91.57-source/stl_al
     - count_if（可以指定操作）
         + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L149)
         + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L128)（计数变量作为参数传入）
-* **遍历操作**
+* **单区间操作**
     - [for_each](tass-sgi-stl-2.91.57-source/stl_algo.h#L77)（将仿函数f施行于指定区间，f不允许修改元素，因为迭代器类型是InputIterators）
     - [generate](tass-sgi-stl-2.91.57-source/stl_algo.h#L357)（将仿函数gen的运算结果赋值到指定区间的所有元素上）
     - [generate_n](tass-sgi-stl-2.91.57-source/stl_algo.h#L363)（将仿函数gen的运算结果赋值到迭代器first开始的n个元素上）
@@ -2014,6 +2049,16 @@ SGI SLT中[set_symmetric_difference的实现](tass-sgi-stl-2.91.57-source/stl_al
             * [__gcd](tass-sgi-stl-2.91.57-source/stl_algo.h#L558)
             * [__rotate_cycle](tass-sgi-stl-2.91.57-source/stl_algo.h#L569)
     - [rotate_copy](tass-sgi-stl-2.91.57-source/stl_algo.h#L604)
+    - transform
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L307)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L316)
+    - unique（移除相邻的重复元素，必须相邻，所以要先排序。和remove一样，会有残余）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L487)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L493)（允许指定操作）
+    - [unique_copy](tass-sgi-stl-2.91.57-source/stl_algo.h#L438)
+        + 迭代器为向前迭代器：[__unique_copy](tass-sgi-stl-2.91.57-source/stl_algo.h#L408)
+        + 迭代器为输出迭代器(不能读)：[__unique_copy](tass-sgi-stl-2.91.57-source/stl_algo.h#L431)
+            * [__unique_copy](tass-sgi-stl-2.91.57-source/stl_algo.h#L418)
 * **双区间操作**
     - includes（判断区间二是否“涵盖于”区间一，两个区间必须有序）
         + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L2076)
@@ -2027,6 +2072,67 @@ SGI SLT中[set_symmetric_difference的实现](tass-sgi-stl-2.91.57-source/stl_al
 
     <div align="center"> <img src="../pic/stl-6-13.png"/> </div>
     
-    - search（在序列一的区间中查找序列二的首次出现点）
-        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L193)
-        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L234)（允许指定操作）
+    - [swap_ranges](tass-sgi-stl-2.91.57-source/stl_algo.h#L242)（将区间一的元素与first2开始等个数的元素互换）
+
+**较为复杂的算法**：
+
+* **查找**
+    - lower_bound（查找等于value的第一个元素的位置，不存在则返回第一个插入点）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L1452)
+            * 迭代器是向前迭代器：[__lower_bound](tass-sgi-stl-2.91.57-source/stl_algo.h#L1407)
+            * 迭代器是随机迭代器：[__lower_bound](tass-sgi-stl-2.91.57-source/stl_algo.h#L1431)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L1505)（允许指定比较操作）
+    - upper_bound（查找value的最后一个插入点，即如果存在元素等于value，那么插入最后一个等于value的元素之后）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L1557)
+            * 迭代器是向前迭代器：[__upper_bound](tass-sgi-stl-2.91.57-source/stl_algo.h#L1512)
+            * 迭代器是随机迭代器：[__upper_bound](tass-sgi-stl-2.91.57-source/stl_algo.h#L1536)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L1610)（允许指定比较操作）
+    - binary_search
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L1747)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L1757)（允许指定比较操作）
+    - equal_range（返回一对迭代器i和j，i是lower_bound的结果，j是upper_bound的结果）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L1675)
+            * 迭代器是向前迭代器：[__equal_range](tass-sgi-stl-2.91.57-source/stl_algo.h#L1618)
+            * 迭代器是随机迭代器：[__equal_range](tass-sgi-stl-2.91.57-source/stl_algo.h#L1648)
+* **单区间操作**
+    - next_permutation（按字典序计算下一个排列组合。算法思想：从最尾端开始往前寻找两个相邻元素，令第一个元素为\*i，第二个元素为\*ii，且满足\*i<\*ii。找到这样一组相邻元素后，再从最尾端开始往前检验，找到第一个大于\*i的元素，设为\*j，将i，j元素对调，再将ii之后的所有元素颠倒排列。就是下一个排列组合）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L2322)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L2349)
+    - prev_permutation（按字典序计算上一个排列组合。算法思想：从最尾端开始往前寻找两个相邻元素，令第一个元素为\*i，第二个元素为\*ii，且满足\*i>\*ii。找到这样一组相邻元素后，再从最尾端开始往前检验，找到第一个小于\*i的元素，设为\*j，将i，j元素对调，再将ii之后的所有元素颠倒排列。就是下一个排列组合）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L2376)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L2403)
+    - random_shuffle
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L622)（使用内部随机数产生器）
+            [__random_shuffle](tass-sgi-stl-2.91.57-source/stl_algo.h#L610)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L628)（使用一个会产生随机数的仿函数）
+    - partial_sort（将middle-first个最小元素排序并置于[first,middle)，其余元素放在middle开始的后半部）
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L1272)
+            * [__partial_sort](tass-sgi-stl-2.91.57-source/stl_algo.h#L1262)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L1289)（运行指定比较操作）
+            * [__partial_sort](tass-sgi-stl-2.91.57-source/stl_algo.h#L1279)
+        
+        <div align="center"> <img src="../pic/stl-6-13.png"/> </div>
+
+    - partial_sort_copy
+        + [版本一](tass-sgi-stl-2.91.57-source/stl_algo.h#L1322)
+        + [版本二](tass-sgi-stl-2.91.57-source/stl_algo.h#L1357)（允许指定比较操作）
+    - [inplace_merge](tass-sgi-stl-2.91.57-source/stl_algo.h#L2058)
+        + [inplace_merge_aux](tass-sgi-stl-2.91.57-source/stl_algo.h#L2022)
+            * 有额外的缓冲区辅助：[__merge_adaptive](tass-sgi-stl-2.91.57-source/stl_algo.h#L1982)
+                - 当序列1较小，且缓冲区足够容纳序列1
+
+                <div align="center"> <img src="../pic/stl-6-18.png"/> </div>
+
+                - 当序列2较小，且缓冲区足够容纳序列2
+
+                <div align="center"> <img src="../pic/stl-6-19.png"/> </div>
+
+                - 当缓冲区不足以容纳序列1和序列2
+                    [__rotate_adaptive](tass-sgi-stl-2.91.57-source/stl_algo.h#L1867)
+
+                <div align="center"> <img src="../pic/stl-6-20.png"/> </div>
+
+    - [nth_element](tass-sgi-stl-2.91.57-source/stl_algo.h#L1380)
+        + [__nth_element](tass-sgi-stl-2.91.57-source/stl_algo.h#L1365)
+
+    <div align="center"> <img src="../pic/stl-6-21.png"/> </div>
