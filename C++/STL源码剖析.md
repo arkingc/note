@@ -50,6 +50,12 @@
     - [4.逻辑运算类仿函数](#4逻辑运算类仿函数)
     - [5.证同，选择与投射](#5证同选择与投射)
 * [八.适配器](#八适配器)
+    - [1.容器适配器](#1容器适配器)
+    - [2.迭代器适配器](#2迭代器适配器)
+        + [2.1 insert iterators](#21-insert-iterators)
+        + [2.2 reverse iterators](#22-reverse-iterators)
+        + [2.3 iostream iterators](#23-iostream-iterators)
+    - [3.函数适配器](#3函数适配器) 
 
 <br>
 <br>
@@ -2162,7 +2168,7 @@ STL仿函数的分类，若以操作数的个数划分，可分为一元和二�
 
 ## 1.仿函数的相应类型
 
-STL仿函数应该有能力被函数适配器修饰，彼此像积木一样地串接。为了拥有配接能力，每一个仿函数必须定义自己的相应类型。就像迭代器如果要融入整个STL大家庭，也必须依照规定定义自己的5个相应类型一样。这些相应类型是为了让适配器能够取出，获得仿函数的某些信息
+STL仿函数应该有能力被函数适配器修饰，彼此像积木一样地串接。为了拥有适配能力，每一个仿函数必须定义自己的相应类型。就像迭代器如果要融入整个STL大家庭，也必须依照规定定义自己的5个相应类型一样。这些相应类型是为了让适配器能够取出，获得仿函数的某些信息
 
 仿函数的相应类型主要用来表现**函数参数类型**和**传回值类型**
 
@@ -2354,4 +2360,301 @@ struct project2nd : public binary_function<Arg1, Arg2, Arg2> {
 <br>
 
 # 八.适配器
+
+适配器在STL组件的灵活组合运用功能上，扮演着轴承、转换器的角色
+
+STL所提供的各种适配器中：1）改变仿函数接口者，称为函数适配器；2）改变容器接口者，称为容器适配器；3）改变迭代器接口者，称为迭代器适配器
+
+## 1.容器适配器
+
+STL提供两个容器适配器：queue和stack，它们修饰deque的接口而生成新的容器风貌
+
+stack的底层由deque构成。stack封锁住了所有的deque对外接口，只开放符合stack原则的几个函数
+
+queue的底层也由deque构成。queue封锁住了所有的deque对外接口，只开放符合queue原则的几个函数
+
+> stack和queue的具体详见第四章
+
+## 2.迭代器适配器
+
+STL提供了许多应用于迭代器身上的适配器，包括：
+
+1. [insert iterators](#21-insert-iterators)：可以将一般迭代的赋值操作转变为插入操作，可以分为下面几个
+    * [back_insert_iterator](#1back_insert_iterator)：专门负责尾端的插入操作
+    * [front_insert_iterator](#2front_insert_iterator)：专门负责首部的插入操作
+    * [insert_iterator](#3insert_iterator)：可以从任意位置执行插入操作
+
+    由于上面3个迭代器的使用接口不是十分直观，因此，STL提供了三个相应函数用以获取相应迭代器：
+
+    <div align="center"> <img src="../pic/stl-8-2.png"/> </div>
+
+2. [reverse iterators](#22-reverse-iterators)：可以将一般迭代器的行进方向反转
+3. [iostream iterators](#23-iostream-iterators)：可以将迭代器绑定到某个iostream对象身上
+    * 绑定到istream对象身上的，称为istream_iterator，拥有输入功能
+    * 绑定到ostream对象身上的，称为ostream_iterator，拥有输出功能
+
+**C++ Standard规定它们的接口可以藉由<iterator>获得**，SGI STL将它们实际定义于<stl_iterator.h>
+
+### 2.1 insert iterators
+
+**insert iterators实现的主要观念是**：每一个insert iterators内部都维护有一个容器（必须由用户指定）；容器当然有自己的迭代器，于是，当客户端对insert iterators做赋值操作时，就在insert iterators中被转为对该容器的迭代器做插入操作（也就是说，调用底层容器的push_front()或push_back()或insert()）
+
+其它迭代器惯常的行为如：operator++、operator++(int)、operator\*都被关闭，更没有提供operator--或operator--(int)或operator->等功能，因此类型被定义为output_iterator_tag
+
+#### 1）back_insert_iterator
+
+```c++
+template <class Container>
+class back_insert_iterator {
+protected:
+  Container* container; //底层容器
+public:
+  typedef output_iterator_tag iterator_category;    //迭代器类型
+  typedef void                value_type;
+  typedef void                difference_type;
+  typedef void                pointer;
+  typedef void                reference;
+
+  //构造函数。传入一个容器，使back_insert_iterator与容器绑定起来
+  explicit back_insert_iterator(Container& x) : container(&x) {}
+  //赋值操作
+  back_insert_iterator<Container>&
+  operator=(const typename Container::value_type& value) { 
+    container->push_back(value);  //赋值操作的关键是转调用容器的push_back()
+    return *this;
+  }
+  //以下3个操作对back_insert_iterator不起作用（关闭功能）
+  //三个操作符返回的都是back_insert_iterator自己
+  back_insert_iterator<Container>& operator*() { return *this; }
+  back_insert_iterator<Container>& operator++() { return *this; }
+  back_insert_iterator<Container>& operator++(int) { return *this; }
+};
+
+//这是一个辅助函数，帮助我们方便使用back_insert_iterator
+template <class Container>
+inline back_insert_iterator<Container> back_inserter(Container& x) {
+  return back_insert_iterator<Container>(x);
+}
+```
+
+#### 2）front_insert_iterator
+
+```c++
+template <class Container>
+class front_insert_iterator {
+protected:
+  Container* container; //底层容器
+public:
+  typedef output_iterator_tag iterator_category;   //迭代器类型
+  typedef void                value_type;
+  typedef void                difference_type;
+  typedef void                pointer;
+  typedef void                reference;
+
+  //构造函数。传入一个容器，使front_insert_iterator与容器绑定起来
+  explicit front_insert_iterator(Container& x) : container(&x) {}
+  //赋值操作
+  front_insert_iterator<Container>&
+  operator=(const typename Container::value_type& value) { 
+    container->push_front(value);  //赋值操作的关键是转调用容器的push_front()
+    return *this;
+  }
+  //以下3个操作对front_insert_iterator不起作用（关闭功能）
+  //三个操作符返回的都是front_insert_iterator自己
+  front_insert_iterator<Container>& operator*() { return *this; }
+  front_insert_iterator<Container>& operator++() { return *this; }
+  front_insert_iterator<Container>& operator++(int) { return *this; }
+};
+
+//这是一个辅助函数，帮助我们方便使用front_insert_iterator
+template <class Container>
+inline front_insert_iterator<Container> front_inserter(Container& x) {
+  return front_insert_iterator<Container>(x);
+}
+```
+
+#### 3）insert_iterator
+
+```c++
+template <class Container>
+class insert_iterator {
+protected:
+  Container* container;                 //底层容器
+  typename Container::iterator iter;    //底层容器的迭代器（前2个插入迭代器没有）
+public:
+  typedef output_iterator_tag iterator_category;    //迭代器类型
+  typedef void                value_type;
+  typedef void                difference_type;
+  typedef void                pointer;
+  typedef void                reference;
+
+  //构造函数。传入一个容器，使insert_iterator与容器和容器迭代器绑定起来
+  insert_iterator(Container& x, typename Container::iterator i) 
+    : container(&x), iter(i) {}
+  //赋值操作
+  insert_iterator<Container>&
+  operator=(const typename Container::value_type& value) { 
+    iter = container->insert(iter, value);  //赋值操作的关键是转调用容器的insert()
+    ++iter; //使insert iterator永远随其目标贴身移动
+    return *this;
+  }
+  //以下3个操作对insert_iterator不起作用（关闭功能）
+  //三个操作符返回的都是insert_iterator自己
+  insert_iterator<Container>& operator*() { return *this; }
+  insert_iterator<Container>& operator++() { return *this; }
+  insert_iterator<Container>& operator++(int) { return *this; }
+};
+
+//这是一个辅助函数，帮助我们方便使用insert_iterator
+//和前2个插入迭代器不容，这里还需额外传入一个底层容器的迭代器
+template <class Container, class Iterator>
+inline insert_iterator<Container> inserter(Container& x, Iterator i) {
+  typedef typename Container::iterator iter;
+  return insert_iterator<Container>(x, iter(i));
+}
+```
+
+### 2.2 reverse iterators
+
+可以通过一个**双向顺序容器**调用rbegin()，和rend()来获取相应的逆向迭代器。只要双向顺序容器提供了begin(),end()，它的rbegin()和rend()就如同下面的形式。单向顺序容器slist不可使用reserve iterators。有些容器如stack、queue、priority_queue并不提供begin()，end()，当然也就没有rbegin()和rend()：
+
+```c++
+template <class T, class Alloc = alloc>
+class vector {
+public:
+  typedef T value_type;
+  typedef value_type* iterator; //容器迭代器类型
+  typedef reverse_iterator<iterator> reverse_iterator; //逆向迭代器类型
+  reverse_iterator rbegin() { return reverse_iterator(end()); }
+  reverse_iterator rend() { return reverse_iterator(begin()); }
+...
+};
+
+template <class T, class Alloc = alloc>
+class list {
+public:
+    typedef __list_iterator<T, T&, T*>   iterator; //容器迭代器类型
+    typedef reverse_iterator<iterator> reverse_iterator;  //逆向迭代器类型
+    reverse_iterator rbegin() { return reverse_iterator(end()); }
+    reverse_iterator rend() { return reverse_iterator(begin()); }
+...
+};
+
+template <class T, class Alloc = alloc, size_t BufSiz = 0> 
+class deque {
+public:
+    typedef __deque_iterator<T, T&, T*, BufSiz>   iterator;  //容器迭代器类型
+    typedef reverse_iterator<iterator> reverse_iterator; //逆向迭代器类型
+    iterator begin() { return start; }
+    iterator end() { return finish; }
+    reverse_iterator rbegin() { return reverse_iterator(finish); }
+    reverse_iterator rend() { return reverse_iterator(start); }
+```
+
+正向迭代器和逆向迭代器的逻辑位置如下图：
+
+<div align="center"> <img src="../pic/stl-8-3.png"/> </div>
+
+具有这样的逻辑位置关系，当我们将一个正向迭代器区间转换为一个逆向迭代器区间后，不必再有任何额外处理，就可以让接受这个逆向迭代器区间的算法，以相反的元素次序处理区间中的每一个元素
+
+reverse_iterator实现如下：
+
+```c++
+template <class Iterator>
+class reverse_iterator 
+{
+protected:
+  Iterator current; //对应的正向迭代器
+public:
+  //迭代器的5种相应类型都和其对应的正向迭代器相同
+  typedef typename iterator_traits<Iterator>::iterator_category
+          iterator_category;
+  typedef typename iterator_traits<Iterator>::value_type
+          value_type;
+  typedef typename iterator_traits<Iterator>::difference_type
+          difference_type;
+  typedef typename iterator_traits<Iterator>::pointer
+          pointer;
+  typedef typename iterator_traits<Iterator>::reference
+          reference;
+
+  typedef Iterator iterator_type;              //代表正向迭代器
+  typedef reverse_iterator<Iterator> self;     //代表逆向迭代器
+
+public:
+  reverse_iterator() {}
+  //下面这个构造函数将逆向迭代器与正向迭代器x关联起来
+  explicit reverse_iterator(iterator_type x) : current(x) {}
+  reverse_iterator(const self& x) : current(x.current) {}
+  
+  //base()成员函数返回相应的正向迭代器
+  iterator_type base() const { return current; }
+
+  //对逆向迭代器取值，就是将“对应的正向迭代器”后退一步后取值ßßßß
+  reference operator*() const {
+    Iterator tmp = current;
+    return *--tmp;
+  }
+
+  //前置++，++变为--
+  self& operator++() {
+    --current;
+    return *this;
+  }
+  //后置++，++变--
+  self operator++(int) {
+    self tmp = *this;
+    --current;
+    return tmp;
+  }
+  //前置--，--变++
+  self& operator--() {
+    ++current;
+    return *this;
+  }
+  //后置--，--变++
+  self operator--(int) {
+    self tmp = *this;
+    ++current;
+    return tmp;
+  }
+
+  //前进与后退方向完全逆转
+  self operator+(difference_type n) const {
+    return self(current - n);
+  }
+  self& operator+=(difference_type n) {
+    current -= n;
+    return *this;
+  }
+  self operator-(difference_type n) const {
+    return self(current + n);
+  }
+  self& operator-=(difference_type n) {
+    current += n;
+    return *this;
+  }
+  //第一个*会调用本类的operator*，第二个不会
+  reference operator[](difference_type n) const { return *(*this + n); }  
+}; 
+```
+
+### 2.3 iostream iterators
+
+## 3.函数适配器
+
+函数适配器(functor adapters，亦即function adapters)是所有适配器中数量最庞大的一个族群，其适配灵活度也是前2者所不能及，可以适配、适配、再适配
+
+**函数适配器的价值**：通过它们之间的绑定、组合、修饰能力，几乎可以无限制地创造出各种可能的表达式，搭配STL算法一起演出。下表是STL函数适配器一览表：
+
+<div align="center"> <img src="../pic/stl-8-1.png"/> </div>
+
+**适配操作包括**：
+
+* **bind、negate、compose**
+* **对一般函数或成员函数的修饰**
+
+**C++标准规定，这些适配器的接口可由<functional>获得**，SGI STL将它们定义于<stl_function.h>
+
+**注意，所有期望获得适配能力的组件，本身都必须是可适配的。换句话说，1）一元仿函数必须继承自unary_function；2）二元仿函数必须继承自binary_function；3）成员函数必须以mem_fun处理过；4）一般函数必须以ptr_fun处理过。一个未经ptr_fun处理过的一般函数，虽然也能以函数指针的形式传给STL算法使用，却无法拥有任何适配能力**
 
