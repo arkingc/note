@@ -2197,12 +2197,12 @@ struct binary_function {
 
 以下为STL内建的“算术类仿函数”，除了“否定”运算为一元运算，其它都是二元运算：
 
-* 加法：plus<T>
-* 减法：minus<T>
-* 乘法：multiplies<T>
-* 除法：divides<T>
-* 取模：modulus<T>
-* 否定：negate<T>
+* 加法：plus\<T\>
+* 减法：minus\<T\>
+* 乘法：multiplies\<T\>
+* 除法：divides\<T\>
+* 取模：modulus\<T\>
+* 否定：negate\<T\>
 
 ```c++
 template <class T>
@@ -2240,12 +2240,12 @@ struct negate : public unary_function<T, T> {
 
 以下为STL内建的“关系运算类仿函数”，每一个都是二元运算：
 
-* 等于：equal_to<T>
-* 不等于：not_equal_to<T>
-* 大于：greater<T>
-* 大于或等于：greater_equal<T>
-* 小于：less<T>
-* 小于或等于：less_equal<T>
+* 等于：equal_to\<T\>
+* 不等于：not_equal_to\<T\>
+* 大于：greater\<T\>
+* 大于或等于：greater_equal\<T\>
+* 小于：less\<T\>
+* 小于或等于：less_equal\<T\>
 
 ```c++
 template <class T>
@@ -2283,9 +2283,9 @@ struct less_equal : public binary_function<T, T, bool> {
 
 以下为STL内建的“逻辑运算类仿函数”，其中And和Or是二元运算，Not为一元运算：
 
-* 逻辑运算 And：logical_and<T>
-* 逻辑运算 Or：logical_or<T>
-* 逻辑运算 Not：logical_not<T>
+* 逻辑运算 And：logical_and\<T\>
+* 逻辑运算 Or：logical_or\<T\>
+* 逻辑运算 Not：logical_not\<T\>
 
 ```c++
 template <class T>
