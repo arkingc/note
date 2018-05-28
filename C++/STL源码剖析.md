@@ -43,6 +43,13 @@
     - [2.set相关算法](#2set相关算法)
     - [3.排序sort](#3排序sort)
     - [4.其它算法](#4其它算法)
+* [七.仿函数](#七仿函数)
+    - [1.仿函数的相应类型](#1仿函数的相应类型)
+    - [2.算术类仿函数](#2算术类仿函数)
+    - [3.关系运算类仿函数](#3关系运算类仿函数)
+    - [4.逻辑运算类仿函数](#4逻辑运算类仿函数)
+    - [5.证同，选择与投射](#5证同选择与投射)
+* [八.适配器](#八适配器)
 
 <br>
 <br>
@@ -2136,3 +2143,215 @@ STL的sort算法，数据量大时采用Quick Sort，分段递归排序。一旦
         + [__nth_element](tass-sgi-stl-2.91.57-source/stl_algo.h#L1365)
 
     <div align="center"> <img src="../pic/stl-6-21.png"/> </div>
+
+    <br>
+
+# 七.仿函数
+
+在STL标准规格定案后，仿函数采用**函数对象**作为新名称
+
+函数指针的缺点在于：不能满足STL对抽象性的要求，也不能满足软件积木的要求——函数指针无法和STL其它组件（如适配器）搭配，产生更灵活的变化
+
+就实现而言，仿函数其实就是一个“行为类似函数”的对象，为了能够“行为类似函数”，其类别定义中必须自定义function call运算子。拥有这样的运算子后，就可以在仿函数的对象后面加上一对小括号，以此调用仿函数所定义的operator()
+
+<div align="center"> <img src="../pic/stl-7-1.png"/> </div>
+
+STL仿函数的分类，若以操作数的个数划分，可分为一元和二元仿函数，若以功能划分，可分为算术运算，关系运算，逻辑运算三大类
+
+任何应用程序欲使用STL內建的仿函数，都必须含入<functional>头文件，SGI则将它们实际定义于<stl_function.h>头文件
+
+## 1.仿函数的相应类型
+
+STL仿函数应该有能力被函数适配器修饰，彼此像积木一样地串接。为了拥有配接能力，每一个仿函数必须定义自己的相应类型。就像迭代器如果要融入整个STL大家庭，也必须依照规定定义自己的5个相应类型一样。这些相应类型是为了让适配器能够取出，获得仿函数的某些信息
+
+仿函数的相应类型主要用来表现**函数参数类型**和**传回值类型**
+
+为方便起见，<stl_function.h>定义了两个classes，分别代表一元仿函数和二元仿函数（STL不支持三元仿函数），其中没有任何data members或member functions，唯有一些类型定义。任何仿函数只要依据需求选择继承其中一个class，就自动拥有了那些相应类型，也就拥有了适配能力
+
+### 1.1 unary_function
+
+unary_function用来呈现一元函数的参数类型和返回值类型：
+
+```c++
+template <class Arg, class Result>
+struct unary_function {
+    typedef Arg argument_type;
+    typedef Result result_type;
+};
+```
+
+### 1.2 binary_function 
+
+binary_function用来呈现二元函数的第一参数类型，第二参数类型，以及返回值类型：
+
+```c++
+template <class Arg1, class Arg2, class Result>
+struct binary_function {
+    typedef Arg1 first_argument_type;
+    typedef Arg2 second_argument_type;
+    typedef Result result_type;
+};  
+```
+
+## 2.算术类仿函数
+
+以下为STL内建的“算术类仿函数”，除了“否定”运算为一元运算，其它都是二元运算：
+
+* 加法：plus<T>
+* 减法：minus<T>
+* 乘法：multiplies<T>
+* 除法：divides<T>
+* 取模：modulus<T>
+* 否定：negate<T>
+
+```c++
+template <class T>
+struct plus : public binary_function<T, T, T> {
+    T operator()(const T& x, const T& y) const { return x + y; }
+};
+
+template <class T>
+struct minus : public binary_function<T, T, T> {
+    T operator()(const T& x, const T& y) const { return x - y; }
+};
+
+template <class T>
+struct multiplies : public binary_function<T, T, T> {
+    T operator()(const T& x, const T& y) const { return x * y; }
+};
+
+template <class T>
+struct divides : public binary_function<T, T, T> {
+    T operator()(const T& x, const T& y) const { return x / y; }
+};
+
+template <class T>
+struct modulus : public binary_function<T, T, T> {
+    T operator()(const T& x, const T& y) const { return x % y; }
+};
+
+template <class T>
+struct negate : public unary_function<T, T> {
+    T operator()(const T& x) const { return -x; }
+};
+```
+
+## 3.关系运算类仿函数
+
+以下为STL内建的“关系运算类仿函数”，每一个都是二元运算：
+
+* 等于：equal_to<T>
+* 不等于：not_equal_to<T>
+* 大于：greater<T>
+* 大于或等于：greater_equal<T>
+* 小于：less<T>
+* 小于或等于：less_equal<T>
+
+```c++
+template <class T>
+struct equal_to : public binary_function<T, T, bool> {
+    bool operator()(const T& x, const T& y) const { return x == y; }
+};
+
+template <class T>
+struct not_equal_to : public binary_function<T, T, bool> {
+    bool operator()(const T& x, const T& y) const { return x != y; }
+};
+
+template <class T>
+struct greater : public binary_function<T, T, bool> {
+    bool operator()(const T& x, const T& y) const { return x > y; }
+};
+
+template <class T>
+struct less : public binary_function<T, T, bool> {
+    bool operator()(const T& x, const T& y) const { return x < y; }
+};
+
+template <class T>
+struct greater_equal : public binary_function<T, T, bool> {
+    bool operator()(const T& x, const T& y) const { return x >= y; }
+};
+
+template <class T>
+struct less_equal : public binary_function<T, T, bool> {
+    bool operator()(const T& x, const T& y) const { return x <= y; }
+};
+```
+
+## 4.逻辑运算类仿函数
+
+以下为STL内建的“逻辑运算类仿函数”，其中And和Or是二元运算，Not为一元运算：
+
+* 逻辑运算 And：logical_and<T>
+* 逻辑运算 Or：logical_or<T>
+* 逻辑运算 Not：logical_not<T>
+
+```c++
+template <class T>
+struct logical_and : public binary_function<T, T, bool> {
+    bool operator()(const T& x, const T& y) const { return x && y; }
+};
+
+template <class T>
+struct logical_or : public binary_function<T, T, bool> {
+    bool operator()(const T& x, const T& y) const { return x || y; }
+};
+
+template <class T>
+struct logical_not : public unary_function<T, bool> {
+    bool operator()(const T& x) const { return !x; }
+};
+```
+
+## 5.证同，选择与投射
+
+C++标准并未涵盖这里介绍的任何一个仿函数，不过它们常常存在于各个实现品中作为内部运用。在SGI STL中的实现如下：
+
+```c++
+//证同函数。任何数值通过此函数后，不会有任何改变
+//此函数运用于<stl_set.h>，用来指定RB-tree所需的KeyOfValue op
+//那是因为set元素的键值即实值，所以采用identity
+template <class T>
+struct identity : public unary_function<T, T> {
+  const T& operator()(const T& x) const { return x; }
+};
+
+//选择函数：接受一个pair，传回其第一元素
+//此函数运用于<stl_map.h>，用来指定RB-tree所需的KeyOfValue op
+//由于map系以pair元素的第一元素为其键值，所以采用select1st
+template <class Pair>
+struct select1st : public unary_function<Pair, typename Pair::first_type> {
+  const typename Pair::first_type& operator()(const Pair& x) const
+  {
+    return x.first;
+  }
+};
+
+//选择函数：接受一个pair,传回其第二元素
+//SGI STL并未运用此函数
+template <class Pair>
+struct select2nd : public unary_function<Pair, typename Pair::second_type> {
+  const typename Pair::second_type& operator()(const Pair& x) const
+  {
+    return x.second;
+  }
+};
+
+//投射函数：传回其第一参数，忽略第二参数
+template <class Arg1, class Arg2>
+struct project1st : public binary_function<Arg1, Arg2, Arg1> {
+  Arg1 operator()(const Arg1& x, const Arg2&) const { return x; }
+};
+
+//投射函数：传回第二参数，忽略第一参数
+template <class Arg1, class Arg2>
+struct project2nd : public binary_function<Arg1, Arg2, Arg2> {
+  Arg2 operator()(const Arg1&, const Arg2& y) const { return y; }
+};
+```
+
+<br>
+
+# 八.适配器
+
