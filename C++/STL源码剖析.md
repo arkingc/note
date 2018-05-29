@@ -56,6 +56,21 @@
         + [2.2 reverse iterators](#22-reverse-iterators)
         + [2.3 iostream iterators](#23-iostream-iterators)
     - [3.函数适配器](#3函数适配器) 
+        + [3.1 not1和not2](#31-not1和not2)
+        + [3.2 bind1st和bind2st](#32-bind1st和bind2st)
+        + [3.3 compose1和compose2](#33-compose1和compose2)
+        + [3.4 用于函数指针的ptr_fun](#34-用于函数指针的ptr_fun)
+        + [3.5 用于成员函数指针的mem_fun和mem_fun_ref](#35-用于成员函数指针的mem_fun和mem_fun_ref)
+
+### 3.1 not1和not2
+
+### 3.2 bind1st和bind2st
+
+### 3.3 compose1和compose2
+
+### 3.4 用于函数指针的ptr_fun
+
+### 3.5 用于成员函数指针的mem_fun和mem_fun_ref
 
 <br>
 <br>
@@ -2641,6 +2656,101 @@ public:
 
 ### 2.3 iostream iterators
 
+#### 1）istream_iterator
+
+所谓绑定一个istream object，其实就是在istream iterator内部维护一个istream member，客户端对于这个迭代器所做的operator++操作，会被引导调用迭代器内部所含的那个istream member的输入操作(operator>>)。这个迭代器是个input iterator，不具备operator--
+
+```c++
+//此版本是旧有的HP规格，未符合标准接口：istream_iterator<T,charT,traits,Distance>
+//然而一般使用input iterators时都只使用第一个template参数、此时以下仍适用
+//SGI STL 3.3已实现出符合标准接口的istream_iterator，做法与本版大同小异
+template <class T, class Distance = ptrdiff_t> 
+class istream_iterator {
+  friend bool
+  operator== __STL_NULL_TMPL_ARGS (const istream_iterator<T, Distance>& x,
+                                   const istream_iterator<T, Distance>& y);
+protected:
+  istream* stream;
+  T value;
+  bool end_marker;
+  void read() {
+    end_marker = (*stream) ? true : false;
+    if (end_marker) *stream >> value;       //关键
+    //输入后，stream的状态可能改变，所以下面再判断一次以决定end_marker
+    //当读到eof或读到类型不符的数据，stream即处于false状态
+    end_marker = (*stream) ? true : false;
+  }
+public:
+  typedef input_iterator_tag iterator_category; //迭代器类型
+  typedef T                  value_type;
+  typedef Distance           difference_type;
+  typedef const T*           pointer;
+  typedef const T&           reference;
+
+  istream_iterator() : stream(&cin), end_marker(false) {}
+  istream_iterator(istream& s) : stream(&s) { read(); }
+  //以上两行的用法：
+  // istream_iterator<int> eos;         造成end_marker为false
+  // istream_iterator<int> initer(cin)  引发read()，程序至此会等待输入
+  
+  reference operator*() const { return value; }
+  pointer operator->() const { return &(operator*()); }
+
+  //迭代器前进一个位置，就代表要读取一次数据
+  istream_iterator<T, Distance>& operator++() { 
+    read(); 
+    return *this;
+  }
+  istream_iterator<T, Distance> operator++(int)  {
+    istream_iterator<T, Distance> tmp = *this;
+    read();
+    return tmp;
+  }
+};
+```
+
+下图展示了copy()和istream_iterator共同合作的例子：
+
+<div align="center"> <img src="../pic/stl-8-4.png"/> </div>
+
+#### 2）ostream_iterator
+
+所谓绑定一个ostream object，其实就是在oßstream iterator内部维护一个ostream member，客户端对于这个迭代器所做的operator=操作，会被引导调用迭代器内部所含的那个ostream member的输出操作(operator<<)。这个迭代器是个Onput iterator
+
+```c++
+//此版本是旧有的HP规格，未符合标准接口：istream_iterator<T,charT,traits>
+//然而一般使用onput iterators时都只使用第一个template参数、此时以下仍适用
+//SGI STL 3.3已实现出符合标准接口的ostream_iterator，做法与本版大同小异
+template <class T>
+class ostream_iterator {
+protected:
+  ostream* stream;
+  const char* string;   //每次输出后的间隔符号
+public:
+  typedef output_iterator_tag iterator_category;    //迭代器类型
+  typedef void                value_type;
+  typedef void                difference_type;
+  typedef void                pointer;
+  typedef void                reference;
+
+  ostream_iterator(ostream& s) : stream(&s), string(0) {}
+  ostream_iterator(ostream& s, const char* c) : stream(&s), string(c)  {}
+  //对迭代器做赋值操作，就代表要输出一笔数据
+  ostream_iterator<T>& operator=(const T& value) { 
+    *stream << value;               //关键，输出数值
+    if (string) *stream << string;  //如果间隔符号不为空，输出间隔符号
+    return *this;
+  }
+  ostream_iterator<T>& operator*() { return *this; }
+  ostream_iterator<T>& operator++() { return *this; } 
+  ostream_iterator<T>& operator++(int) { return *this; } 
+};
+```
+
+下图展示了copy()和ostream_iterator共同合作的例子：
+
+<div align="center"> <img src="../pic/stl-8-5.png"/> </div>
+
 ## 3.函数适配器
 
 函数适配器(functor adapters，亦即function adapters)是所有适配器中数量最庞大的一个族群，其适配灵活度也是前2者所不能及，可以适配、适配、再适配
@@ -2654,7 +2764,377 @@ public:
 * **bind、negate、compose**
 * **对一般函数或成员函数的修饰**
 
-**C++标准规定，这些适配器的接口可由<functional>获得**，SGI STL将它们定义于<stl_function.h>
+**C++标准规定，这些适配器的接口可由\<functional\>获得**，SGI STL将它们定义于\<stl_function.h\>
 
 **注意，所有期望获得适配能力的组件，本身都必须是可适配的。换句话说，1）一元仿函数必须继承自unary_function；2）二元仿函数必须继承自binary_function；3）成员函数必须以mem_fun处理过；4）一般函数必须以ptr_fun处理过。一个未经ptr_fun处理过的一般函数，虽然也能以函数指针的形式传给STL算法使用，却无法拥有任何适配能力**
 
+下图是count_if()和bind2nd(less<int>(),12)的搭配实例；
+
+<div align="center"> <img src="../pic/stl-8-6.png"/> </div>
+
+### 3.1 not1和not2
+
+#### 1）not1
+
+```c++
+//以下适配器用来表示某个 "可适配 predicate" 的逻辑负值
+template <class Predicate>
+class unary_negate
+  : public unary_function<typename Predicate::argument_type, bool> {
+protected:
+  Predicate pred;   //内部成员
+public:
+  explicit unary_negate(const Predicate& x) : pred(x) {}
+  bool operator()(const typename Predicate::argument_type& x) const {
+    return !pred(x); //将pred的运算结果加上否定运算
+  }
+};
+
+//辅助函数，使我们得以更方便使用unary_negate
+template <class Predicate>
+inline unary_negate<Predicate> not1(const Predicate& pred) {
+  return unary_negate<Predicate>(pred);
+}
+```
+
+#### 2）not2
+
+```c++
+//以下适配器用来表示某个 "可适配 binary predicate" 的逻辑负值
+template <class Predicate> 
+class binary_negate 
+  : public binary_function<typename Predicate::first_argument_type,
+                           typename Predicate::second_argument_type,
+                           bool> {
+protected:
+  Predicate pred;   //内部成员
+public:
+  explicit binary_negate(const Predicate& x) : pred(x) {}
+  bool operator()(const typename Predicate::first_argument_type& x, 
+                  const typename Predicate::second_argument_type& y) const {
+    return !pred(x, y);  //将pred的运算结果加上否定运算
+  }
+};
+
+//辅助函数，使我们得以更方便使用binary_negate
+template <class Predicate>
+inline binary_negate<Predicate> not2(const Predicate& pred) {
+  return binary_negate<Predicate>(pred);
+}
+```
+
+### 3.2 bind1st和bind2st
+
+#### 1）bind1st
+
+```c++
+//以下适配器用来表示某个 "可适配 binary function" 转换为 “unary function”
+template <class Operation> 
+class binder1st
+  : public unary_function<typename Operation::second_argument_type,
+                          typename Operation::result_type> {
+protected:
+  Operation op;     //内部成员
+  typename Operation::first_argument_type value;    //内部成员
+public:
+  binder1st(const Operation& x,
+            const typename Operation::first_argument_type& y)
+      : op(x), value(y) {}  //将表达式和第一参数记录于内部成员
+  typename Operation::result_type
+  operator()(const typename Operation::second_argument_type& x) const {
+    return op(value, x);    //实际调用表达式，并将value绑定为第一参数
+  }
+};
+
+//辅助函数，使我们得以更方便使用binder1st
+template <class Operation, class T>
+inline binder1st<Operation> bind1st(const Operation& op, const T& x) {
+  //先把x转型为op的第一参数类型
+  typedef typename Operation::first_argument_type arg1_type;
+  return binder1st<Operation>(op, arg1_type(x));
+}
+```
+
+#### 2）bind2st
+
+```c++
+//以下适配器用来表示某个 "可适配 binary function" 转换为 “unary function”
+template <class Operation> 
+class binder2nd
+  : public unary_function<typename Operation::first_argument_type,
+                          typename Operation::result_type> {
+protected:
+  Operation op;     //内部成员
+  typename Operation::second_argument_type value;   //内部成员
+public:
+  binder2nd(const Operation& x,
+            const typename Operation::second_argument_type& y) 
+      : op(x), value(y) {}  //将表达式和第二参数记录于内部成员
+  typename Operation::result_type
+  operator()(const typename Operation::first_argument_type& x) const {
+    return op(x, value);  //实际调用表达式，并将value绑定为第二参数
+  }
+};
+
+//辅助函数，使我们得以更方便使用binder2nd
+template <class Operation, class T>
+inline binder2nd<Operation> bind2nd(const Operation& op, const T& x) {
+  //先把x转型为op的第一参数类型
+  typedef typename Operation::second_argument_type arg2_type;
+  return binder2nd<Operation>(op, arg2_type(x));
+}
+```
+
+### 3.3 compose1和compose2
+
+#### 1）compose1
+
+```c++
+//已知两个 "可适配 unary function" f(),g()，以下适配器用来产生一个h()，
+//使 h(x) = f(g(x))
+template <class Operation1, class Operation2>
+class unary_compose : public unary_function<typename Operation2::argument_type,
+                                            typename Operation1::result_type> {
+protected:
+  Operation1 op1;   //内部成员
+  Operation2 op2;   //内部成员
+public:
+  //构造函数，将两个表达式记录于内部成员
+  unary_compose(const Operation1& x, const Operation2& y) : op1(x), op2(y) {}
+  
+  typename Operation1::result_type
+  operator()(const typename Operation2::argument_type& x) const {
+    return op1(op2(x));     //函数合成
+  }
+};
+
+//辅助函数，让我们得以方便运用unary_compose
+template <class Operation1, class Operation2>
+inline unary_compose<Operation1, Operation2> compose1(const Operation1& op1, 
+                                                      const Operation2& op2) {
+  return unary_compose<Operation1, Operation2>(op1, op2);
+}
+```
+
+#### 2）compose2
+
+```c++
+//已知一个 “可适配 binary function” f 和 两个 "可适配 unary function" g1,g2，
+//以下适配器用来产生一个h，使 h(x) = f(g1(x),g2(x))
+template <class Operation1, class Operation2, class Operation3>
+class binary_compose
+  : public unary_function<typename Operation2::argument_type,
+                          typename Operation1::result_type> {
+protected:
+  Operation1 op1;   //内部成员
+  Operation2 op2;   //内部成员
+  Operation3 op3;   //内部成员
+public:
+  //构造函数，将三个表达式记录于内部成员
+  binary_compose(const Operation1& x, const Operation2& y, 
+                 const Operation3& z) : op1(x), op2(y), op3(z) { }
+  typename Operation1::result_type
+  operator()(const typename Operation2::argument_type& x) const {
+    return op1(op2(x), op3(x));     //函数合成
+  }
+};
+
+//辅助函数，让我们得以方便运用binary_compose
+template <class Operation1, class Operation2, class Operation3>
+inline binary_compose<Operation1, Operation2, Operation3> 
+compose2(const Operation1& op1, const Operation2& op2, const Operation3& op3) {
+  return binary_compose<Operation1, Operation2, Operation3>(op1, op2, op3);
+}
+```
+
+### 3.4 用于函数指针的ptr_fun
+
+```c++
+//以下适配器其实就是把一个一元函数指针包起来
+//当仿函数被动调用时，就调用该函数指针
+template <class Arg, class Result>
+class pointer_to_unary_function : public unary_function<Arg, Result> {
+protected:
+  Result (*ptr)(Arg);   //内部成员，一个函数指针
+public:
+  pointer_to_unary_function() {}
+  //构造函数，将函数指针记录于内部成员中
+  explicit pointer_to_unary_function(Result (*x)(Arg)) : ptr(x) {}
+  //通过函数指针指向函数
+  Result operator()(Arg x) const { return ptr(x); }
+};
+
+//辅助函数，让我们得以方便使用pointer_to_unary_function 
+template <class Arg, class Result>
+inline pointer_to_unary_function<Arg, Result> ptr_fun(Result (*x)(Arg)) {
+  return pointer_to_unary_function<Arg, Result>(x);
+}
+
+//以下适配器其实就是把一个二元函数指针包起来
+//当仿函数被动调用时，就调用该函数指针
+template <class Arg1, class Arg2, class Result>
+class pointer_to_binary_function : public binary_function<Arg1, Arg2, Result> {
+protected:
+    Result (*ptr)(Arg1, Arg2);  //内部成员，一个函数指针
+public:
+    pointer_to_binary_function() {}
+    //构造函数，将函数指针记录于内部成员中
+    explicit pointer_to_binary_function(Result (*x)(Arg1, Arg2)) : ptr(x) {}
+    //通过函数指针指向函数
+    Result operator()(Arg1 x, Arg2 y) const { return ptr(x, y); }
+};
+
+//辅助函数，让我们得以方便使用pointer_to_binary_function 
+template <class Arg1, class Arg2, class Result>
+inline pointer_to_binary_function<Arg1, Arg2, Result> 
+ptr_fun(Result (*x)(Arg1, Arg2)) {
+  return pointer_to_binary_function<Arg1, Arg2, Result>(x);
+}
+```
+
+### 3.5 用于成员函数指针的mem_fun和mem_fun_ref
+
+假设Shape是一个继承体系中的基类，并且具有虚函数display()，有一个vector<Shape*> V，那么可以给for_each()传入一个以适配器mem_fun修饰的display()：
+
+```c++
+for_each(V.begin(),V.end(),mem_fun(&Shape::display));
+```
+
+不能写成：
+
+```c++
+for_each(V.begin(),V.end(),&Shape::display);
+for_each(V.begin(),V.end(),Shape::display);
+```
+
+以下是用于成员函数的适配器的实现：
+
+```c++
+//“无任何参数”、“通过pointer调用”、“non-const成员函数”
+template <class S, class T>
+class mem_fun_t : public unary_function<T*, S> {
+public:
+  explicit mem_fun_t(S (T::*pf)()) : f(pf) {}       //构造函数
+  S operator()(T* p) const { return (p->*f)(); }    //转调用
+private:
+  S (T::*f)();
+};
+
+//“无任何参数”、“通过pointer调用”、“const成员函数”
+template <class S, class T>
+class const_mem_fun_t : public unary_function<const T*, S> {
+public:
+  explicit const_mem_fun_t(S (T::*pf)() const) : f(pf) {} //构造函数
+  S operator()(const T* p) const { return (p->*f)(); }    //转调用
+private:
+  S (T::*f)() const;
+};
+
+//“无任何参数”、“通过reference调用”、“non-const成员函数”
+template <class S, class T>
+class mem_fun_ref_t : public unary_function<T, S> {
+public:
+  explicit mem_fun_ref_t(S (T::*pf)()) : f(pf) {}   //构造函数
+  S operator()(T& r) const { return (r.*f)(); }     //转调用
+private:
+  S (T::*f)();
+};
+
+//“无任何参数”、“通过reference调用”、“const成员函数”
+template <class S, class T>
+class const_mem_fun_ref_t : public unary_function<T, S> {
+public:
+  explicit const_mem_fun_ref_t(S (T::*pf)() const) : f(pf) {}  //构造函数
+  S operator()(const T& r) const { return (r.*f)(); }          //转调用
+private:
+  S (T::*f)() const;
+};
+
+//“有1个参数”、“通过pointer调用”、“non-const成员函数”
+template <class S, class T, class A>
+class mem_fun1_t : public binary_function<T*, A, S> {
+public:
+  explicit mem_fun1_t(S (T::*pf)(A)) : f(pf) {}
+  S operator()(T* p, A x) const { return (p->*f)(x); }
+private:
+  S (T::*f)(A);
+};
+
+//“有1个参数”、“通过pointer调用”、“const成员函数”
+template <class S, class T, class A>
+class const_mem_fun1_t : public binary_function<const T*, A, S> {
+public:
+  explicit const_mem_fun1_t(S (T::*pf)(A) const) : f(pf) {}  //构造函数
+  S operator()(const T* p, A x) const { return (p->*f)(x); } //转调用
+private:
+  S (T::*f)(A) const;
+};
+
+//“有1个参数”、“通过reference调用”、“non-const成员函数”
+template <class S, class T, class A>
+class mem_fun1_ref_t : public binary_function<T, A, S> {
+public:
+  explicit mem_fun1_ref_t(S (T::*pf)(A)) : f(pf) {}
+  S operator()(T& r, A x) const { return (r.*f)(x); }
+private:
+  S (T::*f)(A);
+};
+
+//“有1个参数”、“通过reference调用”、“const成员函数”
+template <class S, class T, class A>
+class const_mem_fun1_ref_t : public binary_function<T, A, S> {
+public:
+  explicit const_mem_fun1_ref_t(S (T::*pf)(A) const) : f(pf) {}
+  S operator()(const T& r, A x) const { return (r.*f)(x); }
+private:
+  S (T::*f)(A) const;
+};
+
+/*********************************************************
+ * 下面的8个辅助函数简化了上面8个类的使用
+ * mem_fun 与 mem_fun_ref
+ * mem_fun1 与 mem_fun1_ref：C++标准已经去掉了1，改成和上面2个
+                            函数重载的形式
+ *********************************************************/
+
+template <class S, class T>
+inline mem_fun_t<S,T> mem_fun(S (T::*f)()) { 
+  return mem_fun_t<S,T>(f);
+}
+
+template <class S, class T>
+inline const_mem_fun_t<S,T> mem_fun(S (T::*f)() const) {
+  return const_mem_fun_t<S,T>(f);
+}
+
+template <class S, class T>
+inline mem_fun_ref_t<S,T> mem_fun_ref(S (T::*f)()) { 
+  return mem_fun_ref_t<S,T>(f);
+}
+
+template <class S, class T>
+inline const_mem_fun_ref_t<S,T> mem_fun_ref(S (T::*f)() const) {
+  return const_mem_fun_ref_t<S,T>(f);
+}
+
+template <class S, class T, class A>
+inline mem_fun1_t<S,T,A> mem_fun1(S (T::*f)(A)) { 
+  return mem_fun1_t<S,T,A>(f);
+}
+
+template <class S, class T, class A>
+inline const_mem_fun1_t<S,T,A> mem_fun1(S (T::*f)(A) const) {
+  return const_mem_fun1_t<S,T,A>(f);
+}
+
+template <class S, class T, class A>
+inline mem_fun1_ref_t<S,T,A> mem_fun1_ref(S (T::*f)(A)) { 
+  return mem_fun1_ref_t<S,T,A>(f);
+}
+
+template <class S, class T, class A>
+inline const_mem_fun1_ref_t<S,T,A> mem_fun1_ref(S (T::*f)(A) const) {
+  return const_mem_fun1_ref_t<S,T,A>(f);
+}
+
+```
