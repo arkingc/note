@@ -62,16 +62,6 @@
         + [3.4 用于函数指针的ptr_fun](#34-用于函数指针的ptr_fun)
         + [3.5 用于成员函数指针的mem_fun和mem_fun_ref](#35-用于成员函数指针的mem_fun和mem_fun_ref)
 
-### 3.1 not1和not2
-
-### 3.2 bind1st和bind2st
-
-### 3.3 compose1和compose2
-
-### 3.4 用于函数指针的ptr_fun
-
-### 3.5 用于成员函数指针的mem_fun和mem_fun_ref
-
 <br>
 <br>
 <br>
