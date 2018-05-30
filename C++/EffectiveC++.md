@@ -75,6 +75,8 @@ CALL_WITH_MAX(++a,b + 10);  //a被累加1次
 
 使用inline函数可以减轻为参数加上括号以及参数被核算多次等问题。同时，inline可以实现一个“类内的private inline函数”，但一般而言宏无法完成此事
 
+<br>
+
 ## 条款03：尽可能使用const
 
 ### 1）const修饰变量
@@ -95,7 +97,7 @@ const char * const p = greeting;       // const pointer, const data
 ### 2）const修饰函数
 
 * 修饰参数时，和修饰一般变量相同
-* 修改返回值，可以降低因客户错误而造成的意外
+* **修饰返回值，可以降低因客户错误而造成的意外**
 
 ```c++
 Rational a, b, c;
@@ -200,33 +202,41 @@ public:
 ```
 
 <br>
+<br>
 
 # 二.构造/析构/赋值运算
 
+<br>
 <br>
 
 # 三.资源管理
 
 <br>
+<br>
 
 # 四.设计与声明
 
+<br>
 <br>
 
 # 五.实现
 
 <br>
+<br>
 
 # 六.继承与面向对象设计
 
+<br>
 <br>
 
 # 七.模板与泛型编程
 
 <br>
+<br>
 
 # 八.定制new和delete
 
+<br>
 <br>
 
 # 九.杂项讨论
