@@ -1,5 +1,6 @@
 * [一.让自己习惯C++](#一让自己习惯c)
     -  [条款02：尽量以const,enum,inline替换\#define](#条款02尽量以constenuminline替换define)
+    -  [条款03：尽可能使用const](#条款03尽可能使用const)
 * [二.构造/析构/赋值运算](#二构造析构赋值运算)
 * [三.资源管理](#三资源管理)
 * [四.设计与声明](#四设计与声明)
@@ -73,6 +74,130 @@ CALL_WITH_MAX(++a,b + 10);  //a被累加1次
 ```
 
 使用inline函数可以减轻为参数加上括号以及参数被核算多次等问题。同时，inline可以实现一个“类内的private inline函数”，但一般而言宏无法完成此事
+
+## 条款03：尽可能使用const
+
+### 1）const修饰变量
+
+如果变量本身不应该被修改，应该使用const修饰。这样编译器可以进行保护，确保这个变量不会被修改
+
+```c++
+char greeting[] = "Hello";
+char *p = greeting;                    // non-const pointer, non-const data
+const char *p = greeting;              // non-const pointer, const data
+char * const p = greeting;             // const pointer, non-const data
+const char * const p = greeting;       // const pointer, const data 
+```
+
+* 如果关键字const出现在星号左边，表示被指物是常量
+* 如果出现在星号右边，表示指针自身是常量
+
+### 2）const修饰函数
+
+* 修饰参数时，和修饰一般变量相同
+* 修改返回值，可以降低因客户错误而造成的意外
+
+```c++
+Rational a, b, c;
+...
+if (a * b = c){ //其实是想做一个比较动作，使用const修饰返回值可以避免这种错误
+    ...
+}
+```
+
+如果a和b都是内置类型。这样的代码直截了当就是不合法。而一个“良好的用户自定义类型”的特征是他们避免与内置类型不兼容。因此对operator\*的定义应该如下：
+
+```c++
+const Rational operator*(const Rational& lhs, const Rational& rhs);
+```
+
+### 3）const修饰成员函数
+
+const修饰成员函数有2个好处：
+
+1. **可读性**：使得接口容易被理解，可以知道哪个函数可以改动对象哪个函数不行
+2. **const修饰的成员函数可以作用于const对象**
+
+但是，使用const修饰成员函数时需要注意，C++对常量性的定义是bitwise constness，即函数const成员函数不应该修改对象的任何成员变量。因此，如果成员变量是一个指针，如果不修改指针而修改指针所指之物，也符合bitwise constness，因此如果不是从bitwise constness的角度，这样也是修改了对象：
+
+```c++
+class CTextBlock {
+public:
+  char& operator[](std::size_t position) const   // bitwise constness声明
+  { return pText[position]; }                    // 但其实不恰当
+private:
+   char* pText;
+};
+
+const CTextBlock cctb("Hello"); //声明一个常量对象
+char *pc = &cctb[0];            //调用const operator[]取得一个指针，
+                                //指向cctb的数据
+*pc = 'J';                      //cctb现在有了“Jello”这样的内容
+```
+
+还有一种logical constness：一个const成员函数可以修改它所处理的对象内的某些bits，但只有在客户端侦测不出的情况下才行：
+
+```c++
+class CTextBlock {
+public:
+  std::size_t length() const;
+
+private:
+  char *pText;
+  std::size_t textLength;         // 最近一次计算的文本区块长度
+  bool lengthIsValid;             // 目前的长度是否有效
+};                                     
+
+std::size_t CTextBlock::length() const{
+  if (!lengthIsValid) {                 
+    textLength = std::strlen(pText);    //错误！在const成员函数内不能复制给
+    lengthIsValid = true;               //textLength和lengthIsValid
+  }
+  return textLength;
+}
+```
+
+但是，C++对常量性的定义是bitwise constness的，所以这样的操作非法。解决办法是使用mutable:
+
+```c++
+class CTextBlock {
+public:
+  std::size_t length() const;
+
+private:
+  char *pText;
+  mutable std::size_t textLength;         // 这些成员变量可能总是会被更改
+  mutable bool lengthIsValid;             // 即使在const成员函数内
+};                                     
+
+std::size_t CTextBlock::length() const{
+  if (!lengthIsValid) {                 
+    textLength = std::strlen(pText);    //现在可以这样
+    lengthIsValid = true;               //也可以这样
+  }
+  return textLength;
+}
+```
+
+总的来说，上面提到了2种“修改”const成员函数中修改对象（修改const对象）的方法
+
+最后，const和non-const版本的函数可能含有重复的代码，如果抽离出来单独成为一个成员函数还是有重复。如果希望去重，可以使用“运用const成员函数实现出其non-const孪生兄弟”的技术：
+
+```c++
+class CTextBlock {
+public:
+    const char& operator[](size_t pos) const{
+        ...
+    }
+
+    char& operator[](size_t pos){
+        return const_cast<char&>(
+            static_cast<const TextBlock&>(*this)
+                [pos]   
+        );
+    }
+};
+```
 
 <br>
 
