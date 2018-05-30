@@ -19,7 +19,9 @@
 * [7.图](数据结构与算法/图.md)
 * [算法题列表](数据结构与算法/算法题列表.md)
 
-> 参考:《数据结构与算法分析》(C++版) Clifford A. Shaffer
+> 参考:
+> * 《数据结构与算法分析》(C++版) Clifford A. Shaffer
+> * 《算法》Robert Sedgewick & Kevin Wayne
 
 ## Linux管理
 
