@@ -391,7 +391,7 @@ Point3d *p2d;
 那么 ```pv = &v3d;``` 需要类似这样的转换：
 
 ```c++
-pv = (Vertex*)((char*)&v3d) + sizeof(Point3d);
+pv = (Vertex*)(((char*)&v3d) + sizeof(Point3d));
 ```
 
 而 ```p2d = &v3d;``` 或 ```p3d = &v3d;``` 只需要简单地拷贝其地址就好
@@ -407,7 +407,7 @@ Vertex *pv;
 此时 ```pv = pv3d;``` 不能只是简单的被转换，因为如果pv3d为0，pv将获得sizeof(Point3d)的值。这明显是错误的，因此需要增加一个条件测试：
 
 ```c++
-pv = pv3d ? (Vertex*)((char*)pv3d) + sizeof(Point3d) : 0;
+pv = pv3d ? (Vertex*)(((char*)pv3d) + sizeof(Point3d)) : 0;
 ```
 
 #### 5）虚继承
