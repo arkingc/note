@@ -18,6 +18,14 @@
     - [条款16：成对使用new和delete时要采取相同形式](#条款16成对使用new和delete时要采取相同形式)
     - [条款17：以独立语句将newed对象置入智能指针](#条款17以独立语句将newed对象置入智能指针)
 * [四.设计与声明](#四设计与声明)
+    - [条款18：让接口容易被正确使用，不易被误用](#条款18让接口容易被正确使用，不易被误用)
+    - [条款19：设计class犹如设计type](#条款19设计class犹如设计type)
+    - [条款20：宁以pass-by-reference-to-const替换pass-by-value](#条款20宁以passbyreferencetoconst替换passbyvalue)
+    - [条款21：必须返回对象时，别妄想返回其reference](#条款21必须返回对象时别妄想返回其reference)
+    - [条款22：将成员变量声明为private](#条款22将成员变量声明为private)
+    - [条款23：宁以non-member、non-friend替换member函数](#条款23宁以nonmembernonfriend替换member函数)
+    - [条款24：若所有参数皆需类型转换，请为此采用non-member函数](#条款24若所有参数皆需类型转换请为此采用nonmember函数)
+    - [条款25：考虑写出一个不抛出异常的swap函数](#条款25考虑写出一个不抛出异常的swap函数)
 * [五.实现](#五实现)
 * [六.继承与面向对象设计](#六继承与面向对象设计)
 * [七.模板与泛型编程](#七模板与泛型编程)
@@ -572,6 +580,255 @@ func1(p,func2());
 <br>
 
 # 四.设计与声明
+
+## 条款18：让接口容易被正确使用，不易被误用
+
+1. **通过引入新类型来防止误用**
+    ```c++
+    class Date{
+    public:
+        Date(int month,int day,int year);
+        ...
+    }
+    ```
+    上面日期类的构造函数中，年月日都是int，那么很容易传入顺序错误的参数。因此，可以因为3个表示年月日的新类：Year、Month、Day。从而防止这种问题。更进一步，为了使得传入的数据有效，比如月份，可以设计生成12个月份对象的static成员函数。并将构造函数声明为explicit强制要求通过调用static成员函数得到月份对象。如果使用enums没有那么安全，enums可被拿来当作一个ints使用
+2. **除非有好的理由，否则应该尽量让你的type的行为与内置类型一致**：如```if(a * b = c)```d对内置类型来说不合法，那么你的type在实现operator\*时就应该返回一个const对象
+3. **提供一致的接口**：如C++ STL容器都提供size()返回容器大小，但是Java和.Net对于不同容器大小接口可能不同，这会增加使用负担
+4. **返回“资源管理对象”而不是原始资源**：如用shared_ptr管理资源时，客户可能会忘记使用智能指针，从而开启了忘记释放和重复释放的大门。通过修改接口的返回类型为智能指针，从而确保元素资源处于“资源管理对象”的掌控之中
+
+<br>
+
+## 条款19：设计class犹如设计type
+
+在设计class时，下列问题将导致class你的设计规范：
+
+* 新type的对象应该如何被创建和销毁？
+* 对象的初始化和对象的赋值该有什么样的差别？
+* 新type的对象如果被passed by value，意味着什么？
+* 什么是新type的“合法值”？
+* 你的新type需要配合某个继承体系吗？
+* 你的新type需要什么样的转换？
+* 什么样的操作符和函数对此新type而言是合理的？
+* 什么样的标准函数应该驳回？
+* 谁该取用新type的成员？
+* 什么是新type的“未声明接口”？
+* 你的新type有多么一般化？
+* 你真的需要一个新type吗？
+
+<br>
+
+## 条款20：宁以pass-by-reference-to-const替换pass-by-value
+
+pass-by-reference-to-const有下列好处：
+
+* **更高的效率**：如果一个类处于继承体系的底部，并且包含大量成员，pass-by-value会导致大量的构造函数被调用，在函数调用完成后，又有大量的析构函数被调用
+* **防止继承中的对象切割**：如果是pass-by-value，并且传入一个子类对象时，传入的子类对象会被切割，只保有基类对象的部分，从而无法表现多态
+
+references往往以指针实现出来，因此pass by reference通常意味真正传递的是指针。因此，对于**内置类型**，pass by value往往比pass by reference的效率更高。pass by value同样适用于**STL的迭代器**和**函数对象**
+
+并不是所有小型对象都是pass-by-value的合格候选者：
+
+* 对象小并不意味着copy构造函数不昂贵。许多对象——包括大多数STL容器——内含的东西比一个指针多一些，但是复制这种对象却需承担“复制那些指针所指的每一样东西”。那将非常昂贵
+* 即使copy构造函数不昂贵，还是可能有效率上的争议。某些编译器对待“内置类型”和“用户自定义类型”的态度截然不同，纵使两者拥有相同的底层表述，“用户自定义类型”也不会被编译器放入缓存器，因此pass by reference更适合
+
+> 可以合理假设“pass-by-value并不昂贵”的唯一对象就是内置类型和STL的迭代器和函数对象。其它任何时候，宁以pass-by-reference-to-const替换pass-by-value
+
+<br>
+
+## 条款21：必须返回对象时，别妄想返回其reference
+
+必须返回对象的最常见例子是运算符函数：
+
+```c++
+const Rational operator*(const Rational &lhs,const Rational &rhs);
+```
+
+在必须返回对象时，不要企图返回reference，可以通过反面来说，也就是如果返回reference会是什么情况？
+
+* **使用stack构造一个局部对象，返回局部对象的reference**
+    ```c++
+    const Rational& operator*(const Rational &lhs,const Rational &rhs)
+    {
+        Rational result(lhs.n * rhs.n,lhs.d * rhs.d);
+        return result;
+    }
+    ```
+    注意！使用reference的本意是避免构造新对象，但是一个新的对象result还是经由构造函数构造。更严重的是，这个局部对象在函数调用完成后就被销毁了，reference将指向一个被销毁的对象
+* **使用heap构造一个局部对象，返回这个对象的reference**
+    ```c++
+    const Rational& operator*(const Rational &lhs,const Rational &rhs)
+    {
+        Rational *result = new Rational(lhs.n * rhs.n,lhs.d * rhs.d);
+        return *result;
+    }
+    Rational w,x,y,z;
+    w = x * y *z;
+    ```
+    这样虽然reference不再引用一个被销毁的对象，但是因为了动态内存分配的开销，而且谁该为delete负责也成为问题。同时，在上面的连乘例子中，会多次动态分配内存，但是只返回最后一次的指针，因此会造成资源泄露
+* **构造一个static局部对象，每次计算结果保存在这个对象中，返回其reference**
+    ```c++
+    const Rational& operator*(const Rational &lhs,const Rational &rhs)
+    {
+        static Rational result
+        result = ...;
+        return result;
+    }
+    Rational w,x,y,z;
+    if((w * x) == (y * z)){...}
+    ```
+    首先，显而易见的问题是这个函数在多线程情况下是不安全的，多个线程会修改相同的static对象；除此之外，在上面的if判断中，不管传入的w,x,y,z是什么，由于operator\*传回的reference都指向同一个static对象，因此上面的判断永远都会为true
+
+<br>
+
+## 条款22：将成员变量声明为private
+
+### 1）为什么不能是public
+
+3个原因：
+
+1. **语法一致性**：如果成员变量和成员函数一样，都是public，那么调用时会困惑于该不该使用括号。如果想获取大小时使用size，但是这到底是一个成员变量还是一个成员函数？
+2. **更精准的控制**：通过将成员变量声明为private，通过成员函数提供访问，可以实现更精准的访问控制
+    ```c++
+    class AccessLevels{
+    public:
+        ...
+        int getReadOnly() const   {return readOnly;}
+        void setReadWrite(int value)    {readWrite = value;}
+        int getReadWrite() const    {return readWrite;}
+        void setWriteOnly(int value)    {writeOnly = value;}
+    private:
+        int noAccess;   //对此int无访问动作
+        int readOnly;   //对此int做只读访问
+        int readWrite;  //对此int做读写访问
+        int writeOnly;  //对此int做只写访问
+    };
+    ```
+3. **封装(主要)**：private将成员变量封装，如果通过public暴露，在需要改成员变量的大量实现代码中，会直接使用当这个成员变量被修改或删除时，所有直接访问该成员变量的代码将会变得不可用
+
+### 2）那么protected行不行
+
+protected成员变量和public成员变量的论点十分相同。“语法一致性”和“细微划分的访问控制”等理由也适用于protected数据。同时，protected也并不具备良好的封装性
+
+假设有一个public成员变量，而我们最终取消了它。所以使用它的客户代码都会被破坏。因此，public成员变量完全没有封装性。假设有一个protected变量，而我们最终取消了它，所有使用它的派生类都会被破坏。因此，protected成员变量也缺乏封装性
+
+因此，从封装的角度看，只有private能提供封装性
+
+<br>
+
+## 条款23：宁以non-member、non-friend替换member函数
+
+假设有个浏览器类，包含一些功能用来清楚下载元素高速缓冲区、清楚访问过的URLs的历史记录、已经移除系统中的所有cookies：
+
+```c++
+class WebBrowser{
+public:
+  ...
+  void clearCache();
+  void clearCookies();
+  void clearHistory();
+  ...
+};
+```
+
+此时，如果想整个执行所有这些动作，那么有两种选择，一种实现成member函数，一种实现成non-member函数：
+
+```c++
+class WebBrowser{
+public:
+  //实现成成员函数
+  void clearEverything(){
+    clearCache();
+    clearCookies();
+    clearHistory();
+  }
+}
+//或者实现成非成员函数：
+void clearEverything(WebBrowser& wb){
+  wb.clearCache();
+  wb.clearCookies();
+  wb.clearHistory();
+}
+```
+
+问题是应该如何选择？这个问题主要在于**封装性**
+
+如果某些东西被封装，它就不再可见。越多东西被封装，越少人可以看到它。越少人看到它，就有越大的弹性去变化它，因为我们的改变仅仅直接影响看到改变的那些人事物。
+
+因此，对于对象内的代码。越少代码可以看到数据（也就是访问它），越多的数据可被封装，我们也就越能自由地改变对象数据。作为一种粗糙的测量，越多函数可访问它，数据的封装性就越低
+
+条款22所说，成员变量应该是private。能够访问private成员变量的函数只有class的member函数加上friend函数而已。**如果要在一个member函数和一个non-member，non-friend函数之间做选择，而且两者提供相同机能，那么，导致较大封装性的是non-member，non-friend函数**，也就是本条款这样选择的原因
+
+一个扩展性的问题是——这些non-member，non-friend函数应该实现与何处?
+
+一个像WebBrowser这样的class可能拥有大量便利函数，某些与书签有关，某些与打印有关，还有一些与cookie的管理有关...通常客户只对其中某些感兴趣。没道理一个只对书签相关便利函数感兴趣的客户却与一个cookie相关便利函数发生编译相依关系。分离它们的最直接做法就是将书签相关便利函数声明于一个头文件，将cookie相关便利函数声明于另一个头文件，再将打印相关...以此类推：
+
+<div align="center"> <img src="../pic/cppeffective-4-1.png"/> </div>
+
+这正是C++标准库的组织方式。标准库并不是拥有单一、整体、庞大的<C++StandardLibrary>头文件并在其中内含std命名空间内的每一样东西，而是有数十个头文件（<vector>,<algorithm>,...），每个头文件声明std的某些机能。客户可以根据需要使用的机能选择性的包含头文件
+
+<br>
+
+## 条款24：若所有参数皆需类型转换，请为此采用non-member函数
+
+为class支持隐式类型转换不是个好主意，但是在数组类型之间颇为合理。考虑有理数和内置整形之间的相乘运算。具有如下有理数：
+
+```c++
+class Rational{
+public: 
+    Rational(int n = 0, int d = 1); //构造函数刻意不为explicit，提供了Int-to-Rational的隐式转换
+    int numerator() const;      //分子的访问函数
+    int denominator() const;    //分母的访问函数
+private:
+...
+};
+```
+
+现在，有理数提供了Int-to-Rational的隐式转换方式，那么operator\*应该实现成member，还是non-member？
+
+```c++
+class Rational{
+public: 
+    //实现为member
+    const Rational operator*(const Rational& rhs) const;
+}
+
+//实现为non-member
+const Rational operator*(const Rational& lhs, const Rational& rhs);
+```
+
+问题发生在混合运算上。如果实现成member，那么下面的混合运算只有一半行得通：
+
+```c++
+result = oneHalf * 2;                  // OK
+result = 2 * oneHalf;                  // Error
+```
+
+因为内置类型int并没有相应的class，也就没有operator\*成员函数。所以后者会出错。但是当实现为non-member时，具有2个参数，都能通过int转换为Rational，所以上面2行代码都能运行。因此，若所有参数皆需类型转换，请为此采用non-member函数
+
+<br>
+
+## 条款25：考虑写出一个不抛出异常的swap函数
+
+”以指针指向一个对象，内含真正数据“。这种设计的常见表现形式是所谓的”pimpl手法“。如下，WidgetImpl包含了Widget的真正数据，而Widget只包含一个WidgetImpl类型的指针，执行一个WidgetImpl对象。这种设计特点，决定了Widget的copying行为应该表现出一种”深拷贝“的行为：
+
+<div align="center"> <img src="../pic/cppeffective-4-2.png"/> </div>
+
+因此，如果使用标准库的swap交换2个Widget对象，会引起WidgetImpl对象的拷贝，由于其内含有Widget的大量数据，因此效率可能十分低。实际上这种情况下，交换2个指针就可以了。为此，我们可能实现出下图右边中间的swap特化版来提升效率，但是由于其内直接访问Widget的private成员，因此无法通过编译。所以我们采用下图右下角的方案，在Widget类内实现一个public的swap函数，然后特化版的swap调用这个public的swap函数：
+
+<div align="center"> <img src="../pic/cppeffective-4-3.png"/> </div>
+
+当问题更进一步发展时，即Widget和WidgetImpl为class template时，可能会将相同的思想迁移过来，实现出下图右边左上角的偏特化版本。但是问题是：**C++只允许偏特化class template，而不允许偏特化function template**。所以行不通，因此可以使用下图右下角的重载方式，但是**客户可以全特化std内的模板，但是不能添加新的模板到std内**，因此正确的做法是下图左下角
+
+<div align="center"> <img src="../pic/cppeffective-4-4.png"/> </div>
+
+总结起来就是：
+
+* 首先，如果swap的缺省实现对你的class或class template提供可接受的效率，那不需要做额外的事
+* 否则，如果swap的缺省实现效率不足（那几乎总是意味着你的class或template使用了某种pimpl手法），试着做以下事情：
+    - 提供一个public swap成员函数，让它高效地置换你的类型的两个对象的值（**这个public swap成员函数绝不应该抛出异常。这个约束不可施行于非成员版，因为swap缺省版是以copy构造函数和copy assignment操作符为基础，而一般情况下两者都允许抛出异常。因此当你写下一个自定义版本的swap，往往提供的不只是高效置换对象值的方法，而且不抛出异常。一般而言这两个swap特性是连在一起的，因为高效的swap几乎总是基于对内置类型的操作，而内置类型上的操作绝对不会抛出异常**）
+    - 在你的class或template所在的命名空间内提供一个non-member swap，并令它调用上述swap成员函数
+    - 如果你正编写一个class（而非class template），为你的class特化std::swap。并令它先调用你的swap成员函数
+* 最后，如果你调用swap，请确定包含一个using声明，以便让std::swap在你的函数内曝光可见，然后不加任何namespace修饰符地调用swap
 
 <br>
 <br>
