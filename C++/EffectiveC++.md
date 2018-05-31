@@ -8,7 +8,9 @@
     - [条款07：为多态基类声明virtual析构函数](#条款07为多态基类声明virtual析构函数)
     - [条款08：别让异常逃离析构函数](#条款08别让异常逃离析构函数)
     - [条款09：绝不在构造和析构过程中调用virtual函数](#条款09绝不在构造和析构过程中调用virtual函数)
-    - [条款10：令operator=返回一个reference to \*this](#条款10令operator=返回一个referencetothis)
+    - [条款10：令operator=返回一个reference to \*this](#条款10令operator返回一个reference-to-this)
+    - [条款11：在operater=中处理“自我赋值”](#条款11在operater中处理自我赋值)
+    - [条款12：复制对象时勿忘其每一个成分](#条款12复制对象时勿忘其每一个成分)
 * [三.资源管理](#三资源管理)
 * [四.设计与声明](#四设计与声明)
 * [五.实现](#五实现)
@@ -336,6 +338,84 @@ public:
 这是为了实现“连锁赋值”。这个协议除了适用于operator=，还适用于+=、-=、\*=
 
 > 这只是个协议，并无强制性，如果不遵循，代码一样可通过编译
+
+<br>
+
+## 条款11：在operater=中处理“自我赋值”
+
+考虑如下Widget类：
+
+```c++
+class Bitmap {...};
+class Widget{
+    ...
+private:
+    Bitmap *pb;
+};
+```
+
+下面的operator=实现是一份不安全的实现，在自赋值时会出现问题：
+
+```c++
+Widget& 
+Widget::operator=(const Widget& rhs){
+    delete pb;                   // stop using current bitmap
+    pb = new Bitmap(*rhs.pb);    // start using a copy of rhs's bitmap
+    return *this;                // see Item 10
+}
+```
+
+要处理自赋值，可以有以下几种方式：
+
+1. **在开头添加“证同测试”**
+    ```c++
+    Widget& Widget::operator=(const Widget& rhs){
+        if (this == &rhs) return *this;
+        delete pb;                   // stop using current bitmap
+        pb = new Bitmap(*rhs.pb);    // start using a copy of rhs's bitmap
+        return *this;                // see Item 10
+    }
+    ```
+    这样做虽然能处理自赋值，但不是异常安全的，如果new时发生异常，对象的pb将指向一块被删除的内存
+2. **通过确保异常安全来获得自赋值的回报**
+    ```c++
+    Widget& Widget::operator=(const Widget& rhs){
+        Bitmap *pOrig = pb;               // remember original pb
+        pb = new Bitmap(*rhs.pb);         // make pb point to a copy of *pb
+        delete pOrig;                     // delete the original pb
+        return *this;
+    }
+    ```
+    现在，如果new失败，pb会保持原状。同时也能处理自赋值。如果担心效率可以在开头加上“证同测试”。但是if判断也会引入开销，因此需要权衡自赋值发生的频率
+3. **使用copy and swap技术**
+    ```c++
+    //参数为pass by reference
+    Widget& Widget::operator=(const Widget &rhs){
+        Widget temp(rhs);
+        swap(temp);               // swap *this's data with
+        return *this;             // the copy's
+    }
+    //参数为pass by value
+    //这种方式的缺点是代码不够清晰，但是将“copying动作“从函数本体内移至”函数参数构造阶段”
+    //却可令编译器有时生成更高效的代码
+    Widget& Widget::operator=(Widget rhs){
+        swap(rhs);                // swap *this's data with
+        return *this;             // the copy's
+    }
+    ```
+
+<br>
+
+## 条款12：复制对象时勿忘其每一个成分
+
+如果声明自己的copying函数，意思就是告诉编译器你并不喜欢缺省实现中的某些行为。编译器仿佛被冒犯似的，会以一种奇怪的方式回敬：如果你自己写出的copying函数代码不完全，它也不会告诉你
+
+* **copy构造函数**
+    - **非继承中**：当为类添加一个新成员时，copy构造函数也需要为新成员添加拷贝代码。否则调用新成员的默认构造函数初始化新成员
+    - **继承中**：在派生类的copy构造函数中，不要忘记调用基类的copy构造函数拷贝基类部分。而是使用基类的默认构造函数初始化基类部分
+* **copy赋值运算符**
+    - **非继承中**：当为类添加一个新成员时，copy赋值运算符中也需要为新成员添加赋值代码，否则新成员会保持不变
+    - **继承中**：在派生类的copy赋值运算符中，不要忘记调用基类的copy赋值运算符，否则基类部分会保持不变
 
 <br>
 <br>
