@@ -27,6 +27,12 @@
     - [条款24：若所有参数皆需类型转换，请为此采用non-member函数](#条款24若所有参数皆需类型转换请为此采用non-member函数)
     - [条款25：考虑写出一个不抛出异常的swap函数](#条款25考虑写出一个不抛出异常的swap函数)
 * [五.实现](#五实现)
+    - [条款26：尽可能延后变量定义式的出现时间](#条款26尽可能延后变量定义式的出现时间)
+    - [条款27：尽量少做转型动作](#条款27尽量少做转型动作)
+    - [条款28：避免返回handles指向对象内部成分](#条款28避免返回handles指向对象内部成分)
+    - [条款29：为“异常安全”而努力是值得的](#条款29为异常安全而努力是值得的)
+    - [条款30：透彻了解inlining的里里外外](#条款30透彻了解inlining的里里外外)
+    - [条款31：将文件间的编译依存关系将至最低](#条款31将文件间的编译依存关系将至最低)
 * [六.继承与面向对象设计](#六继承与面向对象设计)
 * [七.模板与泛型编程](#七模板与泛型编程)
 * [八.定制new和delete](#八定制new和delete)
@@ -492,7 +498,7 @@ void f()
 
 Font f(getFont());  
 ...
-FontHandle f2 = f1; //愿意是想使用Font，复制一个RAII对象
+FontHandle f2 = f1; //原意是想使用Font，复制一个RAII对象
 ```
 
 在上面的例子中，如果实现了隐式转换，底层资源会被复制，如果f1销毁，f2会成为“虚吊的”（dangle）
@@ -764,7 +770,7 @@ void clearEverything(WebBrowser& wb){
 
 <div align="center"> <img src="../pic/cppeffective-4-1.png"/> </div>
 
-这正是C++标准库的组织方式。标准库并不是拥有单一、整体、庞大的<C++StandardLibrary>头文件并在其中内含std命名空间内的每一样东西，而是有数十个头文件（<vector>,<algorithm>,...），每个头文件声明std的某些机能。客户可以根据需要使用的机能选择性的包含头文件
+这正是C++标准库的组织方式。标准库并不是拥有单一、整体、庞大的<C++StandardLibrary>头文件并在其中内含std命名空间内的每一样东西，而是有数十个头文件（\<vector\>,\<algorithm\>,...），每个头文件声明std的某些机能。客户可以根据需要使用的机能选择性的包含头文件
 
 <br>
 
@@ -834,6 +840,402 @@ result = 2 * oneHalf;                  // Error
 <br>
 
 # 五.实现
+
+## 条款26：尽可能延后变量定义式的出现时间
+
+只要定义了一个变量而其类型带有一个构造函数或析构函数，那么
+
+* 当程序的控制流到达这个变量定义式时，你便得承受构造成本
+* 当这个变量离开作用域时，你便得承受析构成本
+
+即使这个变量最终并未被使用，仍需耗费这些成本，所以你应尽可能避免这种情形，即延后变量的定义，直到非得使用该变量的前一刻为止，甚至应该尝试延后这份定义直到能够给它初值实参为止
+
+当考虑循环时，有下列2种情况：
+
+<div align="center"> <img src="../pic/cppeffective-5-1.png"/> </div>
+
+2种写法的成本如下；
+
+* 做法A：1个构造函数 + 1个析构函数 + n个赋值操作
+* 做法B：n个构造函数 + n个析构函数
+
+**从效率上看**：如果class的一个赋值成本低于一组构成+析构成本，做法A大体而言比较高效，尤其当n比较大时。否则做法B或许更好
+
+**从可理解性和维护性上看**：A造成名称w的作用域比做法B更大，可理解性和维护性相对较差
+
+因此，除非
+
+1. 你知道赋值成本比”构造 + 析构“成本低
+2. 你正在处理代码中效率高度敏感的部分
+
+否则，应该使用做法B
+
+<br>
+
+## 条款27：尽量少做转型动作
+
+转型分类：
+
+* C风格的转型
+    ```c++
+    (T)expression   //将expression转型为T
+    T(expression)   //将expression转型为T
+    ```
+* C++提供的新式转型
+    ```c++
+    const_cast<T>(expression)
+    dynamic_cast<T>(expression)
+    reinterpret_cast<T>(expression)
+    static_cast<T>(expression)
+    ```
+    - **static_cast**：只要不包含底层const，都可以使用。适合将较大算术类型转换成较小算术类型
+    - **const_cast**：只能改变底层const，例如指向const的指针(指向的对象不一定是常量，但是无法通过指针修改)​，如果指向的对象是常量，则这种转换在修改对象时，结果未定义
+    - **reinterpret_cast**：通常为算术对象的位模式提供较低层次上的重新解释。如将int*转换成char*。很危险！
+    - **dynamic_cast**：一种动态类型识别。转换的目标类型，即type，是指针或者左右值引用，主要用于基类指针转换成派生类类型的指针(或引用)，通常需要知道转换源和转换目标的类型。如果​​转换失败，返回0（转换目标类型为指针类型时）或抛出bad_cast异常（转换目标类型为引用类型时）
+
+应该尽可能使用新式转型：
+
+1. 它们很容易在代码中被辨别出来（无论是人工还是使用工具如grep），因而得以简化”找出类型系统在哪个地点被破坏“的过程
+2. 各转型动作的目标越窄化，编译器越可能诊断出错误的运用
+
+**尽量少做转型**：
+
+1. **转型不只是告诉编译器把某种类型视为另一种类型这么简单。任何一个转型动作往往令编译器编译出运行期间执行的代码**
+    ```c++
+    //示例一
+    int x,y;
+    ...
+    double d = static_cast<double>(x)/y;
+    //示例二
+    class Base {...};
+    class Derived : public Base {...};
+    Derived d;
+    Base *pd = &d;  //隐式地将Derived*转换为Base*
+    ```
+    * 在示例一中：int转型为double几乎肯定会产生一些代码，因为在大部分体系结构中，int的底层表述不同于double的底层表述
+    * 在示例二中：会有个偏移量在运行期被实施于Derived\*指针身上，用以取得正确的Base\*地址
+2. **很容易写出似是而非的代码**
+    ```c++
+    class Window{
+    public:
+        virtual void onResize() {...}
+        ...
+    }
+    //错误的做法
+    class SpecialWindow: public Window{
+    public:
+        virtual void onResize(){
+            static_cast<Window>(*this).onResize();  
+            ...  //这里进行SpecialWindow专属行为
+        }
+        ...
+    }
+    //正确的做法
+    class SpecialWindow: public Window{
+    public:
+        virtual void onResize(){
+            WindowL::onResize();  //调用Window::onResize作用于*this身上
+            ...  //这里进行SpecialWindow专属行为
+        }
+        ...
+    }
+    ```
+    上面的例子中，派生类的虚函数可能希望调用基类虚函数的版本执行一些固定操作，然后再执行一些专属行为。在前面的做法中，转型并非在当前对象身上调用Window::onResize之后又在该对象身上执行SpecialWindow专属动作。而是在”当前对象的base class成分“的副本上调用Window::onResize，然后再当前对象身上执行SpecialWindow专属动作。如果Window::onResize修改了对象内容，当前对象其实没被改的，改的的是副本。如果专属动作也修改对象，那么当前对象会进入一种”伤残“状态：其base class成分的更改没有落实，derived class成分的更改倒是落实了
+3. **继承中的类型转换效率低**
+    * C++通过dynamic_cast实现继承中的类型转换，dynamic_cast的大多数实现效率都是相当慢的。因此，应该避免继承中的类型转换。一般需要dynamic_cast，通常是因为想在一个认定为derived class对象身上执行derived class操作，但是拥有的是一个”指向base“的指针或引用。这种情况下有2种办法可以避免转型：
+        - **使用容器并在其中存储直接指向derived class对象的指针**：这种做法无法在同一个容器内存储指针”指向所有可能的各种派生类“。如果真要处理多种类型，可能需要多个容器，它们都必须具备类型安全性
+        - **将derived class中的操作上升到base class内，成为virtual函数，base class提供一份缺省实现**：缺省实现代码可能是个馊主意，条款34中有分析，但是也比使用dynamic_cast来转型要好
+
+<br>
+
+## 条款28：避免返回handles指向对象内部成分
+
+> References、指针和迭代器统统都是所谓的handles
+
+### 1）增加封装性
+
+如果成员函数返回hadles，那么相当于成员变量的封装性从private上升到public。这与[条款22](#条款22将成员变量声明为private)相悖
+
+### 2）使得“通过const修改对象的数据”成为可能
+
+在[条款25](#条款25考虑写出一个不抛出异常的swap函数)提到过”pimpl手法“，即：“以指针指向一个对象，内含真正数据”，也就是对象只包含指针成员，实际数据通过这个指针指向。而在[条款3](#条款03尽可能使用const)中也提到，C++对const成员函数的要求是，符合bitwise constness。因此，const成员函数返回一个这个指针所指对象的引用，并不会造成指针被修改，也就符合bitwise constness，但是通过这个引用却可以改变对象实际的数据
+
+### 3）防止“虚吊”(dangle)发生
+
+如果返回的handles指向一个临时对象，那么返回后临时对象销毁，handles会成为“虚吊的”。只要handle被传出去，就会面临“handle比其所指对象更长寿”的风险
+
+<br>
+
+## 条款29：为“异常安全”而努力是值得的
+
+考虑下面例子，有一个菜单类，changeBg函数可以改变它的背景，切换背景计数，同时提供线程安全：
+
+```c++
+class Menu{
+    Mutex m;            //提供多线程互斥访问
+    Image *bg;          //背景图片
+    int changeCount;    //切换背景计数
+public:
+    void changeBg(istream& sr);
+};
+
+void Menu::changeBg(istream& src){
+    lock(&mutex);
+    delete bg;
+    ++changeCount;
+    bg = new Image(src);
+    unlock(&mutex);
+}
+```
+
+### 1）异常安全的2个条件
+
+**异常安全有2个条件**：
+
+1. **不泄露任何资源**：即发生异常时，异常发生之前获得的资源都应该释放，不会因为异常而泄露。在上面的例子中，如果new Image发生异常，那么unlock就不会调用，因此锁资源会泄露
+2. **不允许数据败坏**：上面的例子也不符合，如果new Image异常，背景图片会被删除，计数也会改变。但是新背景并未设置成功
+
+**对于资源泄露**，[条款13]()讨论过以对象管理资源。锁资源也可以为shared_ptr指定“删除器”，当引用为0时，即异常发生，管理所资源的对象被销毁后，删除器会调用unlock
+
+**对于数据败坏**：见下文
+
+### 2）异常安全函数的3个保证
+
+1. **基本承诺**：抛出异常后，对象仍然处于合法（valid）的状态。但不确定处于哪个状态（对于前面的例子，如果发生异常，PrettyMenu可以继续拥有原背景图像，或是令它拥有某个“缺省”的背景图像，但客户无法确定）
+2. **强烈保证**：如果抛出了异常，状态并不会发生发生任何改变。就像没调用这个函数一样
+3. **不抛掷保证**：这是最强的保证，函数总是能完成它所承诺的事情（作用于内置类型身上的所有操作都提供nothrow保证。这是异常安全代码中一个必不可少的关键基础）
+
+对于前面的PrettyMenu对象，可以通过使用智能指针，以及重排changeBg的语句顺序来满足“强烈保证”：
+
+```c++
+class Menu{
+    shared_ptr<Image> bg;
+    ...
+};
+void Menu::changeBg(istream& src){
+    Lock m1(&m);
+    bg.reset(new Image(src));
+    ++changeCount;
+}
+```
+
+注意，上述实现只能为PrettyMenu对象提供“强烈保证”，不能提供完美（即全局状态）的“强烈保证”。比如Image构造函数中移动了istream& src的读指针然后再抛出异常，那么系统还是处于一个被改变的状态。 这是一种对整个系统的副作用，类似的副作用还包括数据库操作，因为没有通用的办法可以撤销数据库操作。 不过这一点可以忽略，我们暂且认为它提供了完美的强烈保证
+
+**copy and swap策略**
+
+"copy and swap"设计策略通常能够**为对象**提供异常安全的“强烈保证”。当我们要改变一个对象时，先把它复制一份，然后去修改它的副本，改好了再与原对象交换。关于swap的详细讨论可以参见[条款25](#条款25考虑写出一个不抛出异常的swap函数)。这种策略用在前面的例子中会像这样：
+
+```c++
+class Menu{
+    ...
+private:
+    Mutex m;
+    std::shared_ptr<MenuImpl> pImpl;
+};
+Menu::changeBg(std::istream& src){
+    using std::swap;            // 见 Item 25
+    Lock m1(&mutex);            // 获得mutex的副本数据
+
+    std::shared_ptr<MenuImpl> copy(new MenuImpl(*pImpl));
+    copy->bg.reset(new Image(src)); //修改副本数据
+    ++copy->changeCount;
+
+    swap(pImpl, copy);              //置换数据，释放mutex
+}
+```
+
+copy and swap策略能够**为对象**提供异常安全的“强烈保证”。但是一般而言，它并不保证整个函数有“强烈保证”。也就是说，如果某个函数使用copy and swap策略为某个对象提供了异常安全的“强烈保证”。但是这个函数可能调用其它函数，而这些函数可能改变一些全局状态（如数据库状态），那么”整个函数“就不是”强烈保证“
+
+> 函数提供的”异常安全保证“通常最高只等于其所调用的各个函数的”异常安全保证“中的最弱者
+
+除此之外，copy and swap必须为每一个即将被改动的对象作出一个副本，从而可能造成时间和空间上的问题
+
+### 3）最终目标是什么
+
+当”强烈保证“不切实际时（比如前面提到的全局状态改变难以保证，或者效率问题），就必须提供”基本保证“。现实中你或许会发现，可以为某些函数提供强烈保证，但效率和复杂度带来的成本会使它对许多人而言摇摇欲坠。只要你曾经付出适当的心力试图提供强烈保证，万一实际不可行，使你退而求其次地只提供基本保证，任何人都不该因此责难你。对许多函数而言，”异常安全性的基本保证“是一个绝对同情达理的选择
+
+总的来说就是，应该为自己的函数努力实现尽可能高级别的异常安全，但是由于种种原因并不是说一定需要实现最高级别的异常安全，而是应该以此为目标而努力
+
+<br>
+
+## 条款30：透彻了解inlining的里里外外
+
+**inline的优劣**：
+
+* **优**：
+    - **较少函数调用的开销**
+    - **编译器对inline的优化**
+* **劣**：
+    - **目标代码的增加，程序体积增大，导致额外的换页行为，降低指令高速缓存装置的命中率**
+
+inline提出方式包括2种：1）显示提出；2）隐式提出（类内实现成语函数）
+
+inline在大多数C++程序中是**编译期行为**。inline只是对编译器的一个申请，不是强制命令。大多数编译器提供了一个诊断级别：如果它们无法将你要求的函数inline化，会给出一个警告
+
+对virtual函数的调用也都会使inlining落空。因为virtual意味着”等待，直到运行期才确定调用哪个函数“，而inline意味着”执行前，先将调用动作替换为被调用函数的本体“
+
+如果程序要取某个inline函数的地址，编译器通常必须为此函数生成一个outlined函数本体。毕竟编译器没有能力提出一个指针指向并不存在的函数
+
+构造函数和析构函数往往是inlining的糟糕候选人。C++对于”对象被创建和被销毁时发生什么事“做了各式各样的保证。在对象构造期间如果抛出异常，该对象已经构造好的部分会被自动销毁...，因此，对于下列代码：
+
+```c++
+class Base{
+public:
+    ...
+private:
+    std::string bm1,bm2;    //base成员1和2
+};
+
+class Derived:public Base{
+public:
+    Derived()  {}
+    ...
+private:
+    std::string dm1,dm2,dm3; //derived成员1-3
+};
+```
+
+虽然看上去Derived的构造函数为空，符合一个函数成为inline的的特性。但是为了确保C++对于”对象被创建和被销毁时发生什么事“做出的各式各样的保证，编译器会在其中安插代码，因此实际的Derived构造函数可能是这个样子：
+
+```c++
+Derived::Derived()
+{
+    Base::Base();
+    try{dm1.std::string::string();}
+    catch(...){
+        Base::~Base();
+        throw;
+    }
+    try{dm2.std::string::string();}
+    catch(...){
+        dm1.std::string::~string();
+        Base::~Base();
+        throw;
+    }
+    try{dm3.std::string::string();}
+    catch(...){
+        dm2.std::string::~string();
+        dm1.std::string::~string();
+        Base::~Base();
+        throw;
+    }
+}
+```
+
+大部分的调试器面对inline函数都束手无策。因为无法在一个不存在的函数内设立断点。因此，一个合乎逻辑的策略是，一开始先不要将任何函数声明为inline，或至少将inlining施行范围局限在那些“一定称为inline”或“十分平淡无奇”的函数身上
+
+<br>
+
+## 条款31：将文件间的编译依存关系将至最低
+
+C++并没有把“将接口从实现中分离”这件事做得很好。例如：
+
+```c++
+#include<string>
+#include "date.h"
+#include "address.h"
+
+class Person{
+public:
+    ...
+private:
+    std::string theName;    //实现细目
+    Date    theBirthDate;   //实现细目
+    Address theAddress;     //实现细目
+};
+```
+
+如果没有前面3行引入头文件，那么编译无法通过。但是如此却**会在Person定义文件和其含入文件之间形成了一种编译依存关系。如果这些头文件中有任何一个被改变，或这些文件所依赖的其它头文件有任何改变。那么每个含入Person class的文件就得重新编译，任何使用Person class的文件也必须重新编译**。这样的连串编译依存关系会对许多项目造成难以形容的灾难
+
+你可能会想着将实现细目分开：
+
+```c++
+namespace std{
+    class string;   //前置声明，但不正确
+}
+class Date;         //前置声明
+class Address;      //前置声明
+
+class Person{
+public:
+    ...
+};
+```
+
+如果可以这么做，Person的客户就只需要在Person接口被修改过时才重新编译。但是这种想法存在2个问题：
+
+* string并不是个class，它是个typedef，上述前置声明不正确，正确的前置声明比较复杂
+* 重点是，**编译器必须在编译期间知道对象的大小**：
+    ```c++
+    int main(){
+        int x;           //定义一个int
+        Person p(...);   //定义一个Person
+    }
+    ```
+    这和Java，Smalltalk中不同，因为它们在定义对象时，编译器只分配足够空间给一个指针使用。也就是说，它们将上述代码视为这样：
+    ```c++
+    int main(){
+        int x;          //定义一个int
+        Person* p;      //定义一个指针指向Person对象
+    }
+    ```
+
+**可以把Person分割为两个类：1）一个只提供接口(Person)；2）一个负责实现接口(PersonImpl)；就是使用[条款25]()中的”pimpl手法“：接口class中只包含一个负责实现接口的class的指针，因此任何改变都只是在负责实现接口的class中进行。那么Person的客户就完全与Date,Address,以及Person的实现细目分离了。那些classes的任何实现修改都不需要Person客户端重新编译。此外，由于客户无法看到Person的实现细目，也就不可能写出什么“取决于那些细目的代码”。这正是接口与实现分类。这种情况下，像Person这样使用pimpl的classes往往被称为handle classes**
+
+```c++
+class Person{
+public:
+    Person(string& name);
+    string name() const;
+private:
+    shared_ptr<PersonImpl> pImpl;
+};
+Person::Person(string& name): pImpl(new PersonImpl(name)){}
+string Person::name(){
+    return pImpl->name();
+}
+```
+
+**另一种制作Handle class的办法是，令Person称为一种特殊的abstract base class，称为interface class**。其目的是详细描述derived classes的接口，因此它通常不带成员变量，也没有构造函数，只有一个virtual析构函数以及一组pure virtual函数，用来叙述整个接口
+
+```c++
+class Person{
+public:
+    virtual ~Person();
+    virtual string name() const = 0;
+    virtual string birthday() const = 0;
+};
+```
+
+客户不能实例化它，只能使用它的引用和指针。然而客户一定需要某种方法来获得一个实例，比如工厂方法：
+
+```c++
+class Person{
+public:
+    static shared_ptr<Person> create(string& name);
+};
+shared_ptr<Person> Person::create(string& name){
+    return shared_ptr<Person>(new RealPerson(name));
+}
+...
+shared_ptr<Person> p(Person::create("alice"));
+```
+
+**应该让头文件自我满足**，万一做不到，则让它与其他头文件内的声明式相依。其他每一件事都源自于这个简单的设计策略：
+
+* **如果使用object references或object pointers可以完成任务，就不要使用objects**
+* **如果能够，尽量以class声明式替换class定义式**：
+    ```
+    class Date;
+    Date today();
+    void clearAppointments(Date d);
+    ```
+* **为声明式和定义式提供不同的头文件**。为了促使这个准则，需要两个头文件：一个用于声明式，一个用于定义式。因此，上面的例子应该是这样：
+    ```
+    #include "datefwd.h"    //包含了class Date的声明
+    Date today();
+    void clearAppointments(Date d);
+    ```
 
 <br>
 <br>
