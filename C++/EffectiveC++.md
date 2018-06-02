@@ -1703,7 +1703,7 @@ private:
 * 当Widget需要访问Timer的protected成员时。因为对象组合后只能访问public成员，而private继承后可以访问protected成员。
 * 当Widget需要重写Timer的虚函数时。比如上面的例子中，需要重写onTick。单纯的复合是做不到的
 
-### 3）复合
+### 2）复合
 
 如果使用复合，上面的例子可以这样实现：
 
@@ -1735,12 +1735,14 @@ private:
 
 * 一般的多重继承
     - 如果某个基类到派生类之间存在多条路径，那么派生类会包含重复的基类成员
+    <div align="center"> <img src="../pic/cppeffective-6-6.png"/> </div>
 * 虚继承（此时基类是虚基类）
     - 如果某个基类到派生类之间存在多条路径，派生类只包含一份基类成员，但是这会带来额外开销
         + 为避免重复，编译器必须提供一些机制，后果就是virtual继承的那些classes所产生的对象往往比non-virtual继承的体积大，访问virtual base classes的成员变量时，速度也更慢
         + virtual base的初始化由继承体系中的最底层class负责，这会带来开销
             * classes若派生自virtual bases而需要初始化，必须认知其virtual bases——无论那些bases距离多远
             * 当一个新derived class加入继承体系中，它必须承担其virtual bases的初始化责任
+    <div align="center"> <img src="../pic/cppeffective-6-7.png"/> </div>
 
 如果你有一个单一继承的设计方案，而它大约等价于一个多重继承方案，那么单一继承设计方案几乎一定比较受欢迎。如果你唯一能够提出的设计方案涉及多重继承，你应该更努力想一想——几乎可以说一定会有某些方案让单一继承行得通。然后多重继承有时候是完成任务的最简洁、最易维护、最合理的做法，果真如此就别害怕使用它。只要确定，你的确是在明智而审慎的情况下使用它
 
