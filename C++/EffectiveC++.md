@@ -34,6 +34,15 @@
     - [条款30：透彻了解inlining的里里外外](#条款30透彻了解inlining的里里外外)
     - [条款31：将文件间的编译依存关系将至最低](#条款31将文件间的编译依存关系将至最低)
 * [六.继承与面向对象设计](#六继承与面向对象设计)
+    - [条款32：确定你的public继承塑模出is-a关系](#条款32确定你的public继承塑模出is-a关系)
+    - [条款33：避免遮掩继承而来的名称](#条款33避免遮掩继承而来的名称)
+    - [条款34：区分接口继承和实现继承](#条款34区分接口继承和实现继承)
+    - [条款35：考虑virtual函数以外的其他选择](#条款35考虑virtual函数以外的其他选择)
+    - [条款36：绝不重新定义继承而来的non-virtual函数](#条款36绝不重新定义继承而来的non-virtual函数)
+    - [条款37：绝不重新定义继承而来的缺省参数值](#条款37绝不重新定义继承而来的缺省参数值)
+    - [条款38：通过复合塑模出has-a或“根据某物实现出”](#条款38通过复合塑模出has-a或根据某物实现出)
+    - [条款39：明智而审慎地使用private继承](#条款39明智而审慎地使用private继承)
+    - [条款40：明智而审慎地使用多重继承](#条款40明智而审慎地使用多重继承)
 * [七.模板与泛型编程](#七模板与泛型编程)
 * [八.定制new和delete](#八定制new和delete)
 * [九.杂项讨论](#九杂项讨论)    
@@ -1180,7 +1189,7 @@ public:
     }
     ```
 
-**可以把Person分割为两个类：1）一个只提供接口(Person)；2）一个负责实现接口(PersonImpl)；就是使用[条款25]()中的”pimpl手法“：接口class中只包含一个负责实现接口的class的指针，因此任何改变都只是在负责实现接口的class中进行。那么Person的客户就完全与Date,Address,以及Person的实现细目分离了。那些classes的任何实现修改都不需要Person客户端重新编译。此外，由于客户无法看到Person的实现细目，也就不可能写出什么“取决于那些细目的代码”。这正是接口与实现分类。这种情况下，像Person这样使用pimpl的classes往往被称为handle classes**
+**可以把Person分割为两个类：1）一个只提供接口(Person)；2）一个负责实现接口(PersonImpl)；就是使用[条款25](#条款25考虑写出一个不抛出异常的swap函数)中的”pimpl手法“：接口class中只包含一个负责实现接口的class的指针，因此任何改变都只是在负责实现接口的class中进行。那么Person的客户就完全与Date,Address,以及Person的实现细目分离了。那些classes的任何实现修改都不需要Person客户端重新编译。此外，由于客户无法看到Person的实现细目，也就不可能写出什么“取决于那些细目的代码”。这正是接口与实现分类。这种情况下，像Person这样使用pimpl的classes往往被称为handle classes**
 
 ```c++
 class Person{
@@ -1241,6 +1250,499 @@ shared_ptr<Person> p(Person::create("alice"));
 <br>
 
 # 六.继承与面向对象设计
+
+## 条款32：确定你的public继承塑模出is-a关系
+
+**public隐含的寓意**：每个派生类对象同时也是一个基类对象(反之不成立)，只不过基类比派生类表现出更一般化的概念，派生类比基类表现出更特殊化的概念。
+
+可以举一个例子验证一下上面的说法。例如：
+
+```c++
+class Person {...};
+class Student : public Person {...};
+```
+
+显然，每个学生都是人，但并非每个人都是学生。对人可以成立的每一件事对学生也都成立（例如每个人都有生日），但对学生都成立的每件事并不一定对每个人也成立(例如注册于某个学校)
+
+因此，C++中，任何函数如果期望获得一个类型为基类的实参，都也愿意接收一个派生类对象。但是反之不成立：
+
+```c++
+void eat(const Person &p);
+void study(const Student &s);
+Person p;
+Student s;
+eat(p);     //正确
+eat(s);     //正确
+study(s);   //正确
+study(p);   //错误
+```
+
+谨记这种is-a关系已经背后隐藏的规则可以防止因为“经验主义”而使用不合理的继承：
+
+* 从“经验主义”上看，企鹅也是鸟，如果为鸟定义了虚拟(virtual)的飞的方法，然后企鹅类以public继承鸟类，那么是不合理的方式。这种情况下，可以设计一个会飞的鸟的类，虚拟(virtual)的飞的方法声明在这个类中，而鸟类里面没有声明非的方法。或者根本不声明飞的方法
+* 从“经验主义”上看，正方形也是长方形，如果长方形有成员方法会修改长或宽，那么正方形以public继承长方形就显得不合理
+
+软件世界不同于现实世界。对于上面的鸟的设计，某些软件系统可能不需要区分会飞的鸟和不会飞的鸟。那么即使鸟类声明了飞的方法，然后企鹅类以public继承，也不会有多大问题。也就是说，不存在一个适用于所有软件的设计。最佳的设计取决于系统希望做什么事。如果程序对飞行一无所知，而且也不打算未来对飞行有所知，那么不去区分会飞的鸟和不会飞的鸟不失为一个完美而有效的设计。实际上可能比对两者做出隔离的设计更受欢迎，因为这样的区隔在你企图塑模的世界中并不存在。因此，**应该根据实际软件需求，合理使用public**
+
+<br>
+
+## 条款33：避免遮掩继承而来的名称
+
+### 1）继承中的作用域嵌套
+
+<div align="center"> <img src="../pic/cppeffective-6-1.png"/> </div>
+
+名字查找会从内层作用域向外层作用域延伸
+
+### 2）名称遮掩会遮掩基类所有重载版本
+
+<div align="center"> <img src="../pic/cppeffective-6-2.png"/> </div>
+
+派生类中同名的名称会遮掩基类中相同的名称，如果基类包含重载函数，所有重载函数都会被遮掩
+
+解决办法是使用using引入被遮掩的名字：
+
+<div align="center"> <img src="../pic/cppeffective-6-3.png"/> </div>
+
+如果只想引入基类被遮掩函数中某个版本（注意，这种需求一般只在private继承中出现，因为如果只继承基类的部分操作，违背了[条款32](#条款32确定你的public继承塑模出is-a关系)），可以直接定义一个同名同参的函数，然后在这个函数内调用基类的版本，做一个转调用。这实际上称为一种实现技术(而不是引入)更为恰当：
+
+<div align="center"> <img src="../pic/cppeffective-6-4.png"/> </div>
+
+<br>
+
+## 条款34：区分接口继承和实现继承
+
+> 纯虚函数一般作为接口，基类一般不提供定义，但是基类可以为纯虚函数提供定义。派生类必须声明纯虚函数，如果想要使用纯虚函数，派生类必须提供一份定义，即使基类已经为该纯虚函数提供了定义。如果派生类不提供定义，仍然是一个抽象基类
+
+1. **声明一个pure virtual函数的目的是为了让derived classes只继承函数接口**
+2. **声明(非纯)impure virtual函数的目的，是让derived classes继承该函数的接口和缺省实现**
+3. **声明non-virtual函数的目的是为了令derived classes继承函数的接口及一份强制性实现** 
+
+### 1）pure virtual函数
+
+如果某个操作不同派生类应该表现出不同行为，并且没有相同的缺省实现，那么应该使用pure virtual函数，此时派生类只继承接口
+
+### 2）impure virtual函数
+
+如果某个操作不同派生类应该表现出不同行为，并且具有相同的缺省实现，那么应该使用impure virtual函数，此时派生类继承接口和缺省实现
+
+**但是，允许impure virtual函数同时指定函数声明和缺省行为，却可能造成危险：假设引入了一个新的派生类，但是缺省行为并不适用于新的派生类，而新的派生类忘记重新定义新的行为，那么调用该操作将表现出缺省行为，这是不合理的**
+
+例如，某个航空公司有A,B两种类型的飞机，他们有相同的fly行为，这个fly行为在基类Airplane中声明为impure virtual函数，并且具有缺省的飞行实现。现在引入了一种新机型C，但是这个缺省的fly行为并不适合C，如果C忘记重新定义fly，那么它将按照A,B缺省的行为飞行
+
+```c++
+class Airplane{
+public:
+    virtual void fly(){
+        // 缺省的fly代码
+    }
+};
+class ModelA: public Airplane{...};
+class ModelB: public Airplane{...};
+
+class ModelC: public Airplane{...};
+Airplane* p = new ModelC;
+p->fly();   //调用Airplane::fly
+```
+
+要避免这种错误，可以将fly改为pure virtual函数，并且将缺省的飞行行为实现为一个protected函数：
+
+```c++
+class Airplane{
+public:
+    virtual void fly() = 0;
+//这是合理的，因为它是Airplane及其derived classes的实现细目。乘客应该只在意飞机能不能飞，不在意它怎么飞
+protected:
+    //non-virtual函数，因为没有任何一个派生类应该重新定义缺省行为
+    void defaultFly(){...}
+}
+class ModelA: public Airplane{
+public:
+    virtual void fly(){defaultFly();}
+}
+class ModelB: public Airplane{
+public:
+    virtual void fly(){defaultFly();}
+}
+```
+
+此时，fly变成了pure virtual函数，首先，飞机C必须声明fly函数，如果需要使用，必须为其定义。那么就可以防止因为忘记重新定义而引起的错误
+
+有些人反对以不同函数分别提供接口和缺省实现，像上面的fly和defaultFly。因为他们关心因过渡雷霆的函数名称而引起的class命名空间污染问题。那么可以将缺省的行为定义在fly中，即为fly实现一份缺省的定义：
+
+```c++
+class Airplane{
+public:
+    virtual void fly() = 0;
+};
+void Airplane::fly(){
+    // 缺省的fly代码
+}
+
+class ModelA: public Airplane{
+public:
+    virtual void fly(){
+        Airplane::fly();
+    }
+};
+```
+
+由于任何派生类想要使用pure virtual函数都必须提供一份定义，那么如果想要使用缺省行为，可以直接在定义中转调用基类的实现。否则，可以定制特殊的行为。因为是纯虚函数，只要不定义就无法使用，因此也可以避免前面的问题
+
+### 3）non-virtual函数
+
+如果某个操作在整个体系中，应该表现出一致的行为，那么应该使用non-virtual函数。此时派生类继承接口和一份强制性实现
+
+<br>
+
+## 条款35：考虑virtual函数以外的其他选择
+
+> 在面向对象中，如果希望某个操作存在缺省算法，并且各派生类可以定制适合自己的操作。可以使用public virtual函数，这是最简单直白且容易想到的方法，但是除此之外，也存在其它可替代的方案。它们有各自的优缺点，应该将所有方案全部列入考入
+
+以一个例子来介绍其它几种可替代方案。在一个游戏人物的类中，存在一个健康值计算的函数，不同的角色可以提供不同的健康值计算方法，并且存在一个缺省实现。以传统的public virtual函数实现如下：
+
+```c++
+class GameCharacter{
+public:
+    virtual int healthValue() const;    //健康值计算函数，派生类可以重新定义
+};
+```
+
+### 1）藉由Non-Virtual Interface手法实现Template Method模式
+
+这种方案的主要思想是：保留healthValue为public成员，但是让其成为non-virtual，并调用一个private(也可以是protected) virtual函数进行实际工作：
+
+```c++
+class GameCharacter{
+public:
+    //non-virtual函数，virtual函数的包裹器(wrapper)
+    int healthValue() const
+    {
+        ...                             //做一些事前工作
+        int retVal = doHealthValue();   //负责真正的健康值计算
+        ...                             //做一些事后工作
+        return retVal;
+    }
+    ...
+private:
+    virtual int doHealthValue() const   //派生类可以重新定义
+    {
+        ...     //缺省的健康值计算方法
+    }
+};
+```
+
+NVI手法的一个优点是可以在真正操作进行的前后保证一些“事前”和“事后”工作一定会进行。如“事前”进行一些锁的分配，日志记录。“事后”进行解锁等操作
+
+### 2）藉由Function Pointers实现Strategy模式
+
+上面的方案本质还是使用virtual函数，人物的健康值计算(操作)还是与人物(类)相关。后面这几种方案，都是间任务的健康值计算(操作)与具体的每个人(对象)相关，并且可以每个人(对象)的健康值计算(操作)可以修改
+
+```c++
+class GameCharacter;    //前置声明
+//健康值计算的缺省函数
+int defaultHealthCalc(const GameCharacter &gc);
+class GameCharacter{
+public:
+    typedef int (*HealthCalcFunc)(const GameCharacter&);
+    explicit GameCharacter(HealthCalcFunc hcf = defaultHealthCalc) : healthFunc(hcf) {}
+    //non-virtual函数，virtual函数的包裹器(wrapper)
+    int healthValue() const
+    {
+        return healthFunc(*this);
+    }
+    ...
+private:
+    HealthCalcFunc healthFunc;
+};
+```
+
+每个人物(类)包含一个计算健康值的函数指针，每创建一个人(对象)时，可以为其指定不同的健康值计算函数。因此将操作和类分离。同时，如果提供修改函数指针成员的方法，每个对象还能使用不同的计算方法
+
+### 3）藉由tr1::function完成Strategy模式
+
+这种方案是前一种的加强，将函数指针改成任何可调用对象。因此允许任何与可调用声明相兼容(即可以通过类型转换与声明相符)的可调用物
+
+```c++
+class GameCharacter;    //前置声明
+//健康值计算的缺省函数
+int defaultHealthCalc(const GameCharacter &gc);
+class GameCharacter{
+public:
+    //现在，类型HealthCalcFunc从函数指针变成了可调用物
+    typedef std::tr1::function<int (const GameCharacter&)> HealthCalcFunc;
+    explicit GameCharacter(HealthCalcFunc hcf = defaultHealthCalc) : healthFunc(hcf) {}
+    //non-virtual函数，virtual函数的包裹器(wrapper)
+    int healthValue() const
+    {
+        return healthFunc(*this);
+    }
+    ...
+private:
+    HealthCalcFunc healthFunc;
+};
+```
+
+### 4）传统的Stategy模式
+
+传统的Stategy模式做法会将健康计算函数做成一个分离的继承体系中的virtual成员函数，设计结果看起来像这样:
+
+<div align="center"> <img src="../pic/cppeffective-6-5.png"/> </div>
+
+<br>
+
+```c++
+class GameCharacter;    //前置声明
+class HealthCalcFunc{
+public:
+    ...
+    virtual int cacl(const GameCharacter &gc) const {...}
+    ...
+};
+//创建一个HealthCalcFunc对象，可以通过它调用缺省的健康值计算方法
+HealthCalcFunc defaultHealthCalc;
+
+class GameCharacter{
+public:
+    explicit GameCharacter(HealthCalcFunc *phcf = &defaultHealthCalc) : pHealthCalc(phcf) {}
+    //non-virtual函数，virtual函数的包裹器(wrapper)
+    int healthValue() const
+    {
+        return pHealthCalc->cacl(*this);
+    }
+    ...
+private:
+    HealthCalcFunc *pHealthCalc;
+};
+```
+
+这个方案的吸引力在于，熟悉标准Strategy模式的人很容易辨认它，而且它还提供“将一个既有的健康算法纳入使用”的可能性——只要为HealthCalcFunc继承体系添加一个derived class即可
+
+<br>
+
+## 条款36：绝不重新定义继承而来的non-virtual函数
+
+从规范上说，[条款34](#条款34区分接口继承和实现继承)提到，如果某个操作在整个继承体系应该是不变的，那么使用non-virtual函数，此时派生类从基类继承接口以及一份强制实现。如果派生类希望表现出不同行为，那么应该使用virtual函数
+
+另一方面，假设真的重新定义了继承而来的non-virtual函数，会表现出下列令人困惑的情况：
+
+```c++
+class B{
+public:
+    void mf();
+    ...
+};
+
+class D : public B{
+public:
+    void mf();  //重新定义了继承而来的non-virtual函数
+};
+
+D x;
+B *pB = &x;
+D *pD = &x;
+
+pB->mf();       //调用B::mf
+pD->mf();       //调用D::mf
+```
+
+你可能会觉得因为pB和pD指向的是相同的对象，因此调用的non-virtual函数也应该相同，但是事实并非如此。因为**non-virtual函数是静态绑定**，因此实际上调用的函数由指针或引用决定
+
+<br>
+
+## 条款37：绝不重新定义继承而来的缺省参数值
+
+[条款36](#条款36绝不重新定义继承而来的non-virtual函数)论述了non-virtual函数不应该被重新定义，那么non-virtual函数中的参数也就不存在被重新定义的机会。因此这里主要针对的是virtual函数
+
+**原因就在于，virtual函数是动态绑定，而缺省参数值却是静态绑定**。所以你可能调用了一个派生类的virtual函数，但是使用到的缺省参数，却是基类的
+
+```c++
+class Shape{
+public:
+    enum ShapeColor {Red,Green,Blue};
+    virtual void draw(ShapeColor color = Red) const = 0;
+    ...
+};
+
+class Rectangle : public Shape {
+public:
+    virtual void draw(ShapeColor color = Green) const;
+    ...
+};
+
+class Circle : public Shape {
+public:
+    virtual void draw(ShapeColor color) const;
+    ...
+};
+
+Rectangle r;
+Circle c;
+
+r.draw();           //调用Rectangle::draw，静态类型为Rectangle，所以缺省参数为Shape::Green
+//c.draw();         //调用Circle::draw，静态类型为Circle，没有缺省参数，因此错误，必须显示指定！
+
+Shape *pr = &r;
+Shape *pc = &c;
+
+//以下为容易引起困惑的地方，函数与参数不一致
+pr->draw();         //调用Rectangle::draw，但是静态类型为Shape，所以缺省参数Shape::Red
+pc->draw();         //调用Shape::draw，但是静态类型为Shape，所以缺省参数Shape::Red
+```
+
+但是，即使派生类严格遵循基类的缺省参数，也存在问题：当基类的缺省参数发生变化时，派生类的所有缺省参数也需要跟着修改。因此，本质在于，不应该在virtual函数中使用缺省参数，如果有这样的需求，那么这种场景就适合使用[条款35](#)中，public virtual函数的几种替代方案，比如NVI手法：
+
+```c++
+class Shape{
+public:
+    enum ShapeColor {Red,Green,Blue};
+    //此时，带缺省参数的已经不是virtual函数
+    void draw(ShapeColor color = Red) const
+    {
+        doDraw(color);  //调用一个virtual
+    }
+    ...
+private:
+    //而完成真正工作的virtual函数已经不带缺省参数
+    virtual void doDraw(ShapeColor color) const = 0;  //完成真正的工作
+};
+
+class Rectangle : public Shape {
+public:
+    ...
+private:
+    //而完成真正工作的virtual函数已经不带缺省参数
+    virtual void doDraw(ShapeColor color) const;
+    ...
+};
+
+class Circle : public Shape {
+public:
+    ...
+private:
+    //而完成真正工作的virtual函数已经不带缺省参数
+    virtual void doDraw(ShapeColor color) const;
+    ...
+};
+```
+
+## 条款38：通过复合塑模出has-a或“根据某物实现出”
+
+> 复合是类型间的一种关系，当某种类型的对象含有另一种类型的对象，便是这种关系
+
+复合意味着has-a(有一个)或is-implemented-in-terms-of(根据某物实现出)
+
+* has-a：
+    ```c++
+    class Address {...};
+    class PhoneNumber {...};
+    class Person{
+    public:
+        ...
+    private:
+        std::string name;
+        Address address;
+        PhoneNumber voiceNumber;
+        PhoneNumber faxNumber;
+    };
+    ```
+* 根据某物实现出：
+    ```c++
+    template <class T, class Sequence = deque<T> >
+    class stack {
+    ...
+    protected:
+      Sequence c;   //底层容器
+    ...
+    };
+    ```
+
+上面两者情况都应该使用复合，而不是public继承。在has-a中，每个人肯定不是一个地址，或者电话。显然不能是is-a的关系。而对于后者，由于每个栈只能从栈顶压入弹出元素，而队列不同，is-a的性质是所有对基类为true的操作，对派生类也应该为true。所有stack也不应该通过public继承deque来实现，因此使用复合
+
+<br>
+
+## 条款39：明智而审慎地使用private继承
+
+**private继承和public继承的不同之处**：
+
+* **编译器不会把子类对象转换为父类对象**
+    ```c++
+    class Person { ... };
+    class Student: private Person { ... };     // private继承
+    void eat(const Person& p);                 // 任何人都会吃
+    Person p;                                  // p是人
+    Student s;                                 // s是学生
+    eat(p);                                    // 没问题，p是人，会吃
+    eat(s);                                    // 错误！难道学生不是人？！
+    ```
+    如果使用public继承，编译器在必要的时候可以将Student隐式转换成Person，但是private继承时不会，所以eat(s)调用失败。从这个例子中表达了，private继承并不表现出is-a的关系。实际上**private表现出的是"is-implemented-in-terms-with"的关系**
+* **父类成员（即使是public、protected）都变成了private**
+
+[条款38](#条款38通过复合塑模出has-a或根据某物实现出)提到，复合也是可以表现出"is-implemented-in-terms-with"的关系，那么两者有什么区别？
+
+### 1）private继承
+
+假设Widget类需要执行周期性任务，于是希望继承Timer的实现。 因为Widget不是一个Timer，所以选择了private继承：
+
+```c++
+class Timer {
+public:
+   explicit Timer(int tickFrequency);
+   virtual void onTick() const;          // 每滴答一次，该函数就被自动调用一次
+};
+class Widget: private Timer {
+private:
+  virtual void onTick() const;           // 查看Widget的数据...等等
+};
+```
+
+在Widget中重写虚函数onTick，使得Widget可以周期性地执行某个任务
+
+通过private继承来表现"is-implemented-in-terms-with"关系实现非常简单，而且下列情况也只能使用这种方式：
+
+* 当Widget需要访问Timer的protected成员时。因为对象组合后只能访问public成员，而private继承后可以访问protected成员。
+* 当Widget需要重写Timer的虚函数时。比如上面的例子中，需要重写onTick。单纯的复合是做不到的
+
+### 3）复合
+
+如果使用复合，上面的例子可以这样实现：
+
+```c++
+class Widget {
+private:
+    class WidgetTimer: public Timer {
+    public:
+        virtual void onTick() const;
+    };
+    WidgetTimer timer;
+};
+```
+
+通过复合来表现"is-implemented-in-terms-with"关系，实现较为复杂，但是具有下列优点：
+
+* 如果希望禁止Widget的子类重定义onTick。因为派生类无法访问私有的WidgetTimer类
+* 可以减小Widget和Timer的编译依赖。如果是private继承，在定义Widget的文件中势必需要引入#include"timer.h"。 但如果采用复合的方式，可以把WidgetTimer放到另一个文件中，在Widget中使用WidgetTimer\*并声明WidgetTimer即可
+
+总的来说，在需要表现"is-implemented-in-terms-with"关系时。如果一个类需要访问基类的protected成员，或需要重新定义其一个或多个virtual函数，那么使用private继承。否则，在考虑过所有其它方案后，仍然认为private继承是最近办法，才使用它
+
+<br>
+
+## 条款40：明智而审慎地使用多重继承
+
+使用多继承时，一个问题是不同基类可能具有相同名称，产生歧义（即使一个名字可访问，另一个不可访问）
+
+一般有两种方式使用多继承：
+
+* 一般的多重继承
+    - 如果某个基类到派生类之间存在多条路径，那么派生类会包含重复的基类成员
+* 虚继承（此时基类是虚基类）
+    - 如果某个基类到派生类之间存在多条路径，派生类只包含一份基类成员，但是这会带来额外开销
+        + 为避免重复，编译器必须提供一些机制，后果就是virtual继承的那些classes所产生的对象往往比non-virtual继承的体积大，访问virtual base classes的成员变量时，速度也更慢
+        + virtual base的初始化由继承体系中的最底层class负责，这会带来开销
+            * classes若派生自virtual bases而需要初始化，必须认知其virtual bases——无论那些bases距离多远
+            * 当一个新derived class加入继承体系中，它必须承担其virtual bases的初始化责任
+
+如果你有一个单一继承的设计方案，而它大约等价于一个多重继承方案，那么单一继承设计方案几乎一定比较受欢迎。如果你唯一能够提出的设计方案涉及多重继承，你应该更努力想一想——几乎可以说一定会有某些方案让单一继承行得通。然后多重继承有时候是完成任务的最简洁、最易维护、最合理的做法，果真如此就别害怕使用它。只要确定，你的确是在明智而审慎的情况下使用它
 
 <br>
 <br>
