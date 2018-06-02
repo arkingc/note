@@ -44,6 +44,8 @@
     - [条款39：明智而审慎地使用private继承](#条款39明智而审慎地使用private继承)
     - [条款40：明智而审慎地使用多重继承](#条款40明智而审慎地使用多重继承)
 * [七.模板与泛型编程](#七模板与泛型编程)
+    - [条款41：了解隐式接口和编译器多态](#条款41了解隐式接口和编译器多态)
+    - [条款42：了解typename的双重意义](#条款42了解typename的双重意义)
 * [八.定制new和delete](#八定制new和delete)
 * [九.杂项讨论](#九杂项讨论)    
 
@@ -1750,6 +1752,66 @@ private:
 <br>
 
 # 七.模板与泛型编程
+
+## 条款41：了解隐式接口和编译器多态
+
+面向对象设计中的类（class）考虑的是显式接口（explicit interface）和运行时多态， 而模板编程中的模板（template）考虑的是隐式接口（implicit interface）和编译期多态。
+
+* 对类而言，显式接口是由函数签名表征的，运行时多态由虚函数实现
+* 对模板而言，隐式接口是由表达式的合法性表征的，编译期多态由模板初始化和函数重载的解析实现
+
+## 条款42：了解typename的双重意义
+
+以下代码中，typename和class等价：
+
+```c++
+template<class T> class Widget;
+template<typename T> class Widget;
+```
+
+但是如果在template中，遇到嵌套从属名称，需要明确声明是一种类型时，必须使用typename。考虑如下例子：
+
+```c++
+template<typename C>
+void print2nd(const C& container)
+{
+    C::const_iterator *x;
+    ...
+}
+```
+
+我们认为C::const_iterator表示容器C的迭代器类型，因此上述代码定义一个该迭代器类型的指针。但是这是一种先入为主的思想。如果C::const_iterator不是一个类型呢？比如恰巧有个static成员变量被命名为const_iterator，或如果x碰巧是个global变量名称？那样的话上述代码就不再是声明一个local变量，而是一个相乘动作
+
+因此，C++有个规则解决这种歧义：如果解析器在template中遭遇一个嵌套从属名称，它便假设这个名称不是个类型，除非你告诉它是。所以缺省情况下嵌套从属名称不是类型。那么怎么告诉它是一个类型，当然就是typename了，所以上述代码应该像这样：
+
+```c++
+template<typename C>
+void print2nd(const C& container)
+{
+    typename C::const_iterator *x;
+    ...
+}
+```
+
+因此，**规则是：除了下面2个例外，任何时候当你想要在template中指涉一个嵌套从属类型名称，就必须在紧临它的前一个位置放上关键字typename：**
+
+1. **typename不可出现在base classes list内的嵌套从属名称之前**
+2. **typename也不可出现在成员初始值列表中作为base class修饰符**
+
+```c++
+template<typename T>
+class Derived : public Base<T>::Nested{ //typename不可出现在此
+public:
+    explict Derived(int x) : Base<T>::Nested(x) //typename也不可出现在此
+    {
+        typename Base<T>::Nested temp;  //这里必须使用typename
+    }
+};
+```
+
+<br>
+
+## 条款43：学习处理模板化基类内的名称
 
 <br>
 <br>
