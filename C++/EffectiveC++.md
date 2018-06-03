@@ -46,8 +46,15 @@
 * [七.模板与泛型编程](#七模板与泛型编程)
     - [条款41：了解隐式接口和编译器多态](#条款41了解隐式接口和编译器多态)
     - [条款42：了解typename的双重意义](#条款42了解typename的双重意义)
+    - [条款43：学习处理模板化基类内的名称](#条款43学习处理模板化基类内的名称)
+    - [条款44：将与参数无关的代码抽离templates](#条款44将与参数无关的代码抽离templates)
+    - [条款45：运用成员函数模板接受所有兼容类型](#条款45运用成员函数模板接受所有兼容类型)
+    - [条款46：需要类型转换时请为模板定义非成员函数](#条款46需要类型转换时请为模板定义非成员函数)
+    - [条款47：请使用traits classes表现类型信息](#条款47请使用traits-classes表现类型信息)
+    - [条款48：认识template元编程](#条款48认识template元编程)
 * [八.定制new和delete](#八定制new和delete)
 * [九.杂项讨论](#九杂项讨论)    
+
 
 <br>
 <br>
@@ -1809,9 +1816,318 @@ public:
 };
 ```
 
+typename相关规则在不同的编译器上有不同的实践。某些编译器接收的代码原本该有typename却遗漏了；原本不该有typename却出现了；还有少数编译器（通常是较旧版本）根本就拒绝typename。这意味typename和“嵌套从属名称”之间的互动，也会在移植性方面给你带来一些麻烦
+
 <br>
 
 ## 条款43：学习处理模板化基类内的名称
+
+假设以下MsgSender类可以通过两种方式发送信息到各个公司：
+
+```c++
+template<typename Company>
+class MsgSender{
+public:
+    ...
+    //1.发送原始文本
+    void sendClear(...)
+    {
+        ...
+        Company c;
+        c.sendCleartext(...);   
+    }
+    //2.发送加密后的文本
+    void sendSecret(...) {...}
+    ...
+};
+```
+
+假设我们有时候想要在每次送出信息时志记(log)某些信息。因此有了以下派生类：
+
+```c++
+template<typename Company>
+class LoggingMsgSender : public MsgSender<Company>{
+public:
+    ...
+    void sendClearMsg(...)
+    {
+        //将“传送前“的信息写至log；
+        sendClear(...);             //调用base class函数，无法通过编译
+        //将”传送后“的信息写至log；
+    }
+    ...
+};
+```
+
+现在问题是，如果有一个公司CompanyZ只支持加密传送，那么泛化的MsgSender就不适合，因此需要为其产生一个特化版的MsgSender：
+
+```c++
+template<>
+class MsgSender<CompanyZ>{
+public:
+    ...
+    //只支持发送加密后的文本
+    void sendSecret(...) {...}
+    ...
+};
+```
+
+因此，当base class被指定为MsgSender<CompanyZ>时，其内不包含sendClear方法，那么derived class LoggingMsgSender的sendClearMsg方法就会调用不存在sendClear
+
+**因此，正是因为知道base class templates有可能被特化，而那么特化版本可能不提供和一般性template相同的接口。因此C++往往拒绝在templatized base classes（模板化基类，本例的MsgSender\<Company\>）内寻找继承而来的名称（本例的SendClear）**
+
+**解决办法有3个，它们会通知编译器:进入base class作用域查找继承而来的名称**：
+
+1. **使用this->**
+    ```c++
+    template<typename Company>
+    class LoggingMsgSender : public MsgSender<Company>{
+    public:
+        ...
+        void sendClearMsg(...)
+        {
+            //将“传送前“的信息写至log；
+            this->sendClear(...);     //成立，假设sendClear将被继承
+            //将”传送后“的信息写至log；
+        }
+        ...
+    };
+    ```
+2. **使用using**
+    ```c++
+    template<typename Company>
+    class LoggingMsgSender : public MsgSender<Company>{
+    public:
+        //告诉编译器，请它假设sendClear位于base class内
+        using MsgSender<Company>::sendClear;
+        ...
+        void sendClearMsg(...)
+        {
+            //将“传送前“的信息写至log；
+            sendClear(...);     //成立，假设sendClear将被继承
+            //将”传送后“的信息写至log；
+        }
+        ...
+    };
+    ```
+3. **通过作用域符明确指出**
+    ```c++
+    template<typename Company>
+    class LoggingMsgSender : public MsgSender<Company>{
+    public:
+        ...
+        void sendClearMsg(...)
+        {
+            //将“传送前“的信息写至log；
+            MsgSender<Company>::sendClear(...);  //成立，假设sendClear将被继承
+            //将”传送后“的信息写至log；
+        }
+        ...
+    };
+    ```
+    这种方法往往最不让人满意，因为如果被调用的是virtual函数，这样会关闭”virtual绑定行为“
+
+要注意的是，它们只是通知编译器进去查找。如果找到了自然是没问题。但是如同上面的CompanyZ，如果基类还是不存在相应名称，编译器还是会报错
+
+<br>
+
+## 条款44：将与参数无关的代码抽离templates
+
+模板提供的是编译期的多态， 即使你的代码看起来非常简洁短小，生成的二进制文件也可能包含大量的冗余代码。 因为模板每次实例化都会生成一个完整的副本，所以其中与模板参数无关的部分会造成代码膨胀
+
+把模板中参数无关的代码重构到模板外便可以有效地控制模板产生的代码膨胀：
+
+* **对于非类型模板参数产生的代码膨胀，用函数参数或成员变量来替换模板参数即可消除冗余**
+    ```c++
+    //非类型模板参数造成代码膨胀
+    template<typename T, int n>
+    class Square{
+    public:
+        void invert();  //求逆矩阵
+    };
+    //以下会实例化两个类：Square<double, 5>和Square<double, 10>
+    //会具现化两份invert。除了常量5和10，两个函数的其它部分完全相同
+    Square<double, 5> s1;
+    Square<double, 10> s2;
+    s1.invert();
+    s2.invert();
+    //以下，使用函数参数消除重复
+    template<typename T>
+    class SquareBase{
+    protected:  
+        //以下函数只是作为避免代码重复的方法，并不应该被外界调用，
+        //同时，该函数希望被子类调用，因此使用protected
+        void invert(int size);
+    };
+    template<typename T, int n>
+    class Square:private SquareBase<T>{//只要T相同，都会使用同一份父类实例，
+    private:                           //因此，只有一份invert(int size)
+        using SquareBase<T>::invert;
+    public:
+        //调用父类invert的代价为零，因为Square::invert是隐式的inline函数
+        void invert(){ this->invert(n); }
+    }
+    ```
+    最后是父类如何访问矩阵数据。原本这些数据在派生类中，但是因为invert核心代码转移到了父类，那么父类必须有办法访问这些数据。可以在调用SquareBase::invert时把内存地址也一起告知父类，但如果矩阵类中有很多函数都需要这些信息就需要为每个函数添加一个这样的参数。因此，可以把数据地址直接放在父类中
+* **对于类型模板参数产生的代码膨胀，可以让不同实例化的模板类共用同样的二进制表示**
+    - int和long在多数平台都是一样的底层实现，然而模板却会实例化为两份，因为它们类型不同
+    - List<int *>, List<const int *>, List<double *>的底层实现也是一样的。但因为指针类型不同，也会实例化为多份模板类
+    如果某些成员函数操作强型指针(T\*)，应该令它们调用另一个操作无类型指针(void\*)的函数，后者完成实际工作
+
+<br>
+
+## 条款45：运用成员函数模板接受所有兼容类型
+
+需要使用成员函数模板的一个例子是构造函数和copying赋值运算符。例如，假设SmartPtr是一种智能指针，并且它是一个template class。现在有一个继承体系：
+
+```c++
+class Top {...};
+class Middle : public Top {...};
+class Bottom : public Middle {...};
+```
+
+现在希望通过一个SmartPtr\<Bottom\>或SmartPtr\<Middle\>来初始化一个SmartPtr\<Top\>。如果不是指针，即Middle\*和Bottom\*可以隐式转换成Top\*，问题是：**同一个template的不同具现体之间不存在什么与生俱来的固有关系，即使具现体之间具有继承关系**。因此，SmartPtr\<Bottom\>或SmartPtr\<Middle\>并不能隐式转化成SmartPtr\<Top\>。因此，我们需要一个构造函数模板，来实现这种转换：
+
+```c++
+template<typename T>
+class SmartPtr{
+public:
+    //构造函数模板
+    //意思是：对任何类型T和任何类型U，可以根据SmartPtr<U>生成一个SmartPtr<T>
+    template<typename U>
+    SmartPtr(const SmartPtr<U> &other)
+     : heldPtr(other.get()) {...}
+    //原始指针为private成员，需要一个接口来获取
+    T* get() const {return heldPtr;}
+    ...
+private:
+    T* heldPtr;   //智能指针所持有的原始指针
+};
+```
+
+我们当然不希望一个SmartPtr\<Top\>可以转化成SmartPtr\<Bottom\>或SmartPtr\<Middle\>，
+```heldPtr(other.get())```为次提供了保证。这个行为只有当“存在某个隐式转换可将一个U\*指针转为一个T\*指针”时才能通过编译
+
+最后需要指明的是：**member templates并不改变语言规则**，而语言规则说，如果程序需要一个copy构造函数，你却没声明它，编译器会为你暗自生成一个。因此，使用member templates实现一个泛化版的copy构造函数时，编译器也会合成一个“正常的”copy构造函数
+
+<br>
+
+## 条款46：需要类型转换时请为模板定义非成员函数
+
+**template实参推导过程中从不将隐式类型转换函数纳入考虑**，下列将[条款24]中的Rational和operator\*改成了template，混合运算会编译错误：
+
+```c++
+template<typename T>
+class Rational{
+public:
+    Rational(const T &numerator = 0, const T &denominator = 1);
+    const T numerator() const;
+    const T denominator() const;
+    ...
+};
+
+template<typename T>
+const Rational<T> operator*(const Rational<T> &lhs,const Rational<T> &rhs)
+{ ... }
+
+Rational<int> oneHalt(1,2);
+Rational<int> result = oneHalf * 2   //编译错误
+```
+
+将oneHalf传递给operator\*时，它将T推断为int，因此期待第二个参数也为Rational，但是第二个参数为int，前面我们说了，template实参推导过程中从不将隐式类型转换函数纳入考虑。因此编译错误
+
+那么解决办法是什么？在class template将其声明为friend，从而具现化一个operator\*，具现化后就可以不受template的限制了：
+
+```c++
+template<typename T>
+class Rational{
+public:
+    ...
+    //也可以是Rational<T>，但是省去<T>更简洁
+    friend const Rational operator*(const Rational &lhs,const Rational &rhs)
+    {
+        return Rational(lhs.numerator() * rhs.numerator,
+                         lhs.denominator() * rhs.denominator());
+    }
+};
+```
+
+如果上面只有函数声明，而函数定义在类外，那么会报链接错误。当传入第一个参数oneHalt时，会具现化Rational\<int\>，编译器也就知道了我们要调用传入两个Rational\<int\>的版本，但是那个函数只在类中进行了声明，并没有定义，不能依赖类外的operator\* template提供定义，我们必须自己定义，所以会出现链接错误。解决方法就是像上面一样定义与类内
+
+这样看起来有点像是member函数，但是因为friend关键字，所以实际是non-member函数，如果去掉friend关键字，就成了member函数，但是此时参数也只能有1个，就不能实现所有参数的隐式转换
+
+上面的代码可能还有一个问题，虽然有friend，上述函数仍是隐式的inline。如果函数实体代码量较大，可以令operator\*不做任何事，只调用一个定义与class外部的辅助函数（当然这里没必要，因为本身只有1行）
+
+```c++
+template<typename T> class Rational;
+
+//helper template
+template<typename T>
+const Rational<T> doMultiply(const Rational<T>& lhs, const Rational<T>& rhs);
+
+template<typename T>
+class Rational{
+public:
+    friend Rational<T> operator*(const Rational<T>& lhs, const Rational<T>& rhs)
+    {
+        return doMultiply(lhs, rhs);
+    }
+};
+```
+
+<br>
+
+## 条款47：请使用traits classes表现类型信息
+
+* Traits classes使得“类型相关信息”在编译期可用。它们以templates和“templates特化”完成实现
+* 整合重载技术后，traits classes有可能在编译器对类型执行if...else测试
+
+详细可参考[STL源码分析中对traits的介绍](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2traits%E7%BC%96%E7%A8%8B%E6%8A%80%E6%B3%95)
+
+<br>
+
+## 条款48：认识template元编程
+
+* Template metaprogramming(TMP)是编写template-based C++程序并执行与编译期的过程
+* Template metaprogram(模板元程序)是以C++写成、执行于C++编译器内的程序
+
+**TMP的两个重要特点：1）基于template；2）编译期执行**
+
+TMP有2个伟大的效力：
+
+1. 它让某些事情更容易。如果没有它，那些事情将是困难的，甚至不可能的
+2. 执行于编译期，因此可将工作从运行期转移到编译期。会导致以下几个结果
+    + 某些原本在运行期才能侦测到的错误现在可在编译期找出来
+    + 使用TMP的C++程序可能在每一方面都更高效：较小的可执行文件、较短的运行期、较少的内存需求
+    + 编译时间变长了
+
+traits解法就是TMP，traits引发“编译器发生于类型身上的if...else计算”
+
+另一个TMP的例子是循环，TMP并没有真正的循环构件，所以循环效果藉由递归完成。TMP的递归甚至不是正常种类，因为TMP循环并不涉及递归函数调用，而是涉及“递归模板具现化”。以计算阶乘为例子：
+
+```c++
+template<unsigned n>
+struct Factorial{    //一般情况，Factorial<n>的值是n乘以Factorial<n-1>
+    enum {value = n * Factorial<n-1>::value};
+};
+
+template<>
+struct Factorial<0>{    //特殊情况：Factorial<0>的值是1
+    enum {value = 1;}
+};
+
+int main()
+{
+    std::cout << Factorial<5>::value;    //打印120
+    std::cout << Factorial<10>::value;   //打印3628800
+}
+```
+
+TMP能够达到以下目标（这部分可以等有实际需求了再去详细了解）：
+
+* 确保量度单位正确
+* 优化矩阵运算
+* 可以生成客户定制的设计模式实现品
 
 <br>
 <br>
