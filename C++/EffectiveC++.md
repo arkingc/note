@@ -53,8 +53,12 @@
     - [条款47：请使用traits classes表现类型信息](#条款47请使用traits-classes表现类型信息)
     - [条款48：认识template元编程](#条款48认识template元编程)
 * [八.定制new和delete](#八定制new和delete)
-* [九.杂项讨论](#九杂项讨论)    
-
+    - [条款47：请使用traits classes表现类型信息](#条款47请使用traits-classes表现类型信息)
+    - [条款48：认识template元编程](#条款48认识template元编程)
+    - [条款49：了解new-handler的行为](#条款49了解new-handler的行为)
+    - [条款50：了解new和delete的合理替换时机](#条款50了解new和delete的合理替换时机)
+    - [条款51：编写new和delete时需固守常规](#条款51编写new和delete时需固守常规)
+    - [条款52：写了placement new也要写placement delete](#条款52写了placement-new也要写placement-delete)
 
 <br>
 <br>
@@ -2134,7 +2138,280 @@ TMP能够达到以下目标（这部分可以等有实际需求了再去详细�
 
 # 八.定制new和delete
 
-<br>
+* operator new 和 operator delete用来分配单一对象
+* Arrays所用的内存由operator new\[\]分配出来，并由operator delete\[\]归还
+* STL容器使用的heap内存由容器所拥有的分配器对象管理
+
+## 条款49：了解new-handler的行为
+
+operator new抛出异常以反映一个未获满足的内存需求之前，会先调用一个客户指定的错误处理函数，new-handler，可以通过调用```std::set_new_handler()```来设置，```std::set_new_handler()```定义在\<new\>中：
+
+```c++
+namespace std{
+    typedef void (*new_handler)();
+    new_handler set_new_handler(new_handler p) throw(); 
+    //以上，throw()是一个异常声明，括号内无任何内容，表示不抛任何异常
+}
+```
+
+当operator new无法满足内存申请时，它会不断调用new-handler函数，直到找到足够内存。一个设计良好的new-handler函数必须做以下事情；
+
+* **让更多内存可被使用**：一个做法是程序一开始执行就分配一大块内存，而后当new-handler第一次被调用，将它们还给程序使用。这便造成operator new内的下一次内存分配动作可能成功
+* **安装另一个new-handler**：如果当前new-handler无法取得更多可用内存，可用安装另一个，下次operator new时会调用新的new-handler
+* **卸除new-handler**：将null指针传给set_new_handler
+* **抛出bad_alloc(或派生自bad_alloc)的异常**：这样的异常不会被operator new捕获，因此会被传播到内存索求处
+* **不返回**：通常调用abort或exit（abort会设置程序非正常退出，exit会设置程序正常退出，当存在未处理异常时C++会调用terminate， 它会回调由std::set_terminate设置的处理函数，默认会调用abort）
+
+### 实现class专属的new-handlers
+
+```c++
+class NewHandlerHolder{
+public:
+    explicit NewHandlerHolder(std::new_handler nh): handler(nh){}
+    ~NewHandlerHolder(){ std::set_new_handler(handler); }
+private:
+    std::new_handler handler;
+    NewHandlerHolder(const HandlerHolder&);     // 禁用拷贝构造函数
+    const NewHandlerHolder& operator=(const NewHandlerHolder&); // 禁用赋值运算符
+};
+
+template<typename T>
+class NewHandlerSupport{
+public:
+    static std::new_handler set_new_handler(std::new_handler p) throw();
+    static void * operator new(std::size_t size) throw(std::bad_alloc);
+private:
+    static std::new_handler current;   //class专属的new-handlers
+};
+
+//class专属的new-handlers初始化为null
+template<typename T>
+std::new_handler NewHandlerSupport<T>::current = 0;
+
+template<typename T>
+std::new_handler NewHandlerSupport<T>::set_new_handler(std::new_handler p) throw(){
+    std::new_handler old = current;
+    current = p;    //将class专属的new-handlers设置为新的new_handler
+    return old;     //返回旧的class专属的new-handlers
+}
+
+//new时会调用该operator new
+//它会设置全局的new-handlers为该class专属的new-handlers，然后调用全局operator new申请内存
+//h对象销毁后，其析构函数会将全局new-handlers恢复为调用前的状态
+template<typename T>
+void * NewHandlerSupport<T>::operator new(std::size_t size) throw(std::bad_alloc){
+    NewHandlerHolder h(std::set_new_handler(current));
+    return ::operator new(size);
+}
+```
+
+有了```NewHandlerSupport```这个模板基类后，给Widget添加”new-handler”支持只需要public继承即可:
+
+```c++
+class Widget: public NewHandlerSupport<Widget>{ ... };
+```
+
+```NewHandlerSupport```的实现和模板参数T完全无关，添加模板参数是因为handler是静态成员，这样编译器才能为每个类型生成一个handler实例
+
+### nothrow new
+
+1993年之前C++的operator new在失败时会返回null而不是抛出异常。如今的C++仍然支持这种nothrow的operator new
+
+```c++
+Widget *p1 = new Widget;    // 失败时抛出 bad_alloc 异常
+if(p1 == 0) ...             // 这个测试一定失败
+
+Widget *p2 = new (std::nothrow) Widget;
+if(p2 == 0) ...             // 这个测试可能成功
+```
+
+nothrow new只能保证所调用的nothrow版的operator new不抛出异常，但是构造也属于new的一个步骤，而它没法强制构造函数不抛出异常，所以并不能保证```new (std::nothrow) Widget```这样的表达式绝不导致异常
+
 <br>
 
-# 九.杂项讨论
+## 条款50：了解new和delete的合理替换时机
+
+一般出于下列原因可能想要替换编译器提供的operator new或operator delete：
+
+* 为了检测运用错误
+* 为了收集动态分配内存的使用统计信息
+* 为了增加分配和归还的速度
+* 为了降低缺省内存管理器带来的空间额外开销
+* 为了弥补缺省分配器中的非最佳齐位
+* 为了将相关对象成簇集中
+* 为了获得非传统的行为
+
+下面是一个”为了检测运用错误“而实现的简单的operator new的例子，通过在首部和尾部插入一个签名，返回中间内存块给程序使用，如果程序在使用内存时发生过在区块前或区块后写入的行为，那么签名就会被修改，因此可以检测这种行为：
+
+```c++
+static const int signature = 0xDEADBEEF;    // 边界符
+typedef unsigned char Byte; 
+
+void* operator new(std::size_t size) throw(std::bad_alloc) {
+    // 多申请一些内存来存放占位符 
+    size_t realSize = size + 2 * sizeof(int); 
+
+    // 申请内存
+    void *pMem = malloc(realSize);
+    if (!pMem) throw bad_alloc(); 
+
+    // 写入边界符
+    *(reinterpret_cast<int*>(static_cast<Byte*>(pMem)+realSize-sizeof(int))) 
+        = *(static_cast<int*>(pMem)) = signature;
+
+    // 返回真正的内存区域
+    return static_cast<Byte*>(pMem) + sizeof(int);
+}
+```
+
+这个例子主要是展示，它存在很多错误：
+
+1. 所有的operator new都应该内含一个循环，反复调用某个new-handling函数，这里却没有
+2. C++要求所有operator new返回的指针都有适当的对齐。这里malloc返回的指针是满足要求的，但是因为上述实现并不是直接返回malloc的结果，而是返回一个int偏移后的地址，因此无法保证它的安全
+
+<br>
+
+## 条款51：编写new和delete时需固守常规
+
+前一条款是解释什么时候会想实现自己的 operator new 和 operator delete，这个条款是解释当实现自己的 operator new 和 operator delete 时，必须遵守的规则
+
+### 1）operator new
+
+实现一致性的operator new必得返回正确的值，内存不足时必得调用new-handling函数，必须有对付零内存需求的准备，还需避免不慎掩盖正常形式的new
+
+下面是non-member operator new的伪码：
+
+```c++
+void* operator new(std::size_t size) throw(std::bad_alloc)
+{
+    using namespace std;
+    if(size == 0){          //处理0-byte申请
+        size = 1;           //将它视为1-byte
+    }
+    while(true){
+        尝试分配size bytes
+        if (分配成功)
+        return (一个指针，指向分配得来的内存)
+
+        //分配失败：找出目前的new-handling函数
+        new_handler globalHandler = set_new_handler(0);
+        set_new_handler(globalHandler);
+        
+        if(globalHandler) (*globalHandler)();
+        else throw std::bad_alloc();
+    }
+}
+```
+
+在继承中定制member operator new时，一般是针对某特定class的对象分配行为提供最优化，此时，并不是为了该class的任何derived classes。也就是说，针对class X而设计的operator new，其行为很典型地只为大小刚好为sizeof(X)的对象而设计。然而一旦被继承下去，有可能base class的operator new被调用用以分配derived class对象：
+
+```c++
+class Base{
+public:
+    static void* operator new(std::size_t size) throw(std::bad_alloc);
+    ...
+};
+
+class Derived : public Base  //假设Derived未声明operator new
+{...};
+
+Derived *p = new Derived;    //这里调用的是Base::operator new
+```
+
+如果Base class专属的operator new并没有设计上述问题的处理方法，那么最佳做法是将“内存申请量错误”的调用行为改采标准operator new，像这样：
+
+```c++
+void* Base::operator new(std::size_t size) throw(std::bad_alloc)
+{
+    if(Base != sizeof(Base))            //如果大小错误
+        return ::operator new(size);    //交给标准的operator new处理
+    ...
+}
+```
+
+### 2）operator delete
+
+operator delete比起operator new更简单，需要记住的唯一事情就是C++保证“删除null指针永远安全”：
+
+```c++
+void operator delete(void* rawMemory) throw()
+{
+    if(rawMemory == 0)  return;  //如果将被删除的是个null指针，那就什么都不做
+    现在，归还rawMemory所指的内存；
+}
+```
+
+member版本也很简单，只需要多一个动作检查删除数量。万一class专属的operator new将大小有误的分配行为转交::operator new执行，你也必须将大小有误的删除行为转交::operator delete执行
+
+```c++
+void* Base::operator delete(void* rawMemory,std::size_t size) throw()
+{
+    if(rawMemory == 0)  return;         //检查null指针
+    if(size != sizeof(Base)){           //如果大小错误，令标准版
+        ::operator delete(rawMemory);   //operator delete处理此一申请
+        return;
+    }
+    现在，归还rawMemory所指的内存
+    return;
+}
+```
+
+如果即将被删除的对象派生自某个base class，而后者欠缺virtual析构函数，那么C++传给operator delete的size_t数值可能不正确。这是“让你的base classes拥有virtual析构函数”的一个够好的理由
+
+<br>
+
+## 条款52：写了placement new也要写placement delete
+
+placement new是带有额外参数的operator new，但是通常都指“接受一个指针指向对象该被构造之处”的operator new。这个版本被纳入了C++标准程序库，只要#include\<new>\就可以使用：
+
+```c++
+void* operator new(std::size_t,void* pMemory) throw();
+```
+
+new会先调用operator new，然后构造对象。如果对象构造过程中发生异常，那么需要调用相应的operator delete，否则会发生内存泄露。而operator delete必须和相应的operator new匹配
+
+* 对于正常版本的operator new，匹配的operator delete就是不带额外参数的版本
+* 对于非正常版本的operator new(placement new)，匹配的operator delete是带相应参数的版本(placement delete)
+
+placement delete只有在“伴随placement new调用而触发的构造函数”出现异常时才会被调用。对着一个指针施行delete绝不会导致调用placement delete
+
+这意味着如果要对所有与placement new相关的内存泄露宣战，我们必须同时提供一个正常的operator delete（用于构造期间无任何异常被抛出）和一个placement版本（用于构造期间有异常被抛出）。后者的额外参数必须和operator new一样。只要这样做，就再也不会因为难以察觉的内存泄露而失眠
+
+还需要注意名称掩盖的问题：
+
+* 成员函数的名称会掩盖外围作用域中的相同名称
+* 子类的名称会掩盖所有父类相同的名称
+
+一个比较好的方法是：
+
+```c++
+class StandardNewDeleteForms{
+public:
+    //正常的 new/delete
+    static void* operator new(std::size_t size) throw(std::bad_alloc)
+    {return ::operator new(size);}
+    static void operator delete(void* pMemory) throw()
+    {::operator delete(pMemory);}
+
+    //placement new/delete
+    static void* operator new(std::size_t size, void *ptr) throw() 
+    { return ::operator new(size, ptr); }
+    static void operator delete(void *pMemory, void *ptr) throw() 
+    { return ::operator delete(pMemory, ptr); }
+
+    // nothrow new/delete
+    static void* operator new(std::size_t size, const std::nothrow_t& nt) throw() 
+    { return ::operator new(size, nt); }
+    static void operator delete(void *pMemory, const std::nothrow_t&) throw() 
+    { ::operator delete(pMemory); }
+};
+
+class Widget: public StandardNewDeleteForms {      //继承标准形式
+public:
+   using StandardNewDeleteForms::operator new;     //让这些形式可见
+   using StandardNewDeleteForms::operator delete;
+
+   static void* operator new(std::size_t size, std::ostream& log) throw(std::bad_alloc);    // 自定义 placement new
+   static void operator delete(void *pMemory, std::ostream& logStream) throw();            // 对应的 placement delete
+};
+```
