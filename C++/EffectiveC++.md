@@ -53,8 +53,6 @@
     - [条款47：请使用traits classes表现类型信息](#条款47请使用traits-classes表现类型信息)
     - [条款48：认识template元编程](#条款48认识template元编程)
 * [八.定制new和delete](#八定制new和delete)
-    - [条款47：请使用traits classes表现类型信息](#条款47请使用traits-classes表现类型信息)
-    - [条款48：认识template元编程](#条款48认识template元编程)
     - [条款49：了解new-handler的行为](#条款49了解new-handler的行为)
     - [条款50：了解new和delete的合理替换时机](#条款50了解new和delete的合理替换时机)
     - [条款51：编写new和delete时需固守常规](#条款51编写new和delete时需固守常规)
