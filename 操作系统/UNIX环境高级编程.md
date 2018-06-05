@@ -450,13 +450,14 @@ UNIX操作系统在内核中设有**缓冲区高速缓存**或**页高速缓存*
 <div align="center"> <img src="../pic/apue-standardio-5.png"/> </div>
 
 - 参数：
-    + `type`：指定对该IO流的读写方式
+    + `type`：指定对该IO流的读写方式（具体见下图）
         * 其中`b`用于区分二进制文件和文本文件。但是由于`UNIX`内核并不区分这两种文件，所以在UNIX环境中指定`b`并没有什么用
         * 对于`fdopen`，`type`意义稍微有点区别。因为该描述符已经被打开，所以`fdopen`为写而打开并不截断该文件。另外该文件既然被打开并返回一个文件描述符，则它一定存在。因此标准I/O追加写方式也不能创建文件
-    <div align="center"> <img src="../pic/apue-standardio-6.png"/> </div>
     + `pathname`：待打开文件的路径名
     + `fp`：指定的流（若`fp`已经打开，则先关闭该流；若`fp`已经定向，则清除该定向）
     + `fd`：指定的文件描述符。获得的标准I/O流将与该描述符结合
+
+<div align="center"> <img src="../pic/apue-standardio-6.png"/> </div>
 
 这几个函数的常见用途：
 
@@ -470,6 +471,8 @@ UNIX操作系统在内核中设有**缓冲区高速缓存**或**页高速缓存*
 - 如果读操作后面没有`fseek,fsetpos,rewind`操作之一，也没有到达文件末尾，则在读操作之后不能紧跟写操作
 
 **默认情况下，流被打开时是全缓冲的。但是如果流引用的是终端设备，则流被打开时是行缓冲的**
+
+<br>
 
 <div align="center"> <img src="../pic/apue-standardio-7.png"/> </div>
 
