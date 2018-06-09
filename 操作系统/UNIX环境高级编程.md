@@ -1595,11 +1595,469 @@ struct tms{
 
 # Part3：线程
 
+* [八.线程](#八线程)
+    - [1.相关调用](#1相关调用)
+    - [2.线程同步](#2线程同步)
+        + [2.1 互斥锁](#21-互斥锁)
+        + [2.2 读写锁](#22-读写锁)
+        + [2.3 条件变量](#23-条件变量)
+        + [2.4 自旋锁](#24-自旋锁)
+        + [2.5 屏障](#25-屏障)
+
 <br>
 <br>
 <br>
 
 # 八.线程
+
+当一个进程需要另一个实体来完成某事时，Unix上大多数网络服务器通过fork一个子进程来处理。但是**fork调用存在一些问题**：
+
+* **fork是昂贵的**。fork要把父进程的内存映像复制到子进程，并在子进程中复制所有描述符。尽管现在使用**写时拷贝**技术，避免在子进程切实需要自己的副本之前把父进程的数据空间拷贝到子进程。但是fork仍然是昂贵哦的
+* **fork返回之后父子进程之间信息的传递需要进程间通信(IPC)机制**。调用fork之前，父进程向尚未存在的子进程传递信息相当容易，因为子进程将从父进程数据空间及所有描述符的一个副本开始运行。然而从子进程往父进程返回信息却比较费力
+
+**线程有助于解决上述问题，它被称为“轻量级进程”，创建可能比进程的创建快10~100倍。但是，伴随这种简易性而来的是同步问题**
+
+**线程之间的资源共享**：
+
+* **同一进程内的线程共享**
+    - 相同的全局内存
+    - 进程指令
+    - 大多数数据
+    - 打开的文件（即描述符）
+    - 信号处理函数和信号设置
+    - 当前工作目录
+    - 用户ID和组ID
+* **线程之间不共享**
+    - 线程ID
+    - 寄存器集合（包括程序计数器和栈指针）
+    - 栈（用于存放局部变量和返回地址）
+    - errno
+    - 信号掩码
+    - 优先级
+
+> 这一章介绍的是POSIX线程，也称为Pthread。POSIX线程作为POSIX.1c标准的一部分在1995年得到标准化，大多数UNIX版本将来会支持这类线程。所有Pthread函数都以pthread_打头
+
+## 1.相关函数
+
+* [pthread_create函数](#1pthread_create函数)
+* [pthread_join函数](#2pthread_join函数)
+* [pthread_self函数](#3pthread_self函数)
+* [pthread_detach函数](#4pthread_detach函数)
+* [pthread_exit函数](#5pthread_exit函数)
+* [pthread_equal函数](#6pthread_equal函数)
+* [pthread_cancel函数](#7pthread_cancel函数)
+
+### 1）pthread_create函数
+
+该函数用于创建一个POSIX线程。**当一个程序由exec启动执行时，称为“初始线程”或“主线程”的单个线程就创建了。其余线程则由pthread_create函数创建**
+
+<div align="center"> <img src="../pic/unp-thread-1.png"/> </div>
+
+* **tid**：线程ID，数据类型为pthread_t，往往是unsigned int，如果线程成功创建，其ID就通过tid指针返回
+* **attr**：线程属性，包括：优先级、初始栈大小、是否应该成为一个守护线程等。设置为空指针时表示采用默认设置
+* **func**：该线程执行的函数
+* **arg**：该线程执行函数的参数，参数为一个无类型指针，如果需要向函数传递的参数有一个以上，那么需要把这些参数放到一个结构中，然后把这个结构的地址作为参数传入
+
+**如果发生错误，函数返回指示错误的某个正值，不会设置errno变量**
+
+**创建的线程通过调用指定的函数开始执行，然后显示地（通过调用pthread_exit）或隐式地（通过让该函数返回）终止**
+
+**线程创建时，并不能保证哪个线程会先运行**
+
+### 2）pthread_join函数
+
+pthread_join类似于进程中的waitpid，用于等待一个给定线程的终止
+
+<div align="center"> <img src="../pic/unp-thread-2.png"/> </div>
+
+* **tid**：等待终止的线程ID。和进程不同的是，无法等待任意线程，所以不能通过指定ID参数为-1来企图等待任意线程终止
+* **status**：如果该指针非空，来自所等待线程的返回值（一个指向某个对象的指针）将存入由status指向的位置
+
+```c++
+#include "apue.h"
+#include <pthread.h>
+
+void *
+thr_fn1(void *arg)
+{
+    printf("thread 1 returning\n");
+    return((void *)1);
+}
+
+void *
+thr_fn2(void *arg)
+{
+    printf("thread 2 exiting\n");
+    pthread_exit((void *)2);
+}
+
+int
+main(void)
+{
+    int         err;
+    pthread_t   tid1, tid2;
+    void        *tret;
+
+    err = pthread_create(&tid1, NULL, thr_fn1, NULL);
+    if (err != 0)
+        err_exit(err, "can't create thread 1");
+    err = pthread_create(&tid2, NULL, thr_fn2, NULL);
+    if (err != 0)
+        err_exit(err, "can't create thread 2");
+    err = pthread_join(tid1, &tret);
+    if (err != 0)
+        err_exit(err, "can't join with thread 1");
+    printf("thread 1 exit code %ld\n", (long)tret);
+    err = pthread_join(tid2, &tret);
+    if (err != 0)
+        err_exit(err, "can't join with thread 2");
+    printf("thread 2 exit code %ld\n", (long)tret);
+    exit(0);
+}
+```
+
+上述程序输出如下：
+
+```
+thread 1 returning
+thread 2 exiting
+thread 1 exit code 1
+thread 2 exit code 2
+```
+
+### 3）pthread_self函数
+
+线程可以使用pthread_self获取自身的线程ID，类似于进程中的getpid
+
+<div align="center"> <img src="../pic/unp-thread-3.png"/> </div>
+
+新线程不应该根据主线程调用`pthread_create`函数时传入的`tid`参数来获取自身ID，而是应该调用pthread_self，因为新线程可能在主线程调用`pthread_create`返回之前运行，如果读取`tid`，看到的是未经初始化的内容
+
+### 4）pthread_detach函数
+
+<div align="center"> <img src="../pic/unp-thread-4.png"/> </div>
+
+该函数把指定的线程转变为**脱离状态**，通常由想让自己脱离的线程调用：```pthread_detach(pthread_self());```
+
+一个线程或者是**可汇合**的，或者是**脱离**的：
+
+* **可汇合**：一个可汇合线程终止时，它的线程ID和退出状态将保存到另一个线程对它调用pthread_join。如果一个线程需要知道另一个线程什么时候终止，那就最好保持第二个线程的可汇合状态
+* **脱离**：脱离的线程像守护进程，当它们终止时，所有相关资源都被释放，不能等待它们终止
+
+### 5）pthread_exit函数
+
+线程终止的**一个方法**：
+
+<div align="center"> <img src="../pic/unp-thread-5.png"/> </div>
+
+* **status**：不能指向一个局部于调用线程的对象，因为线程终止时这样的对象也消失
+
+让一个线程终止的**另外两个**方法：
+
+1. **线程执行的函数返回**，在pthread_create参数中，这个函数的返回值是一个void\*指针，它指向相应线程的终止状态
+2. **被同一进程的其它线程调用`pthread_cancel`取消**（该函数只是发起一个请求，目标线程可以选择忽略取消或控制如何被取消）
+3. **如果进程的main函数返回或任何线程调用了`exit`、`_Exit`、`_exit`，整个进程就终止了，其中包括它的任何线程**
+
+下列程序status指向一个栈上的结构，这个栈上的对象被后来的线程覆盖：
+
+```c
+#include "apue.h"
+#include <pthread.h>
+
+struct foo {
+    int a, b, c, d;
+};
+
+void
+printfoo(const char *s, const struct foo *fp)
+{
+    printf("%s", s);
+    printf("  structure at 0x%lx\n", (unsigned long)fp);
+    printf("  foo.a = %d\n", fp->a);
+    printf("  foo.b = %d\n", fp->b);
+    printf("  foo.c = %d\n", fp->c);
+    printf("  foo.d = %d\n", fp->d);
+}
+
+void *
+thr_fn1(void *arg)
+{
+    struct foo  foo = {1, 2, 3, 4};
+
+    printfoo("thread 1:\n", &foo);
+    pthread_exit((void *)&foo);
+}
+
+void *
+thr_fn2(void *arg)
+{
+    printf("thread 2: ID is %lu\n", (unsigned long)pthread_self());
+    pthread_exit((void *)0);
+}
+
+int
+main(void)
+{
+    int         err;
+    pthread_t   tid1, tid2;
+    struct foo  *fp;
+
+    err = pthread_create(&tid1, NULL, thr_fn1, NULL);
+    if (err != 0)
+        err_exit(err, "can't create thread 1");
+    err = pthread_join(tid1, (void *)&fp);
+    if (err != 0)
+        err_exit(err, "can't join with thread 1");
+    sleep(1);
+    printf("parent starting second thread\n");
+    err = pthread_create(&tid2, NULL, thr_fn2, NULL);
+    if (err != 0)
+        err_exit(err, "can't create thread 2");
+    sleep(1);
+    printfoo("parent:\n", fp);
+    exit(0);
+}
+
+```
+
+mac上输出如下：
+
+```
+thread 1:
+  structure at 0x700000080ed0
+  foo.a = 1
+  foo.b = 2
+  foo.c = 3
+  foo.d = 4
+parent starting second thread
+thread 2: ID is 123145302839296
+parent:
+  structure at 0x700000080ed0
+[1]    34604 segmentation fault  ./badexit2
+```
+
+### 6）pthread_equal函数
+
+<div align="center"> <img src="../pic/unp-thread-14.png"/> </div>
+
+线程ID是用`pthread_t`数据类型来表示的，实现的时候可以用一个结构来表示该数据类型，所以可移植的操作系统实现不能把它作为整数处理。因此必须使用一个函数来对两个线程ID进程比较
+
+> Linux 3.2.0使用无符号长整型表示`pthread_t`数据类型。Solaris 10将其表示为无符号整形。FreeBSD 8.0和Mac OS X 10.6.8用一个指向`pthread`结构的指针来表示`pthread_t`数据类型
+
+### 7）pthread_cancel函数
+
+<div align="center"> <img src="../pic/unp-thread-15.png"/> </div>
+
+该函数可以被某一线程调用，用来请求取消同一进程中的其它线程
+
+* 函数只是发起取消请求，目标线程可以忽略取消请求或控制如何被取消（即执行一些清理函数）
+
+以下函数被线程调用时，可以添加或执行清理函数：
+
+<div align="center"> <img src="../pic/unp-thread-16.png"/> </div>
+
+`pthread_cleanup_push`可以为线程添加清理函数，下列情况会调用清理函数：
+
+* 线程调用`pthread_exit`时
+* 线程响应取消请求时
+* 用非零`execute`参数调用`pthread_cleanup_pop`时
+
+以下情况不会调用清理函数；
+
+* 线程通过`return`终止时
+* `execute`参数为0时
+
+不管`excute`参数是否为0，`pthread_cleanup_pop`函数都会将线程清理函数栈的栈顶函数删除
+
+<br>
+
+## 2.线程同步
+
+* 1）**互斥锁**
+    - [初始化与销毁互斥锁](#1初始化与销毁互斥锁)
+    - [加锁与解锁](#2加锁与解锁)
+    - [定时加锁](#3定时加锁)
+* 2）**读写锁**
+    - [初始化与销毁读写锁](#1初始化与销毁读写锁)
+    - [加锁与解锁](#2加锁与解锁)
+    - [定时加锁](#3定时加锁)
+* 3）**条件变量**
+    - [初始化与销毁条件变量](#1初始化与销毁条件变量)
+    - [等待某个条件变量](#2等待某个条件变量)
+    - [通知条件已经满足](#3通知条件已经满足)
+* 4）**自旋锁**
+    - [初始化与销毁自旋锁](#1初始化与销毁自旋锁)
+    - [加锁与解锁](#2加锁与解锁)
+* 5）**屏障**
+    - [初始化与销毁屏障](#1初始化与销毁屏障)
+    - [增加到达屏障点的线程](#2增加到达屏障点的线程)
+
+### 2.1 互斥锁
+
+> 也称为**互斥量**
+
+多线程编程中，[多个线程可能修改相同的变量，导致错误发生](https://github.com/arkingc/unpv13e/blob/master/threads/example01.c)。互斥锁可以用于保护共享变量：访问共享变量的前提条件是持有该互斥锁，**按照Pthread，互斥锁的类型为pthread_mutex_t的变量**
+
+### 1）初始化与销毁互斥锁
+
+* **如果某个互斥锁变量是静态分配的，必须把它初始化为常值PTHREAD_MUTEX_INITIALIZER**
+* **如果在共享内存区中分配一个互斥锁，必须通过调用pthread_mutex_init函数在运行时初始化，此时在释放内存前需要调用pthread_mutex_destroy**
+
+<div align="center"> <img src="../pic/apue-thread-1.png"/> </div>
+
+* `attr`：互斥锁的属性。为NULL时表示使用默认的属性来初始化
+
+如果释放互斥锁时，有一个以上的线程阻塞，那么**所有该锁上的阻塞线程都会变成可运行状态**，第一个变为运行的线程就可以对互斥锁加锁，其它线程就会看到互斥锁依然是锁着的，只能回去再次等待它重新变为可用。这种方式下，每次只有一个线程可以向前执行
+
+### 2）加锁与解锁
+
+<div align="center"> <img src="../pic/apue-thread-2.png"/> </div>
+
+* **mptr**
+    - **pthread_mutex_lock**锁住mptr指向的互斥锁，如果已经上锁，调用线程将阻塞
+    - **pthread_mutex_trylock**和前者类似，如果已经上锁，不会阻塞，直接返回`EBUSY`
+    - **pthread_mutex_unlock**将mptr指向的互斥锁解锁   
+
+[使用互斥锁解决修改相同变量的问题](https://github.com/arkingc/unpv13e/blob/master/threads/example02.c)（本书作者测试这个程序和前面有问题的版本运行的时间，差别是10%，说明互斥锁并不会带来太大的开销）
+
+**使用互斥锁时避免死锁**：
+
+* 如果线程试图对一个互斥锁加锁两次，那么它自身就会陷入死锁状态
+* 如果使用多个互斥锁，并且每个线程取得其中一个，阻塞于对另一个的请求上，也会死锁
+    - 1）可以通过控制加锁的顺序来防止）
+    - 2）如果尝试获取另一个锁时失败，那么释放自己占有的锁，过一段时间再试
+
+### 3）定时加锁
+
+<div align="center"> <img src="../pic/apue-thread-3.png"/> </div>
+
+该函数试图对一个互斥锁进行加锁，如果互斥锁已经上锁，那么线程会阻塞到参数`tsptr`指定的时刻（这个时间是一个绝对时间，即某个时刻，而不是一个等待时间段）。如果仍为获得互斥锁，那么返回`ETIMEDOUT`
+
+> Max OS X 10.6.8还没有支持该函数
+
+### 2.2 读写锁
+
+> 也称作**共享互斥锁**：当读写锁是读模式锁住时，可以说成是共享模式锁住的；当它是写模式锁住时，可以说成是以互斥模式锁住的
+
+**读写锁与互斥锁类似，不过读写锁允许更高的并行性**：
+
+* 互斥锁要么是**锁住状态**，要么是**不加锁状态**，而且一次只有一个线程可以对其加锁
+* 读写锁可以有3种状态
+    - **读模式下加锁状态**：多个线程可以用时占有读模式的读写锁，此时任何试图以写模式对该读写锁加锁的线程都会阻塞，直到所有的线程释放它们的读锁为止（通常这种情况下会阻塞随后的读模式锁请求，从而避免读模式长期占用，而等待的写模式锁请求一直得不到满足）
+    - **写模式下加锁状态**：一次只有一个线程可以占有写模式的读写锁
+    - **不加锁状态**
+
+**读写锁非常适合于对数据结构读的次数远大于写的情况**
+
+### 1）初始化与销毁读写锁
+
+读写锁在使用之前必须初始化，释放它们底层的内存之前必须销毁：
+
+<div align="center"> <img src="../pic/apue-thread-4.png"/> </div>
+
+* `attr`：锁的初始化属性，设为NULL时使用默认属性
+
+Single UNIX Specification在XSI扩张中定义了**PTHREAD_RWLOCK_INITIALIZER**常量。如果默认属性就足够的话，可以用它对静态分配的读写锁进行初始化
+
+### 2）加锁与解锁
+
+<div align="center"> <img src="../pic/apue-thread-5.png"/> </div>
+
+Single UNIX Specification还提供了下列版本：
+
+<div align="center"> <img src="../pic/apue-thread-6.png"/> </div>
+
+### 3）定时加锁
+
+与互斥锁一样，Single UNIX Specification提供了带有超时的读写锁加锁函数：
+
+<div align="center"> <img src="../pic/apue-thread-7.png"/> </div>
+
+该函数试图对一个读写锁进行加锁，如果读写锁已经上锁，那么线程会阻塞到参数`tsptr`指定的时刻（这个时间是一个绝对时间，即某个时刻，而不是一个等待时间段）。如果仍为获得读写锁，那么返回`ETIMEDOUT`
+
+### 2.3 条件变量
+
+条件变量可以在某个条件发生之前，将线程投入睡眠
+
+**按照Pthread，条件变量是类型为pthread_cond_t的变量**
+
+### 1）初始化与销毁条件变量
+
+<div align="center"> <img src="../pic/apue-thread-8.png"/> </div>
+
+* `attr`：条件变量的初始化属性，设为NULL时使用默认属性
+
+**如果条件变量是静态分配的，那么可以使用PTHREAD_COND_INITIALIZER初始化**
+
+### 2）等待某个条件变量
+
+<div align="center"> <img src="../pic/apue-thread-9.png"/> </div>
+
+* **pthread_cond_wait**函数等待`cond`指向的条件变量，投入睡眠之前会释放`mutex`指向的互斥锁，唤醒后会重新获得`mutex`指向的互斥锁
+* 
+* **pthread_cond_timewait**在给定的时间内等待条件发生，超时会重新获取`mutex`指向的互斥锁并返回一个错误码（这个时间仍然是一个绝对时间）
+
+两个函数成功返回时，线程需要重新计算条件，因为另一个线程可能已经在运行并改变了条件
+
+为什么每个条件变量都要关联一个互斥锁呢？因为”条件“（这里不是指条件变量）通常是线程之间共享的某个变量的值。允许不同线程设置和测试该变量要求有一个与该变量关联的互斥锁
+
+### 3）通知条件已经满足
+
+<div align="center"> <img src="../pic/apue-thread-11.png"/> </div>
+
+* **pthread_cond_signal**：至少能唤醒一个等待该条件的线程
+* **pthread_cond_broadcast**：能唤醒所有等待该条件的线程
+
+### 2.4 自旋锁
+
+自旋锁与互斥锁类似，区别是：自旋锁在获取锁之前一直处于忙等（自选）阻塞状态。因为忙等会消耗大量CPU，因此适用于锁持有时间不长（即操作可以较快完成）的场景
+
+> 事实上，有些互斥锁的实现在试图获取互斥锁的时候会自旋一小段时间，只有在自旋计数到达某一阈值的时候才会休眠
+
+### 1）初始化与销毁自旋锁
+
+<div align="center"> <img src="../pic/apue-thread-10.png"/> </div>
+
+* `pshared`：进程共享属性，表明自旋锁是如何获取的
+    - 如果设为`PTHREAD_PROCESS_SHARED`，则自旋锁能被可以访问锁底层内存的线程所获取，即便那些线程属于不同的进程
+    - 否则设为`PTHREAD_PROCESS_PRIVATE`，则自旋锁只能被初始化该锁的进程内部的线程所访问
+
+### 2）加锁与解锁
+
+<div align="center"> <img src="../pic/apue-thread-12.png"/> </div>
+
+* **pthread_spin_lock**：在获取锁之前一直自旋
+* **pthread_spin_trylock**：如果不能获取锁，就立即返回`EBUSY`错误
+* **pthread_spin_unlock**：对自旋锁解锁。如果试图对没有加锁的自旋锁进行解锁，结果是未定义的
+
+**在持有自旋锁时，不要调用可能会进入休眠状态的函数。如果调用了这些函数，会浪费CPU资源，因为其他线程需要获取自旋锁需要等待的实际就延长了**
+
+### 2.5 屏障
+
+**屏障是用户协调多个线程并行工作的同步机制。屏障允许每个线程等待，直到所有的合作线程都到达某一点，然后从改点继续执行**
+
+`pthread_join`就是一种屏障，允许一个线程等待，直到另一个线程退出
+
+### 1）初始化与销毁屏障
+
+<div align="center"> <img src="../pic/apue-thread-13.png"/> </div>
+
+* `count`：在允许所有线程继续运行之前，必须到达屏障的线程数目
+    - 假设主线程希望开启`n`个线程进行排序，每个线程排序数组的一部分，所有`n`个线程排好序后主线程进行归并，那么`count`应该为`n+1`
+* `attr`：屏障对象的属性，设为NULL时使用默认属性初始化屏障
+
+### 2）增加到达屏障点的线程
+
+<div align="center"> <img src="../pic/apue-thread-14.png"/> </div>
+
+该函数用以表明，线程已完成工作，准备等待所有其他线程赶上来
+
+* 如果线程不是(满足屏障要求数目的)最后一个线程：会进入休眠
+* 如果线程是(满足屏障要求数目的)最后一个线程：唤醒所有因为屏障进入休眠的线程
+
+**一旦到达屏障计数值，而且线程处于非阻塞状态，屏障就可以被重用**
+
+**只有先调用`pthread_barrier_destroy`函数，接着又调用`pthread_barrier_init`并传入一个新的计数值，否则屏障计数无法改变**
 
 <br>
 <br>

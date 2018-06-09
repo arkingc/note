@@ -1996,11 +1996,13 @@ socketpair函数创建2个随后连接起来的套接字：
 * **tid**：线程ID，数据类型为pthread_t，往往是unsigned int，如果线程成功创建，其ID就通过tid指针返回
 * **attr**：线程属性，包括：优先级、初始栈大小、是否应该成为一个守护线程等。设置为空指针时表示采用默认设置
 * **func**：该线程执行的函数
-* **arg**：该线程执行函数的参数
+* **arg**：该线程执行函数的参数，参数为一个无类型指针，如果需要向函数传递的参数有一个以上，那么需要把这些参数放到一个结构中，然后把这个结构的地址作为参数传入
 
 **如果发生错误，函数返回指示错误的某个正值，不会设置errno变量**
 
 **创建的线程通过调用指定的函数开始执行，然后显示地（通过调用pthread_exit）或隐式地（通过让该函数返回）终止**
+
+**线程创建时，并不能保证哪个线程会先运行**
 
 ### 2）pthread_join函数
 
@@ -2011,11 +2013,65 @@ pthread_join类似于进程中的waitpid，用于等待一个给定线程的终�
 * **tid**：等待终止的线程ID。和进程不同的是，无法等待任意线程，所以不能通过指定ID参数为-1来企图等待任意线程终止
 * **status**：如果该指针非空，来自所等待线程的返回值（一个指向某个对象的指针）将存入由status指向的位置
 
+```c++
+#include "apue.h"
+#include <pthread.h>
+
+void *
+thr_fn1(void *arg)
+{
+    printf("thread 1 returning\n");
+    return((void *)1);
+}
+
+void *
+thr_fn2(void *arg)
+{
+    printf("thread 2 exiting\n");
+    pthread_exit((void *)2);
+}
+
+int
+main(void)
+{
+    int         err;
+    pthread_t   tid1, tid2;
+    void        *tret;
+
+    err = pthread_create(&tid1, NULL, thr_fn1, NULL);
+    if (err != 0)
+        err_exit(err, "can't create thread 1");
+    err = pthread_create(&tid2, NULL, thr_fn2, NULL);
+    if (err != 0)
+        err_exit(err, "can't create thread 2");
+    err = pthread_join(tid1, &tret);
+    if (err != 0)
+        err_exit(err, "can't join with thread 1");
+    printf("thread 1 exit code %ld\n", (long)tret);
+    err = pthread_join(tid2, &tret);
+    if (err != 0)
+        err_exit(err, "can't join with thread 2");
+    printf("thread 2 exit code %ld\n", (long)tret);
+    exit(0);
+}
+```
+
+上述程序输出如下：
+
+```
+thread 1 returning
+thread 2 exiting
+thread 1 exit code 1
+thread 2 exit code 2
+```
+
 ### 3）pthread_self函数
 
 线程可以使用pthread_self获取自身的线程ID，类似于进程中的getpid
 
 <div align="center"> <img src="../pic/unp-thread-3.png"/> </div>
+
+新线程不应该根据主线程调用`pthread_create`函数时传入的`tid`参数来获取自身ID，而是应该调用pthread_self，因为新线程可能在主线程调用`pthread_create`返回之前运行，如果读取`tid`，看到的是未经初始化的内容
 
 ### 4）pthread_detach函数
 
@@ -2030,16 +2086,129 @@ pthread_join类似于进程中的waitpid，用于等待一个给定线程的终�
 
 ### 5）pthread_exit函数
 
-线程终止的一个方法
+线程终止的**一个方法**：
 
 <div align="center"> <img src="../pic/unp-thread-5.png"/> </div>
 
 * **status**：不能指向一个局部于调用线程的对象，因为线程终止时这样的对象也消失
 
-让一个线程终止的另外两个方法：
+让一个线程终止的**另外两个**方法：
 
 1. **线程执行的函数返回**，在pthread_create参数中，这个函数的返回值是一个void\*指针，它指向相应线程的终止状态
-2. **如果进程的main函数返回或任何线程调用了exit，整个进程就终止了，其中包括它的任何线程**
+2. **被同一进程的其它线程调用`pthread_cancel`取消**（该函数只是发起一个请求，目标线程可以选择忽略取消或控制如何被取消）
+3. **如果进程的main函数返回或任何线程调用了`exit`、`_Exit`、`_exit`，整个进程就终止了，其中包括它的任何线程**
+
+下列程序status指向一个栈上的结构，这个栈上的对象被后来的线程覆盖：
+
+```c
+#include "apue.h"
+#include <pthread.h>
+
+struct foo {
+    int a, b, c, d;
+};
+
+void
+printfoo(const char *s, const struct foo *fp)
+{
+    printf("%s", s);
+    printf("  structure at 0x%lx\n", (unsigned long)fp);
+    printf("  foo.a = %d\n", fp->a);
+    printf("  foo.b = %d\n", fp->b);
+    printf("  foo.c = %d\n", fp->c);
+    printf("  foo.d = %d\n", fp->d);
+}
+
+void *
+thr_fn1(void *arg)
+{
+    struct foo  foo = {1, 2, 3, 4};
+
+    printfoo("thread 1:\n", &foo);
+    pthread_exit((void *)&foo);
+}
+
+void *
+thr_fn2(void *arg)
+{
+    printf("thread 2: ID is %lu\n", (unsigned long)pthread_self());
+    pthread_exit((void *)0);
+}
+
+int
+main(void)
+{
+    int         err;
+    pthread_t   tid1, tid2;
+    struct foo  *fp;
+
+    err = pthread_create(&tid1, NULL, thr_fn1, NULL);
+    if (err != 0)
+        err_exit(err, "can't create thread 1");
+    err = pthread_join(tid1, (void *)&fp);
+    if (err != 0)
+        err_exit(err, "can't join with thread 1");
+    sleep(1);
+    printf("parent starting second thread\n");
+    err = pthread_create(&tid2, NULL, thr_fn2, NULL);
+    if (err != 0)
+        err_exit(err, "can't create thread 2");
+    sleep(1);
+    printfoo("parent:\n", fp);
+    exit(0);
+}
+
+```
+
+mac上输出如下：
+
+```
+thread 1:
+  structure at 0x700000080ed0
+  foo.a = 1
+  foo.b = 2
+  foo.c = 3
+  foo.d = 4
+parent starting second thread
+thread 2: ID is 123145302839296
+parent:
+  structure at 0x700000080ed0
+[1]    34604 segmentation fault  ./badexit2
+```
+
+
+### 6）pthread_equal函数
+
+<div align="center"> <img src="../pic/unp-thread-14.png"/> </div>
+
+线程ID是用`pthread_t`数据类型来表示的，实现的时候可以用一个结构来表示该数据类型，所以可移植的操作系统实现不能把它作为整数处理。因此必须使用一个函数来对两个线程ID进程比较
+
+> Linux 3.2.0使用无符号长整型表示`pthread_t`数据类型。Solaris 10将其表示为无符号整形。FreeBSD 8.0和Mac OS X 10.6.8用一个指向`pthread`结构的指针来表示`pthread_t`数据类型
+
+### 7）pthread_cancel函数
+
+<div align="center"> <img src="../pic/unp-thread-15.png"/> </div>
+
+该函数可以被某一线程调用，用来请求取消同一进程中的其它线程
+
+* 函数只是发起取消请求，目标线程可以忽略取消请求或控制如何被取消（即执行一些清理函数）
+
+以下函数被线程调用时，可以添加或执行清理函数：
+
+<div align="center"> <img src="../pic/unp-thread-16.png"/> </div>
+
+`pthread_cleanup_push`可以为线程添加清理函数，下列情况会调用清理函数：
+
+* 线程调用`pthread_exit`时
+* 线程响应取消请求时
+* 用非零`execute`参数调用`pthread_cleanup_pop`时
+
+以下情况不会调用清理函数；
+
+* 线程通过`return`终止时
+* `execute`参数为0时
+
+不管`excute`参数是否为0，`pthread_cleanup_pop`函数都会将线程清理函数栈的栈顶函数删除
 
 ## 2.线程安全的函数
 
