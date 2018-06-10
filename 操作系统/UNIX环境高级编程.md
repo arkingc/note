@@ -1603,6 +1603,28 @@ struct tms{
         + [2.3 条件变量](#23-条件变量)
         + [2.4 自旋锁](#24-自旋锁)
         + [2.5 屏障](#25-屏障)
+* [九.线程控制](#九线程控制)
+    - [1.线程限制](#1线程限制)
+        + [](#)
+        + [](#)
+    - [2.线程属性](#2线程属性)
+        + [2.1 线程属性](#21-线程属性)
+        + [2.2 取消选项](#22-取消选项)
+        + [](#)
+        + [](#)
+    - [3.同步属性](#3同步属性)
+        + [3.1 互斥锁属性](#31-互斥锁属性)
+        + [3.2 读写锁属性](#32-读写锁属性)
+        + [3.3 条件变量属性](#33-条件变量属性)
+        + [3.4 屏障属性](#34-屏障属性)
+    - [4.线程特定数据](#4线程特定数据)
+        + [](#)
+        + [](#)
+    - [5.线程和信号](#5线程和信号)
+        + [5.1 阻止信号发送](#51-阻止信号发送)
+        + [5.2 等待信号](#52-等待信号)
+    - [6.线程和fork](#6线程和fork)
+    - [7.线程和I/O](#7线程和io)
 
 <br>
 <br>
@@ -2063,6 +2085,478 @@ Single UNIX Specification还提供了下列版本：
 <br>
 
 # 九.线程控制
+
+## 1.线程限制
+
+Single UNIX Specification定义了与线程操作有关的一些限制，这些限制可以用过sysconf函数进程查询：
+
+<div align="center"> <img src="../pic/apue-threadctr-1.png"/> </div>
+
+下图为apue描述的4种操作系统实现中的限制值：
+
+<div align="center"> <img src="../pic/apue-threadctr-2.png"/> </div>
+
+> 这些限制的使用是为了增强应用程序在不同的操作系统实现之间的可移植性
+
+我的环境(Max OS X 10.11.6)下：
+
+```c
+printf("%ld\n",sysconf(_SC_THREAD_STACK_MIN));      //8192
+printf("%ld\n",sysconf(_SC_THREAD_THREADS_MAX));    //-1（正常值，因为没有设置errno）
+```
+
+<br>
+
+## 2.线程属性
+
+### 2.1 线程属性
+
+**线程属性用以初始化线程，定义在结构体`pthread_attr_t`中**，一般包括：
+
+* 分离状态属性
+* 线程栈末尾的警戒缓冲区大小
+* 线程栈的最低地址
+* 线程栈的最小长度(字节)
+
+下图为POSIX.1定义的线程属性在apue描述的4种操作系统实现中的支持情况：
+
+<div align="center"> <img src="../pic/apue-threadctr-4.png"/> </div>
+
+> POSIX.1还为线程执行调度选项定义了额外的属性，用以支持实时应用，但这里不打算讨论这些属性
+
+在**MAC OS X 10.11.6**下的测试：
+
+```c
+pthread_attr_t attr;
+pthread_attr_init(&attr);
+
+pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
+
+int state;
+size_t stack_size;
+size_t guardsize;
+
+pthread_attr_getdetachstate(&attr,&state);
+pthread_attr_getstacksize(&attr,&stack_size);
+pthread_attr_getguardsize(&attr,&guardsize);
+
+printf("state:");
+if(state == PTHREAD_CREATE_DETACHED){
+    printf("PTHREAD_CREATE_DETACHED\n");    //PTHREAD_CREATE_DETACHED
+}
+else if(state == PTHREAD_CREATE_JOINABLE){
+    printf("PTHREAD_CREATE_JOINABLE\n");
+}
+printf("stack_size:%u\n",stack_size);       //524288(512*1024)bytes
+printf("guardsize:%u\n",guardsize);         //4096
+
+pthread_attr_destroy(&attr);
+```
+
+### 1）线程属性的初始化和销毁
+
+<div align="center"> <img src="../pic/apue-threadctr-3.png"/> </div>
+
+如果`pthread_attr_init`的实现对属性对象的内存空间是动态分配的，那么`pthread_attr_destroy`会释放该内存空间。除此之外，`pthread_attr_destroy`还会用无效的值初始化属性对象，因此，如果该属性对象被误用，将会导致`pthread_create`函数返回错误码
+
+要注意`pthread_attr_destroy`的返回值，如果忽略其错误返回可能出现的最坏情况是，如果`pthread_attr_init`已经分配了内存空间，就会有少量的内存泄露。另一方面，如果`pthread_attr_init`成功地对线程属性进行了初始化，但之后的`pthread_attr_destroy`清理工作失败，那么将没有任何补救策略，因为线程属性结构对应用程序来说是不透明的，可以对线程属性结构进行清理的唯一接口是`pthread_attr_destroy`，但它失败了
+
+### 2）分离属性的获取与设置
+
+<div align="center"> <img src="../pic/apue-threadctr-5.png"/> </div>
+
+* 函数`pthread_detach`是让已经存在的某个线程变为分离状态
+* 如果想让线程从创建开始就处于分离，可以设置分离属性，然后使用该属性调用`pthread_create`
+    - `PTHREAD_CREATE_DETACHED`：分离状态
+    - `PTHREAD_CREATE_JOINABLE`：正常状态
+
+### 3）栈属性的获取与设置
+
+对于进程来说，虚地址空间的大小是固定的。因为进程中只有一个栈，所以它的大小通常不是问题。但对于线程来说，同样大小的虚地址空间必须被所有的线程栈共享。如果应用程序使用了许多线程，以致这些线程栈的累计大小超过了可用的虚地址空间，就需要减小默认的线程栈大小。另一方面，如果线程调用的函数分配了大量的自动变量，或者调用的函数涉及许多很深的栈帧，那么需要的栈大小可能要比默认的大
+
+如果线程栈的虚地址空间都用完了，那么可以使用malloc或mmap来为可替代的栈分配空间，并用下列函数设置或者获取线程栈的最低内存地址：
+
+<div align="center"> <img src="../pic/apue-threadctr-6.png"/> </div>
+
+* `stackaddr`：线程栈的最低内存地址（不一定是栈的开始地址。对于一个给定的处理器结构来说，如果栈是从高地址向低地址方向增长的，那么stackaddr线程属性将是栈的结尾位置，而不是开始位置）
+
+### 4）栈大小属性的获取与设置
+
+<div align="center"> <img src="../pic/apue-threadctr-7.png"/> </div>
+
+* `stacksize`：栈大小，不能小于`PTHREAD_STACK_MIN`
+
+如果希望改变默认的栈大小，但又不想自己处理线程栈的分配问题，使用`pthread_attr_setstacksize`非常有用
+
+### 5）境界缓存大小的获取与设置
+
+<div align="center"> <img src="../pic/apue-threadctr-8.png"/> </div>
+
+* `guardsize`：控制着线程栈末尾之后用于避免栈溢出的扩展内存的大小
+    - `默认值`：由具体实现决定，常用值是系统页大小
+    - `0`：表示不允许属性的这种特征值行为发生：在在这种情况下，不会提供警戒缓冲区（如果修改了线程属性`stackaddr`，系统就会认为我们将自己管理栈，进而使栈警戒缓存区机制无效，等同于把该值设置为0）
+
+* **如果`guardsize`线程属性被修改了，操作系统可能会把它取为页大小的整数倍**
+* **如果线程的栈指针溢出到警戒区域，应用程序就可能通过信号接收到出错信息**
+
+### 2.2 取消选项
+
+有两个线程属性没有包含在`pthread_attr_t`结构中：
+
+1. **可取消状态**属性
+2. **可取消类型**属性
+
+**这两个属性影响着线程在响应`pthread_cancel`函数调用时所呈现的行为**
+
+### 1）可取消状态属性
+
+<div align="center"> <img src="../pic/apue-threadctr-23.png"/> </div>
+
+* `state`：新的可取消状态
+* `oldstate`：旧的可取消状态
+
+新旧状态的设置是一个原子操作
+
+`pthread_cancel`调用并不等待线程终止。默认情况下，线程在取消请求发出后还是继续允许，知道线程到达某个取消点。取消点是线程检查它是否被取消的一个位置，POSIX.1保证线程调用下列函数时，取消点都会出现：
+
+<div align="center"> <img src="../pic/apue-threadctr-24.png"/> </div>
+
+可取消状态可以是下面的值：
+
+* `PTHREAD_CANCEL_ENABLE`：默认值
+* `PTHREAD_CANCEL_DISABLE`：对`pthread_cancel`的调用并不会杀死线程。相反，取消请求对这个线程来说还处于挂起状态，当取消状态再次变为`PTHREAD_CANCEL_ENABLE`时，线程将在下一个取消点上对所有挂起的取消请求进行处理
+
+如果线程长时间不会调用前面所述函数进入一个取消点，可以通过**下列函数添加取消点**：
+
+<div align="center"> <img src="../pic/apue-threadctr-25.png"/> </div>
+
+下列2个条件满足时，该函数会使线程被取消：
+
+1. 存在处于挂起状态的取消请求
+2. 取消状态为`PTHREAD_CANCEL_ENABLE`
+
+否则，该函数没有效果
+
+### 2）可取消类型属性
+
+<div align="center"> <img src="../pic/apue-threadctr-26.png"/> </div>
+
+* `type`：新的可取消类型
+* `oldtype`：旧的可取消类型
+    - `PTHREAD_CANCEL_DEFERRED`：默认值。推迟取消，即遇到取消点才取消
+    - `PTHREAD_CANCEL_ASYNCHRONOUS`：线程可在任意时间取消，不是非得遇到取消点才能被取消
+
+<br>
+
+## 3.同步属性
+
+就像线程具有属性一样，线程的同步对象也有属性。**在使用某种线程同步机制时，同步属性用以初始化相应的同步机制。比如互斥锁属性用以初始化互斥锁、条件变量属性用以初始化条件变量...**
+
+* [互斥锁](#31-互斥锁属性)
+    - 进程共享属性
+    - 健壮属性
+    - 类型属性
+* [读写锁](#32-读写锁属性)
+    - 进程共享属性
+* [条件变量](#33-条件变量属性)
+    - 进程共享属性
+    - 时钟属性
+* [屏障](#34-屏障属性)
+    - 进程共享属性
+
+### 3.1 互斥锁属性
+
+**互斥锁属性用`pthread_mutexattr_t`结构表示**
+
+3个值得注意的互斥锁属性：
+
+1. **进程共享属性**
+2. **健壮属性**
+3. **类型属性**
+
+### 1）互斥锁属性的初始化和销毁
+
+* 获得默认互斥锁属性
+    - 调用`pthread_mutex_init`时，传入**空指针**，即用默认互斥锁属性来初始化互斥锁
+    - 使用**PTHREAD_MUTEX_INITIALIZER**常量
+    - 调用`pthread_mutexattr_init`函数
+
+<div align="center"> <img src="../pic/apue-threadctr-22.png"/> </div>
+
+### 2）进程共享属性的获取和设置
+
+这个属性是可选的。可以通过2种方式检查是否支持该属性：
+
+1）检查系统中是否定义了`_POSIX_THREAD_PROCESS_SHARED`符号判断这个平台是否支持进程共享这个属性；
+2）可以在运行时把`_SC_THREAD_PROCESS_SHARED`参数传给`sysconf`函数进行检查）
+
+<div align="center"> <img src="../pic/apue-threadctr-9.png"/> </div>
+
+* `pshared`
+    - `PTHREAD_PROCESS_PRIVATE`：默认的行为。进程中的多个线程可以访问用一个同步对象。该值允许pthread线程库提供更有效的互斥锁实现。在多个进程共享多个互斥锁的情况下，pthread线程库可以限制开销较大的互斥锁实现
+    - `PTHREAD_PROCESS_PRIVATE`：允许相互独立的多个进程把同一个内存数据块映射到它们各自独立的地址空间中。就像多个线程访问共享数据一样，多个进程访问共享数据通常也需要同步。如果设为为该值，那么初始化得到的互斥锁（该锁从多个进程彼此之间共享的内存数据块中分配得到）就能用于这些进程的同步
+
+
+### 3）健壮属性的获取和设置
+
+互斥锁的健壮属性与在**多个进程间**共享的互斥锁有关。意味着，当持有互斥锁的进程终止时，需要解决互斥锁状态恢复的问题。这种情况发生时，互斥锁处于锁定状态，恢复起来很困难。其它阻塞在这个锁的进程将会一直阻塞下去
+
+<div align="center"> <img src="../pic/apue-threadctr-10.png"/> </div>
+
+* `robust`
+    - `PTHREAD_MUTEX_STALLED`：意味着持有互斥锁的进程终止时不需要采取特别的动作。这种情况下，使用互斥锁后的行为是未定义的，等待该互斥锁解锁的应用程序会被有效地”拖住“
+    - `PTHREAD_MUTEX_ROBUST`：设为这个值时，当一个线程调用`pthread_mutex_lock`获取锁，但该锁被另一个进程持有，但它终止时并没有对该锁进行解释，此时线程会阻塞，从`pthread_mutex_lock`返回的值为`EOWNERDEAD`而不是0。应用程序可以通过这个特殊的返回值获悉这种情况，然后进行恢复
+
+如果应用状态无法恢复，在线程对互斥锁解锁后，该互斥锁将处于永久不可用状态。为了避免这样的问题，线程可以通过调用`pthread_mutex_consistent`函数，指明该互斥锁相关的状态在互斥锁解锁以前是一致的
+
+<div align="center"> <img src="../pic/apue-threadctr-11.png"/> </div>
+
+如果线程没有先调用`pthread_mutex_consistent`就对互斥锁进行了解锁，那么其它试图获取该互斥锁的阻塞线程就会得到错误码`ENOTRECOVERABLE`。如果发生这种情况，互斥锁将不再可用。线程通过提前调用`pthread_mutex_consistent`，就能让互斥锁正常工作，这样它就可以持续被使用
+
+### 4）类型属性的获取和设置
+
+类型属性控制着互斥锁的**锁定特性**。POSIX.1定义了4种类型：
+
+* `PTHREAD_MUTEX_NORMAL`：标准类型，不做任何特殊的错误检查或死锁检测
+* `PTHREAD_MUTEX_ERRORCHECK`：提供错误检查
+* `PTHREAD_MUTEX_RECURSIVE`：允许同一线程在互斥锁解锁之前对该互斥锁进程多次加锁。递归互斥锁维护锁的计数，在解锁次数和加锁次数不相同的情况下不会释放锁
+* `PTHREAD_MUTEX_DEFAULT`：该类型可以提供**默认特性和行为**。操作系统在实现的时候可以把这种类型自由地映射到其它互斥锁类型中的一种
+
+下图为不同的类型属性和行为：
+
+<div align="center"> <img src="../pic/apue-threadctr-12.png"/> </div>
+
+不占用时解锁：一个线程对被另一个线程加锁的互斥锁进行解锁
+
+<div align="center"> <img src="../pic/apue-threadctr-13.png"/> </div>
+
+### 3.2 读写锁属性
+
+**读写锁属性用`pthread_rwlockattr_t`结构表示**
+
+**进程共享属性**是读写锁的唯一属性
+
+### 1）读写锁属性的初始化与销毁
+
+<div align="center"> <img src="../pic/apue-threadctr-14.png"/> </div>
+
+### 2）进程共享属性的获取与设置
+
+进程共享属性是读写锁的唯一属性，可以通过下列函数获取与设置
+
+<div align="center"> <img src="../pic/apue-threadctr-15.png"/> </div>
+
+> 虽然POSIX只定义了一个读写锁属性，但不同平台的实现可以自由地定义额外的、非标准的属性
+
+### 3.3 条件变量属性
+
+**条件变量属性用`pthread_condattr_t`结构表示**
+
+Single UNIX Specification目前定义了条件变量的2个属性：
+
+* **进程共享属性**
+* **时钟属性**
+
+### 1）条件变量属性的初始化与销毁
+
+<div align="center"> <img src="../pic/apue-threadctr-16.png"/> </div>
+
+### 2）进程共享属性的获取与设置
+
+与其他的同步属性一样，条件变量支持进程共享属性。它控制着条件变量是可以被单进程的多个线程使用，还是可以被多进程的线程使用
+
+<div align="center"> <img src="../pic/apue-threadctr-17.png"/> </div>
+
+### 3）时钟属性的获取与设置
+
+时钟属性控制计算`pthread_cond_timedwait`函数的超时参数`tsptr`采用的是哪个时钟
+
+<div align="center"> <img src="../pic/apue-threadctr-18.png"/> </div>
+
+* **pthread_condattr_getclock**：获取可被用于`pthread_cond_timewait`函数的时钟ID
+* **pthread_condattr_setclock**：对时钟ID进行修改
+
+### 3.4 屏障属性
+
+**条件变量属性用`pthread_barrierattr_t`结构表示**
+
+**进程共享属性**是屏障的唯一属性
+
+### 1）屏障属性的初始化与销毁
+
+<div align="center"> <img src="../pic/apue-threadctr-19.png"/> </div>
+
+### 2）进程共享属性的获取与设置
+
+目前定义的屏障属性只有进程共享属性，它控制着屏障是可以被多进程的线程使用，还是只能被初始化屏障的进程内的多线程使用
+
+<div align="center"> <img src="../pic/apue-threadctr-20.png"/> </div>
+
+<br>
+
+## 4.线程特定数据
+
+线程特定数据也称为线程私有数据，是存储和查询某个线程相关数据的一种机制。它是每个线程私有的数据副本，因此不需要担心与其它线程的同步访问问题
+
+* **无法简单的分配一个每线程数据数组**：因为无法通过线程ID去定位数组中的某个具体数据。因为线程ID并不能保证是小而连续的整数。即使是，我们可能还希望有一些额外包含，防止某个线程的数据与其他线程的数据相混淆（比如线程间的数据可能越界写？）
+* **线程特定数据提供了让基于进程的接口适应多线程环境的机制**。比如errno，线程出现以前，errno定义为进程上下文中全局可访问的整数。为了让线程也能使用那些原本基于进程的系统调用和库例程，errno被重新定义为线程私有数据。这样线程之间不会相互影响
+
+> 一个线程没有办法阻止另一个线程访问它的数据。线程特定数据也不例外。虽然底层的实现部分并不能阻止这种访问能力，但管理线程特定数据的函数可以提高线程间的数据独立性，使得线程不太容易访问到其它线程的线程特定数据
+
+**每个系统支持有限数量的线程特定数据元素，POSIX要求这个限制不小于128(每个进程)**，**系统**为**每个进程**维护一个称之为Key结构（一个Key结构就是一个线程特定数据元素）的结构数组，如下图：
+
+<div align="center"> <img src="../pic/unp-thread-7.png"/> </div>
+
+ * **标志**：指示这个数组元素是否正在使用（所有标志初始化为”不在使用“）
+
+除了**进程范围**的Key结构数组外，**系统**还在**进程内**维护关于每个线程的多条信息，记录在Pthread结构（由系统维护）中：
+
+<div align="center"> <img src="../pic/unp-thread-8.png"/> </div>
+
+pKey数组的所有元素都被初始化为空指针。这128个指针是和进程内的128个可能的索引（称为”键“）逐一关联的值
+
+一般步骤如下：
+
+* 定义了一个全局静态的`pthread_key_t`变量，表示键
+* 其中一个线程调用`pthread_key_create`从进程的`key`数组创建一个未使用的键
+* 所有线程可以使用这个新键通过`pthread_getspecific`索引自己的`pkey`数组的相应位置
+    - 如果返回一个空指针，说明相应的线程特定数据元素不存在，可以调用malloc分配，然后调用`pthread_setspecific`将这个新分配的线程特定数据的指针保存在`pkey`数组中
+    - 如果返回一个非空指针，那么可以使用这个线程特定数据
+* 调用`pthread_key_create`函数时指定的析构函数会释放保存在每个线程`pkey`数组中的线程特定数据
+
+### 1）pthread_once和pthread_key_create函数
+
+<div align="center"> <img src="../pic/unp-thread-9.png"/> </div>
+
+**pthread_key_create函数**：
+
+* **keyptr**：创建一个新的线程特定数据元素时，系统搜索其Key结构数组找到第一个不在使用的元素，元素的索引（0~127）记录在keyptr成员中，**作为返回值**。随后，线程可以利用记录在keyptr中的索引，在Pthread结构pkey数组的对应索引位置处存储一个指针，这个指针指向malloc动态分配的内存
+* **destructor**：指向析构函数的函数指针，当一个线程终止时，系统扫描该线程的pKey数组，为每个非空的pkey指针调用相应的析构函数，释放其指向的动态内存。如果为NULL，表明没有析构函数与该键关联
+
+**下列情况会调用析构函数**：
+
+* 当线程调用`pthread_exit`时
+* 当线程执行返回，正常退出时
+* 线程取消时，只有在最后的清理处理程序返回之后，析构函数才会被调用
+
+**下列情况不会调用析构函数**：
+
+* 线程调用了`exit`、`_exit`、`_Exit`或`abort`时
+* 出现其他非正常的退出时
+
+线程退出时，线程特定数据的析构函数将按照操作系统实现中定义的顺序被调用。当所有的析构函数都调用完成之后，系统会检查是否还有非空的线程特定数据值与键关联，如果有的话，再次调用析构函数。这个过程将会一直重复到线程所有的键都为空线程特定数据值，或者已经做了`PTHREAD_DESTRUCTOR_ITERATIONS`中定义的最大次数的尝试
+
+**pthread_once函数**：
+
+* **onceptr**：onceptr参数指向的变量中的值，确保init参数所指的函数在进程范围内只被调用一次
+* **init**：进程范围内，对于一个给定的键，pthread_key_create只能被调用一次。所以可以init可以指向一个pthread_key_create函数，通过onceptr参数确保只调用一次
+
+### 2）pthread_getspecific和pthread_setspecific函数
+
+<div align="center"> <img src="../pic/unp-thread-10.png"/> </div>
+
+* pthread_getspecific函数在Pthread结构中把对应指定键的指针设置为指向分配的内存
+* pthread_setspecific函数返回对应指定键的指针
+
+### 3）pthread_key_delete函数
+
+<div align="center"> <img src="../pic/apue-threadctr-21.png"/> </div>
+
+该函数用来取消键与线程特定数据值之间的关联。它并不会激活与键关联的析构函数。要释放任何与键关联的线程特定数据值的内存，需要在应用程序中采取额外的步骤
+
+<br>
+
+## 5.线程和信号
+
+每个线程都有自己的信号屏蔽字，但是信号的处理是进程中所有线程共享的。这意味着单个线程可以阻止某些信号，但当线程修改了与某个给定信号相关的处理行为以后，所有的线程都必须共享这个处理行为的改变。这样，如果一个线程选择忽略某个给定信号，那么另一个线程就可以通过以下两种方式撤销上述信号选择：恢复信号的默认处理行为，或者为信号设置一个新的信号处理程序
+
+进程中的信号是递送到单个线程的：
+
+* 如果一个信号与硬件故障相关，那么该信号一般会被发送到引起该事件的线程中去
+* 其它的信号则被发送到任意一个线程
+
+### 5.1 阻止信号发送
+
+`sigprocmask`的行为在多线程的进程中没有定义，线程必须使用`pthread_sigmask`：
+
+<div align="center"> <img src="../pic/apue-threadctr-27.png"/> </div>
+
+* `how`：set与线程信号屏蔽字的作用方式
+    - `SIG_BLOCK`：把信号集`set`添加到线程信号屏蔽字中
+    - `SIG_SETMASK`：用信号集`set`替换线程的信号屏蔽字
+    - `SIG_UNBLOCK`：从线程信号屏蔽字中移除信号集`set`
+* `set`：信号集
+* `oset`：如果不为NULL，保存线程之前的信号屏蔽字
+
+线程可以通过把`set`设为NULL，把`oset`参数设为`sigset_t`结构的地址，来获取当前的信号屏蔽字。这种情况下，`how`参数会被忽略
+
+### 5.2 等待信号
+
+线程调用下列函数**等待一个或多个信号出现**
+
+<div align="center"> <img src="../pic/apue-threadctr-28.png"/> </div>
+
+* `set`：等待的信号集（**如果信号集中的某个信号在函数调用时处于等待挂起状态，那么函数将无阻塞地返回**）
+* `signop`：指向的整数包含发送信号的数量
+
+注意：
+
+* 在返回之前，`sigwait`将从进程中移除那些处于挂起等待状态的信号。如果具体实现支持排队信号，并且信号的多个实例被挂起，那么`sigwait`将会移除该信号的一个实例，其他的实例还要继续排队
+* 为了避免错误行为发生，线程在调用`sigwait`前，必须阻塞那些它正在等待的信号。`sigwait`会原子地取消信号集的阻塞状态，直到有新的信号被递送。在返回之前，`sigwait`将恢复线程的信号屏蔽字。如果信号在`sigwait`被调用的时候没有被阻塞，那么在线程完成对`sigwait`的调用之前会出现一个时间窗，在这个时间窗中，信号就可以被发送给线程
+* 使用`sigwait`的好处在于它可以简化信号处理，允许把异步产生的信号用同步的方式处理。为了防止信号中断线程，可以把信号加到每个线程的信号屏蔽字中。然后可以安排专用线程处理信号。这些专用线程可以进行函数调用，不需要担心在信号处理程序中调用哪些函数是安全的，因为这些函数调用来自正常的线程上下文，而非会中断线程正常执行的传统信号处理程序
+* 如果多个线程在`sigwait`的调用中因等待同一个信号而阻塞，那么在信号递送的时候，就只有一个线程可以从`sigwait`中返回。如果一个信号被捕获，而且一个信号正在`sigwait`调用中等待同一信号，那么这时将由操作系统来决定以何种方式递送信号。操作系统可以让`sigwait`返回，也可以激活信号处理程序，但这两种情况不会同时发生
+
+要把信号发送给**进程**，可以调用`kill`。要把信号发送给**线程**，可以调用`pthread_kill`：
+
+<div align="center"> <img src="../pic/apue-threadctr-29.png"/> </div>
+
+可以传一个`0`值的`signo`来检查线程是否存在。如果信号的默认处理动作是终止该进程，那么把信号传递给某个线程仍然会杀死整个进程
+
+闹钟定时器是进程资源，并且所有的线程共享相同的闹钟。所有，进程中的多个线程不可能互不干扰地使用闹钟定时器
+
+<br>
+
+## 6.线程和fork
+
+当线程调用fork时，就为子进程创建了整个进程地址空间的副本：
+
+* 子进程通过继承整个地址空间的副本，还从父进程那儿继承了每个互斥量、读写锁和条件变量的状态
+* 子进程内部只存在一个线程，它由父进程中调用fork的线程的副本构成。如果父进程中的线程占有锁，子进程将同样占有这些锁。问题是子进程并不包含占有锁的线程的副本，所以子进程没有办法知道它占有了哪些锁、需要释放哪些锁
+
+如果fork后马上调用其中一个`exec`函数，就能避免这样的问题。这种情况下，旧的地址空间被丢弃，所以锁的状态无关紧要
+
+在多线程的进程中，为了避免不一致状态的问题，POSIX.1声明，在fork返回和子进程调用其中一个`exec`之间，子进程只能调用**异步信号安全**的函数。这就限制了在调用`exec`之前子进程能做什么，但不涉及子进程中锁状态的问题
+
+**要清除锁状态**，可以调用`pthread_atfork`**建立fork处理程序**：
+
+<div align="center"> <img src="../pic/apue-threadctr-30.png"/> </div>
+
+**该函数可以安装清楚锁的函数，最多3个**：
+
+* `prepare`：
+    - 由父进程在fork创建子进程前调用
+    - 任务是获取父进程定义的所有锁
+* `parent`：
+    - fork创建子进程以后，返回之前在父进程上下文中调用
+    - 任务是对`prepare` fork处理程序获取的所有锁进行解锁
+* `child`：
+    - fork返回之前在子进程上下文中调用
+    - 与`prepare` fork处理程序一样，也必须释放`prepare` fork处理程序获取的所有锁
+
+如果不需要使用其中某个处理程序，可以给特定的处理程序参数传入空指针，它就不会起任何作用了
+
+可以多次调用`pthread_atfork`函数从而设置多套fork处理程序。使用多个fork处理程序时，处理程序的调用顺序并不相同
+
+* `parent`和`child` fork处理程序是以它们注册时的顺序进行调用的
+* 而`prepare` fork处理程序的调用顺序与它们注册时的顺序相反
+
+这样可以允许多个模块注册它们自己的fork处理程序，而且可以保持锁的层次
+
+<br>
+
+## 7.线程和I/O
+
+在多线程进程中，因为线程共享相同的文件描述符，所以应该使用`pread`和`pwrite`而不是`read`和`write`，使得偏移量的设定和数据的读取成为一个原子操作
 
 <br>
 <br>
