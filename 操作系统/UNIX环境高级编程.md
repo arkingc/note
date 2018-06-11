@@ -60,8 +60,20 @@
     - [2.记录锁](#2记录锁)
     - [3.I/O复用](https://github.com/arkingc/note/blob/master/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/UNIX%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E5%8D%B71.md#%E5%9B%9Bio%E5%A4%8D%E7%94%A8)
     - [4.异步I/O](#4.异步io)
+        + [4.1 AIO控制块](#41-aio控制块)
+        + [4.2 异步读与异步写](#42-异步读与异步写)
+        + [4.3 获取异步I/O的状态](#43-获取异步io的状态)
+        + [4.4 获取异步I/O返回值](#44-获取异步io返回值)
+        + [4.5 阻塞进程到异步I/O完成](#45-阻塞进程到异步io完成)
+        + [4.6 取消异步I/O](#46-取消异步io)
+        + [4.7 批量提交异步I/O请求](#47-批量提交异步io请求)
+        + [4.8 异步I/O的数量限制](#48-异步io的数量限制)
     - [5.readv与writev](https://github.com/arkingc/note/blob/master/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/UNIX%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E5%8D%B71.md#2readv%E5%92%8Cwritev%E5%87%BD%E6%95%B0)
     - [6.存储映射I/O](#6存储映射io)
+        + [6.1 mmap建立映射](#61-mmap建立映射)
+        + [6.2 mprotect修改映射区权限](#62-mprotect修改映射区权限)
+        + [6.3 msync冲洗映射区](#63-msync冲洗映射区)
+        + [6.4 munmap解除映射](#64-munmap解除映射)
 
 <br>
 <br>
@@ -960,9 +972,323 @@ struct flock{
 
 ## 4.异步I/O
 
+> 这里主要介绍POSIX异步I/O
+
+POSIX异步I/O接口为对不同类型的文件进程异步I/O提供了一套一致的方法。现在所有的平台都要求支持这些接口
+
+### 4.1 AIO控制块
+
+**这些异步I/O接口使用AIO控制块来描述I/O操作，`aiocb`结构定义了AIO控制块**，该结构至少包括下面这些字段：
+
+```c
+struct aiocb{
+        int aio_fildes;                // 文件描述符
+        off_t aio_offset;              // 文件偏移量
+        volatile void *aio_buf;        // IO缓冲区
+        size_t aio_nbytes;             // 传输的字节数
+        int aio_reqprio;               // 优先级
+        struct sigevent aio_sigevent;  // 信号信息
+        int aio_lio_opcode;            // IO操作列表
+    }
+```
+
+* `aio_fildes`：表示被打开用来读或者写的文件描述符
+* `aio_offset`：读或者写操作从该字段指定的偏移量开始
+* `aio_buf`：
+    * 对于读操作，它指定了从文件中读取内容存放的缓冲区
+    * 对于写操作，它指定了将要向文件写入的内容存放的缓冲区
+* `aio_nbytes`：指定了要读或者写的字节数
+* `aio_reqprio`：指定了异步`IO`的优先级，操作系统根据该优先级来安排执行顺序。但是操作系统对于该顺序只有 有限的控制能力，因此不一定能够遵循该提示
+* `aio_lio_opcode`：参见`lio_listio`函数的说明。它指定了该`AIO`控制块是用于多操作、写操作、还是空操作
+* `aio_sigevent`：指定`IO`事件完成后，如何通知应用程序
+    ```c
+    struct sigevent{
+        int sigev_notify;         // 通知类型
+        int sigev_signo;          // 信号编号
+        union sigval sigev_value;                   // 通知的参数
+        void (*sigev_notify_function)(union sigval);// 作为线程执行的函数
+        pthread_attr_t *sigev_notify_attributes;    // 线程属性
+    };
+    ```
+    + `sigev_notify`：指定了通知的类型，可以为下列三种之一
+        * `SIGEV_NONE`：异步`IO`请求完成后，不通知进程
+        * `SIGEV_SIGNAL`：异步`IO`请求完成后，产生由`sigev_signo`字段指定的信号。如果应用程序选择捕捉此信号，且在建立信号处理程序时，指定了`SA_SIGINFO`标志，则该信号将被入队列（如果实现支持排队信号）。信号处理程序将被传递一个`siginfo`结构，该结构的`si_value`字段将被设置成`sigev_value`
+        * `SIGEV_THREAD`：当异步`IO`请求完成后，由`sigev_notify_function`字段指定的函数被调用成为一个子线程。`sigev_value`字段被传入作为其参数。如果`sigev_notify_attributes`为`NULL`，则该线程为分离状态；如果`sigev_notify_attributes`不是`NULL`，则该线程的属性由`sigev_notify_attributes`指定
+
+### 4.2 异步读与异步写
+
+在进行异步I/O前需要先初始化AIO控制块。调用`aio_read`函数来进行异步读操作，或调用`aio_write`函数来进行异步写操作
+
+<div align="center"> <img src="../pic/apue-advio-7.png"/> </div>
+
+当这些函数返回成功时，异步I/O请求就已经被操作系统放入等待处理的队列中了。这些返回值与实际I/O操作的结果没有任何关系。
+
+注意：I/O操作在等待时，必须确保AIO控制块和数据缓冲区保持稳定。它们下面对应的内存必须始终是合法的，除非I/O操作完成，这些内存不应该被复用
+
+如果想强制所有等待中的异步操作不等待而写入持久化的存储（如硬盘）中，可以设立一个AIO控制块并调用`aio_fsync`函数：
+
+<div align="center"> <img src="../pic/apue-advio-8.png"/> </div>
+
+* 参数：
+    * `op`：指定模式：
+        * `O_DSYNC`：操作执行起来就像是调用了`fdatasync`一样
+        * `O_SYNC`：操作执行起来就像是调用了`fsync`一样
+    * `aiocb`：指向`AIO`控制块
+
+AIO控制块中的`aio_fildes`字段指定了其异步写操作不等待而写入持久化的存储的那个文件
+
+就像`aio_read/aio_write`函数一样，在安排了同步时，`aio_fsync`操作立即返回。在异步的同步操作（指的是将数据修改同步到硬盘上的这个操作是异步执行的）完成之前，数据不会被持久化。AIO控制块控制我们如何被通知
+
+### 4.3 获取异步I/O的状态
+
+<div align="center"> <img src="../pic/apue-advio-9.png"/> </div>
+
+* 返回值：
+    * 成功：返回 0 。表示异步操作完成，此时需要调用`aio_return`函数获取操作返回值
+    * 失败： 返回 -1。对`aio_error`的调用失败，此时`errno`会告诉我们发生了什么
+    * `EINPROGRESS`：对异步读、写、同步操作仍在等待
+    * 其他情况：其他任何返回值是相关的异步操作失败返回的错误码
+
+### 4.4 获取异步I/O返回值
+
+<div align="center"> <img src="../pic/apue-advio-10.png"/> </div>
+
+* 返回值：
+    * 失败： 返回 -1。对`aio_return`的调用失败，此时`errno`会告诉我们发生了什么
+    * 其他情况：返回异步读、写、同步操作的结果。即会返回`read`、`write`或者`fsync`在被成功调用时可能返回的结果
+
+直到异步操作完成之前，都要小心的不要调用`aio_return`函数。操作完成之前，该函数调用的结果是未定义的。
+
+还需要小心地对每个异步操作只调用一次`aio_return`函数，一旦调用了该函数，操作系统就可以释放掉包含IO操作返回值的记录
+
+### 4.5 阻塞进程到异步I/O完成
+
+如果在完成了所有事务时，还有异步操作未完成，可以调用调用该函数来阻塞进程，直到操作完成：
+
+<div align="center"> <img src="../pic/apue-advio-11.png"/> </div>
+
+* 参数：
+    * `list`：AIO控制块指针的数组。每个元素指向了要等待完成的异步操作
+        * 如果数组元素为NULL，则跳过空指针
+        * 如果数组元素非NULL，则它必须是已经初始化的异步I/O操作的AIO控制块
+    * `nent`：该数组的长度
+    * `timeout`：指定超时时间。如果想永不超时，则设定它为NULL
+
+`aio_suspend`可能返回三种结果：
+
+* 如果被一个信号中断，则返回-1 ，并将`errno`设置为`EINTR`
+* 如果`list`指定的异步I/O中，没有任何I/O操作完成的情况下，超时时间到达，则返回-1 ，并将`errno`设置为`EAGAIN`
+* 如果`list`指定的异步I/O中，有任何I/O操作完成，则返回 0
+
+如果在调用该函数时，所有的异步I/O操作都已完成，那么函数将在不阻塞的情况下直接返回
+
+### 4.6 取消异步I/O
+
+当我们不想再完成等待中的异步I/O操作时，可以尝试使用`aio_cancel`函数来取消它们
+
+<div align="center"> <img src="../pic/apue-advio-12.png"/> </div>
+
+* 参数：
+    * `fd`：指定了那个未完成异步`IO`操作的文件描述符
+    * `aiocb`：指向`AIO`控制块
+* 返回值：
+    * 失败： 返回 -1。对`aio_cacel`的调用失败，此时`errno`会告诉我们发生了什么
+    * `AIO_ALLDONE`：所有异步操作在尝试取消它们之前已经完成
+    * `AIO_CANCELED`：所有要求的异步操作已经取消
+    * `AIO_NOTCANCELED`：至少有一个异步操作没有被取消
+
+如果`aiocb`为`NULL`，则系统将尝试取消所有在`fd`文件上未完成的异步I/O操作。其他情况下尝试取消由AIO控制块描述的单个异步I/O操作。之所以说尝试，是因为无法保证系统能够取消正在进程中的任何异步操作
+
+如果异步I/O操作被成功取消，则对应的AIO控制块调用`aio_error`函数将会返回错误`ECANCELED`
+
+如果异步I/O操作不能被取消，那么相应的AIO控制块不会被修改
+
+### 4.7 批量提交异步I/O请求
+
+AIO控制块列表描述了一系列I/O请求，可以由该函数提交
+
+<div align="center"> <img src="../pic/apue-advio-14.png"/> </div>
+
+* 参数：
+    * `mode`：决定了`IO`是否同步的。其值可以为：
+        * `LIO_WAIT`：`lio_listio`函数将在所有的由列表指定的`IO`操作完成后返回。此时`sigev`参数被忽略。这是同步操作
+        * `LIO_NOWAIT`：`lio_listio`函数将在所有的由列表指定的`IO`操作请求入队立即返回（不等到完成）。进程将在所有`IO`操作完成后，根据`sigev`参数指定的方式，被异步的通知（如果不想被通知，则将`sigev`设置为`NULL`）
+            > 每个`AIO`控制块本身也可能启动了在各自操作完成时的异步通知。`sigev`指定的异步通知是额外加的，并且只会在所有的`IO`操作完成后发送
+    * `list`：`AIO`控制块指针的数组，该数组指定了要允许的`IO`操作。如果数组包含空指针，则跳过这些空指针
+    * `nent`：数组的长度
+    * `sigev`：指定了当所有`IO`操作完成后，发送的异步通知（如果不想被通知，则将`sigev`设置为`NULL`）。只有当`mode=LIO_NOWAIT`才有意义
+
+### 4.8 异步I/O的数量限制
+
+异步IO的数量有限制，这些限制都是运行时不变量
+
+- 可以通过`sysconf`函数并把`name`设置为`_SC_IO_LISTIO_MAX`来设定`AIO_LISTIO_MAX`的值    
+- 可以通过`sysconf`函数并把`name`设置为`_SC_AIO_MAX`来设定`AIO_MAX`的值
+- 可以通过`sysconf`函数并把`name`设置为`_SC_AIO_PRIO_DELTA_MAX`来设定`AIO_PRIO_DELTA_MAX`的值
+
+这些常量的意义为：
+
+- `AIO_LISTIO_MAX`：单个列表`IO`调用中的最大`IO`操作数量
+- `AIO_MAX`：未完成的异步`IO`操作的最大数量
+- `_SC_AIO_PRIO_DELTA_MAX`：进程可以减少的其异步`IO`优先级的最大值
+
 <br>
 
 ## 6.存储映射I/O
+
+**存储映射I/O能将一个磁盘文件映射到存储空间中的一个缓冲区上**，于是：
+
+* **当从缓冲区中取数据时，就相当于读文件中的相应字节**
+* **将数据存入缓冲区时，相应字节就自动写入文件**
+
+因此，就可以在不使用`read`和`write`的情况下执行I/O
+
+### 6.1 mmap建立映射
+
+内核将一个给定的文件映射到一个存储区域中是由`mmap`实现的：
+
+<div align="center"> <img src="../pic/apue-advio-15.png"/> </div>
+
+* 参数：
+    * `addr`：用于指定映射存储区的起始地址。如果为 0，则表示由系统选择该映射区的起始地址
+    * `len`：指定要映射的字节数
+    * `prot`：指定了映射存储区的保护要求，可以为下列之一（也可以为`PROT_READ`、`PROT_WRITE`、`PROT_EXEC`的按位或）：
+        * `PROT_READ`：映射区可读
+        * `PROT_WRITE`：映射区可写
+        * `PROT_EXEC`：映射区可执行
+        * `PROT_NONE`：映射区不可访问
+    * `flag`：影响映射存储区的多种属性：
+        * `MAP_FIXED`：返回值必须等于`addr`。因为这不利于可移植性，所以不鼓励使用此标志（如果未指定此标志，且`addr`非 0，则内核只是将`addr`视为在何处设置映射区的一个建议，但是不保证会使用所要求的地址。将`addr`设为 0，可以获取最大可移植性）
+        * `MAP_SHARED`：此标志指定存储操作将修改底层的映射文件（即存储操作相当于对底层的映射文件进行`write`）
+        * `MAP_PRIVATE`：此标志指定存储操作将不会修改底层的映射文件，而是创建该底层的映射文件的一个私有副本。所有后续的对该映射区的引用都是引用该副本（此标志的一个用途是用于调试程序，它将程序文件的正文部分映射到存储区，但允许用户修改其中的指令。任何修改只影响程序文件的副本，而不影响源文件）
+    * `fd`：指定要被映射文件的描述符。在文件映射到地址空间之前，必须先打开该文件
+    * `off`：要映射字节在文件中的起始偏移量
+
+注意：
+
+- `prot`不能超过文件`open`模式访问权限。如：如果该文件是只读打开的，则对于映射存储区就不能指定`PROT_WRITE`
+- `flag`的标志中，`MAP_SHARED`和`MAP_PRIVATE`必须指定一个，而且二者不能同时指定
+- `flag`的标志中，每种实现可能会自定义一些`MAP_XXX`标志值，它们是那些实现特有的
+- `off`的值和`addr`的值（如果指定了`MAP_FIXED`）通常被要求是系统虚拟存储页长（虚拟存储页长可以用带参数`_SC_PAGESIZE`或者`_SC_PAGE_SIZE`的`sysconf`函数得到
+）的倍数。因为`off`和`addr`通常指定为 0 ，所以这种要求一般并不重要
+
+下图是存储映射文件的基本情况。其中“起始地址”是`mmap`的返回值
+
+<div align="center"> <img src="../pic/apue-advio-16.png"/> </div>
+
+假设文件长度为 12 字节，系统页长为 512 字节，则系统通常会提供 512 字节的映射区，其中后 500字节被设置为0 。可以修改后面的这 500 字节，但是任何变动都不会在文件中反映出来。因此，不能用`mmap`将数据添加到文件中（可以先加长该文件，使得能够将后面500字节的改动反映到文件中去）
+
+与映射区相关的信号有：`SIGSEGV`和`SIGBUS`
+
+- `SIGSEGV`：通常用于指示进程试图访问对它不可用的存储区。如果映射存储区被`mmap`指定成了只读的，则进程试图写这个映射存储区时，也产生此信号
+- `SIGBUS`：如果映射区的某个部分在访问时不存在，则产生`SIGBUS`信号
+    > 如：用文件长度映射了一个文件，但在引用该映射区之前，另一个进程已将该文件截断，此时如果进程视图访问被截断部分对应的映射区，则接收到`SIGBUS`信号
+
+**子进程能够通过`fork`继承存储映射区（因为子进程复制了父进程地址空间，而存储映射区是该地址空间的组成部分）。但是一旦子进程调用了`exec`，则新程序不再拥有存储映射区了**
+
+### 6.2 mprotect修改映射区权限
+
+<div align="center"> <img src="../pic/apue-advio-17.png"/> </div>
+
+* 参数：
+    * `addr`：存储映射区的地址，必须是系统页长的整数倍
+    * `len`：存储映射区的长度
+    * `prot`：存储映射区的修改后的权限，与`mmap`中的`prot`一样
+
+### 6.3 msync冲洗映射区
+
+如果修改的页是通过`MAP_SHARED`标志映射到地址空间的，那么对内存映射区的修改并不会立即写回到底层文件中。何时写回脏页（即被修改的页）由内核的守护进程决定，决定的依据有两个：
+
+- 系统负载
+- 用来限制在系统失败事件中的数据损失的配置参数 
+
+因此，如果只修改了一页中的一个字节，当修改被写回到文件中时，整个页都被写回
+
+如果共享映射中的页已修改，则可以调用`msync`函数将该页冲洗到底层文件中。它类似于`fsync`，但作用于存储映射区：
+
+<div align="center"> <img src="../pic/apue-advio-18.png"/> </div>
+
+* 参数：
+    * `addr`：存储映射区的地址
+    * `len`：存储映射区的长度
+    * `flags`：用于控制如何冲洗存储区。下列两个常量二选一
+        * `MS_ASYNC`：简单的调试要写的页
+        * `MS_SYNC`：在返回之前等待写操作完成
+
+如果存储映射是私有的，则不修改底层的文件
+
+### 6.4 munmap解除映射
+
+当进程终止时，会自动解除存储映射区的映射。也可以直接调用`munmap`函数来手动解除映射区
+
+<div align="center"> <img src="../pic/apue-advio-19.png"/> </div>
+
+* 参数：
+    * `addr`：存储映射区的地址
+    * `len`：存储映射区的长度
+
+`munmap`并不影响被映射的对象。即调用`munmap`并不会使映射区的内容写到磁盘文件上
+    
+- 对于`MAP_SHARED`存储映射区的磁盘文件的更新，会在我们将数据写到存储映射区后的某个时刻，由内核虚拟存储算法自动运行
+- 对于`MAP_PRIVATE`存储映射区：对其做出的修改会被丢弃
+
+注意，对于创建存储映射区时使用的文件描述符，如果关闭该描述符，并不会解除映射区
+
+### 使用mmap拷贝文件
+
+```c
+#include "apue.h"
+#include <fcntl.h>
+#include <sys/mman.h>
+
+#define COPYINCR (1024*1024*1024)   /* 1 GB */
+
+int
+main(int argc, char *argv[])
+{
+    int         fdin, fdout;
+    void        *src, *dst;
+    size_t      copysz;
+    struct stat sbuf;
+    off_t       fsz = 0;
+
+    if (argc != 3)
+        err_quit("usage: %s <fromfile> <tofile>", argv[0]);
+
+    if ((fdin = open(argv[1], O_RDONLY)) < 0)
+        err_sys("can't open %s for reading", argv[1]);
+
+    if ((fdout = open(argv[2], O_RDWR | O_CREAT | O_TRUNC,
+      FILE_MODE)) < 0)
+        err_sys("can't creat %s for writing", argv[2]);
+
+    if (fstat(fdin, &sbuf) < 0)         /* need size of input file */
+        err_sys("fstat error");
+
+    if (ftruncate(fdout, sbuf.st_size) < 0) /* set output file size */
+        err_sys("ftruncate error");
+
+    while (fsz < sbuf.st_size) {
+        if ((sbuf.st_size - fsz) > COPYINCR)
+            copysz = COPYINCR;
+        else
+            copysz = sbuf.st_size - fsz;
+
+        if ((src = mmap(0, copysz, PROT_READ, MAP_SHARED,
+          fdin, fsz)) == MAP_FAILED)
+            err_sys("mmap error for input");
+        if ((dst = mmap(0, copysz, PROT_READ | PROT_WRITE,
+          MAP_SHARED, fdout, fsz)) == MAP_FAILED)
+            err_sys("mmap error for output");
+
+        memcpy(dst, src, copysz);   /* does the file copy */
+        munmap(src, copysz);
+        munmap(dst, copysz);
+        fsz += copysz;
+    }
+    exit(0);
+}
+```
 
 <br>
 <br>
