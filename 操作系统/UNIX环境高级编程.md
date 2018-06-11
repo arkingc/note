@@ -52,6 +52,13 @@
         + [4.6 获取流相应的文件描述符](#46-获取流相应的文件描述符)
         + [4.7 创建临时文件](#47-创建临时文件)
     - [5.内存流](#5内存流)
+* [十.高级I/O](#十高级io)
+    - [1.非阻塞I/O](https://github.com/arkingc/note/blob/master/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/UNIX%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E5%8D%B71.md#%E4%B9%9D%E9%9D%9E%E9%98%BB%E5%A1%9E%E5%BC%8Fio)
+    - [2.记录锁](#2记录锁)
+    - [3.I/O复用](https://github.com/arkingc/note/blob/master/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/UNIX%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E5%8D%B71.md#%E5%9B%9Bio%E5%A4%8D%E7%94%A8)
+    - [4.异步I/O](#4.异步io)
+    - [5.readv与writev](https://github.com/arkingc/note/blob/master/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/UNIX%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E5%8D%B71.md#2readv%E5%92%8Cwritev%E5%87%BD%E6%95%B0)
+    - [6.存储映射I/O](#6存储映射io)
 
 <br>
 <br>
@@ -809,6 +816,21 @@ Single UNIX Specification为处理临时文件定义了另外两个函数：`mkd
 - 这些值只有在下一次写入或者调用`fclose`之前才有效。因为缓冲区可能增长，也可能需要重新分配
 
 > 因为避免了缓冲区溢出，内存流非常适用于创建字符串。因为内存流只访问主存，不访问磁盘上的文件，所以对于把标准I/O流作为参数用于临时文件的函数来说，会有很大的性能提升
+
+<br>
+<br>
+
+# 十.高级I/O
+
+## 2.记录锁
+
+<br>
+
+## 4.异步I/O
+
+<br>
+
+## 6.存储映射I/O
 
 <br>
 <br>
@@ -2566,7 +2588,7 @@ pKey数组的所有元素都被初始化为空指针。这128个指针是和进�
 <br>
 <br>
 
-# 十.进程间通信
+# 十一.进程间通信
 
 <br>
 <br>

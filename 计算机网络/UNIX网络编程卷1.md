@@ -1680,7 +1680,9 @@ getaddrinfo的互补函数
 
 <div align="center"> <img src="../pic/unp-io-3.png"/> </div>
 
+* **filedes**：文件描述符
 * **iov**：指向某个iovec结构数组的一个指针，iovec结构定义在<sys/uio.h>中：
+* **opvcnt**：iov数组中元素个数
 
 ```c++
 struct iovec{
@@ -1688,6 +1690,13 @@ struct iovec{
     size_t iov_len; //buf的大小
 };
 ```
+
+`iovec`结构和缓冲区的关系：
+
+<div align="center"> <img src="../pic/unp-io-3.png"/> </div>
+
+* `writev`函数从缓冲区中聚集输出数据的顺序是：iov\[0\]、iov\[1\]直至iov\[iovcnt-1\]
+* `readv`函数则将读入的数据按同样的顺序散步到缓冲区中
 
 **iovec结构数组中元素的个数存在某个限制，取决于具体实现**。4.3BSD和Linux均最多允许1024个，而HP-UX最多允许2100个。**POSIX要求在头文件<sys/uio.h>中定义IOV_MAX常值，其值至少为16**
 
@@ -1894,7 +1903,12 @@ socketpair函数创建2个随后连接起来的套接字：
     - **阻塞**：如果尚无新的连接到达，调用进程将被投入睡眠
     - **非阻塞**：如果尚无新的连接到达，调用将立即返回一个EWOULDBLOCK错误
 
-**通过将套接字设置为非阻塞，从而使得相应的套接字调用为非阻塞**
+**通过将套接字描述符设置为非阻塞，从而使得相应的套接字调用为非阻塞**
+
+**不仅限于套接字描述符，将任意文件描述符设置为非阻塞有2种方法**：
+
+1. **如果调用`open`获得描述符，则可指定`O_NONBLOCK`标志**
+2. **对于已经打开的一个描述符，可调用`fcntl`，由该函数打开`O_NONBLOCK`文件状态标志**
 
 ## 1.非阻塞读和写
 
