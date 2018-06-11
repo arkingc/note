@@ -1693,7 +1693,7 @@ struct iovec{
 
 `iovec`结构和缓冲区的关系：
 
-<div align="center"> <img src="../pic/unp-io-3.png"/> </div>
+<div align="center"> <img src="../pic/unp-io-11.png"/> </div>
 
 * `writev`函数从缓冲区中聚集输出数据的顺序是：iov\[0\]、iov\[1\]直至iov\[iovcnt-1\]
 * `readv`函数则将读入的数据按同样的顺序散步到缓冲区中
