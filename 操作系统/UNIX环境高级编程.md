@@ -3053,7 +3053,31 @@ pKey数组的所有元素都被初始化为空指针。这128个指针是和进�
         + [3.1 创建FIFO](#31-创建fifo)
         + [3.2 打开FIFO](#32-打开fifo)
         + [3.3 读写FIFO](#33-读写fifo)
-    - [4.XSI IPC](#4.xsi-ipc)
+    - [4.XSI IPC](#4xsi-ipc)
+        + [5.消息队列](#5消息队列)
+            * [5.1 与消息队列相关的结构](#51-与消息队列相关的结构)
+            * [5.2 创建或打开消息队列](#52-创建或打开消息队列)
+            * [5.3 操作消息队列](#53-操作消息队列)
+            * [5.4 添加消息](#54-添加消息)
+            * [5.5 获取消息](#55-获取消息)
+        + [6.信号量](#6信号量)
+            * [6.1 信号量的相关结构](#61-信号量的相关结构)
+            * [6.2 获得信号量](#62-获得信号量)
+            * [6.3 操作信号量](#63-操作信号量)
+        + [7.共享存储](#7共享存储)
+            * [7.1 共享存储的内核结构](#71-共享存储的内核结构)
+            * [7.2 创建或获得共享存储](#72-创建或获得共享存储)
+            * [7.3 操作共享存储](#73-操作共享存储)
+            * [7.4 与共享存储段连接](#74-与共享存储段连接)
+            * [7.5 与共享存储段分离](#75-与共享存储段分离)
+    - [8.POSIX信号量](#8posix信号量)
+        + [8.1 创建或获取命名信号量](#81-创建或获取命名信号量)
+        + [8.2 关闭释放信号量](#82-关闭释放信号量)
+        + [8.3 销毁命名信号量](#83-销毁命名信号量)
+        + [8.4 调节信号量的值](#84-调节信号量的值)
+        + [8.5 创建未命名信号量](#85-创建未命名信号量)
+        + [8.6 销毁未命名信号量](#86-销毁未命名信号量)
+        + [8.7 检索未命名信号量的值](#87-检索未命名信号量的值)
 
 <br>
 <br>
@@ -3174,7 +3198,7 @@ FIFO有以下2个**用途**：
 
 #### 2）键
 
-**标识符是IPC对象的内部名**。为使多个合作进程能够在同一IPC对象上汇聚，需要提供一个外部命名方案。谓词，**每个IPC对象都与一个键相关联，将这个键作为该对象的外部名**（创建IPC结构时，应指定一个键）。**键的类型是基本系统数据类型`key_t`**，通常在`<sys/types.h>`中被定义为长整形。这个键由内核变换成标识符
+**标识符是IPC对象的内部名**。为使多个合作进程能够在同一IPC对象上汇聚，需要提供一个外部命名方案。为此，**每个IPC对象都与一个键相关联，将这个键作为该对象的外部名**（创建IPC结构时，应指定一个键）。**键的类型是基本系统数据类型`key_t`**，通常在`<sys/types.h>`中被定义为长整形。这个键由内核变换成标识符
 
 ### 4.2 权限结构
 
@@ -3219,6 +3243,481 @@ struct ipc_perm{
 <div align="center"> <img src="../pic/apue-ipc-8.png"/> </div>
 
 ”无连接“指无需先调用某种形式的打开函数就能发送消息的能力
+
+<br>
+
+## 5.消息队列
+
+> 后文把消息队列简称为“队列”，把标识符简称为"队列ID"
+
+消息队列是消息的链接表，存储在内核中，由消息队列标识符标识
+
+### 5.1 与消息队列相关的结构
+
+每个队列都有一个`msqid_ds`结构与其关联，这个结构定义了队列的当前状态：
+
+```c
+struct msqid_ds{
+    struct ipc_perm    msg_perm;
+    msgqnum_t          msg_qnum;    /* 队列中的消息数 */
+    msglen_t           msg_qbytes;  /* 队列中消息的字节 */
+    pid_t              msg_lspid;   /* 最后调用msgsnd()的进程ID */
+    pid_t              msg_lrpid;   /* 最后调用msgrcv()的进程ID */
+    time_t             msg_stime;   /* 最后调用msgsnd()的时间 */ 
+    time_t             msg_rtime;   /* 最后调用msgrcv()的时间 */
+    time_t             msg_ctime;   /* 最后一次修改队列的时间 */
+    ...
+};
+```
+
+下图为消息队列的系统限制：
+
+<div align="center"> <img src="../pic/apue-ipc-9.png"/> </div>
+
+“导出的”表示这种限制来源于其它限制
+
+### 5.2 创建或打开消息队列
+
+<div align="center"> <img src="../pic/apue-ipc-10.png"/> </div>
+
+* `msgget`：创建一个新队列或打开一个现有队列
+    - `key_t`：创建IPC结构时需要指定一个键，作为IPC对象的外部名。键由内核转变成标识符
+    - `返回值`：若成功，返回非负队列ID（标识符），该值可被用于其余几个消息队列函数
+
+创建队列时，需要初始化`msqid_ds`结构的下列成员：
+
+* `ipc_perm`：按[XSI IPC中的描述](#42-权限结构)初始化
+* `msg_qnum`、`msg_lspid`、`msg_lrpid`、`msg_stime`和`msg_rtime`都设为0
+* `msg_ctime`设置为当前时间
+* `msg_qbytes`设置为系统限制值
+
+### 5.3 操作消息队列
+
+<div align="center"> <img src="../pic/apue-ipc-11.png"/> </div>
+
+* `msqid`：队列ID（标识符），`msgget`的返回值
+* `cmd`：
+    - `IPC_STAT`：取此队列的msgid_qs结构，并存放在buf指向的结构中
+    - `IPC_SET`：将字段msg_perm.uid、msg_perm.gid、msg_perm.mode和msg_qbytes从Buf指向的结构赋值到这个队列的msqid_ds结构中（此命令只能由下列2种进程执行：1）其有效ID等于msg_perm.cuid或msg_perm.uid；2）具有超级用户特权的进程；只有超级用户才能增加msg_qbytes的值）
+    - `IPC_RMID`：从系统中删除消息队列以及仍在队列中的所有数据。这种删除立即生效。仍在使用这一消息队列的其它进程在他们下一次试图对此队列进行操作时，将得到`EIDRM`错误（此命令只能由下列2种进程执行：1）其有效ID等于msg_perm.cuid或msg_perm.uid；2）具有超级用户特权的进程）
+
+上面3条命令也可用于**信号量**和**共享存储**
+
+### 5.4 添加消息
+
+`msgsnd`将新消息添加到队列尾端
+
+<div align="center"> <img src="../pic/apue-ipc-12.png"/> </div>
+
+每个消息由3部分组成：一个正的长整型类型的字段、一个非负的长度、实际数据字节（对应于长度）
+
+* `ptr`：指向一个长整型数，它包含了正的整型消息类型，其后紧接着消息数据（若`nbytes`为0则无消息数据）
+    ```c
+    struct mymesg{
+        long mtype;         /* 正的长整型类型字段 */
+        char mtext[512];    /*  */
+    };
+    ```
+    因此，`ptr`可以是一个指向`mymesg`结构的指针
+* `nbytes`：消息数据的长度
+* `flag`
+    - `ICP_NOWAIT`：类似于文件I/O的非阻塞I/O标准
+        + 若消息队列已满（数量或字节总数达到限制）
+            * 若指定`ICP_NOWAIT`，函数立即出错返回`EAGAIN`
+            * 若没指定`ICP_NOWAIT`，进程会阻塞到：1）有空间可用；2）从系统中删除了此队列(会返回`EIDRM错误`)；3）捕捉到一个信号，并从信号处理程序返回(会返回`EINTR`错误)
+
+当`msgsnd`返回成功时，消息队列相关的`msqid_ds`结构会随之更新
+
+### 5.5 获取消息
+
+<div align="center"> <img src="../pic/apue-ipc-12.png"/> </div>
+
+* `msgrcv`：从队列中取消息（并不一定要以先进先出的顺序取消息，也可以按类型字段取消息）
+    - `ptr`：与msgsnd中一样
+    - `nbytes`：指定数据缓冲区的长度
+        + 若返回的长度大于`nbyte`
+            * 在`flag`中设置了`MSG_NOERROR`，则消息被截断，但是不会有通知
+            * 如果没有设置`MSG_NOERROR`，则出错返回`E2BIG`（消息仍留在队列中）
+    - `type`：欲获取的消息类型
+        + `0`：返回队列中的第一个消息
+        + `>0`：返回队列中消息类型为`type`的第一个消息
+        + `<0`：返回队列中消息类型小于等于`type`绝对值的消息，如果有若干个，则取类型值最小的消息
+    - `flag`
+        + `IPC_NOWAIT`：可使操作不阻塞
+            * 当队列中无消息时
+                - 若指定了该标志，函数会返回-1，`error`设置为`ENOMSG`
+                - 若没有指定该标志，函数会一直阻塞直到：1）有了指定类型的消息可用；2）从系统中删除了此队列（会导致函数返回-1，`error`设置为`EIDRM`）；3）捕捉到一个信号并从信号处理程序返回（会导致函数返回-1，`error`设置为`EINTR`）
+
+`msgrcv`成功执行时，内核会更新与该消息队列相关的`msgid_ds`结构
+
+<br>
+
+## 6.信号量
+
+信号量是一个**计数器**，用于为多个进程提供对**共享数据对象**的访问
+
+为了正确实现信号量，信号量值的测试及减1操作应当是原子操作。为此，信号量通常是在内核中实现的
+
+常用的信号量形式被称为二元信号量，它控制单个资源，其初始值为1。但是一般而言，信号量的初值可以是任意一个正值，该值表明有多少个共享资源单位可供共享应用
+
+下面的特性使得XSI信号量更复杂：
+
+* 信号量并非是单个非负值，而必须定义为含有一个或多个信号量值的集合。当创建信号量时，要指定集合中信号量值的数量
+* 信号量的创建是独立于它的初始化的。这是一个致命缺点。因此不能原子地创建一个信号量集合，并且对该集合中的各个信号量赋初值
+* 即使没有进程正在使用各种形式的XSI IPC，他们仍然是存在的。有的程序在终止时并没有释放已经分配给它的信号量，我们不得不为这种程序担心
+
+### 6.1 信号量的相关结构
+
+内核为每个**信号量集合**维护着一个`semid_ds`结构
+
+```c
+struct semid_ds{
+    struct ipc_perm sem_perm;   
+    unsigned short  sem_nsems;  /* 集合中的信号量数目 */
+    time_t          sem_otime;  /* 最后一次调用semop()的时间 */
+    time_t          sem_ctime;  /* 最后一次改变的时间 */
+    ...
+};
+```
+
+**每个信号量**由一个无名结构表示，它至少包含下列成员：
+
+```c
+struct{
+    unsigned short  semval;     /* 信号量的值，总是>=0 */
+    pid_t           sempid;     /* 最后一个操作信号量的进程ID */
+    unsigned short  semncnt;    /* 等待 semval>curval 的进程数 */
+    unsigned short  semzcnt;    /* 等待 semval==0 的进程数 */
+    ...
+};
+```
+
+下图是影响信号量集合的系统限制；
+
+<div align="center"> <img src="../pic/apue-ipc-14.png"/> </div>
+
+### 6.2 获得信号量
+
+<div align="center"> <img src="../pic/apue-ipc-15.png"/> </div>
+
+* `key`：创建IPC结构时需要指定一个键，作为IPC对象的外部名。键由内核转变成标识符
+* `nsems`：该信号量集合中的信号量数
+    - 如果是创建新集合（一般在服务器进程中），则必须指定`nsems`
+    - 如果是引用现有集合（一个客户进程），则将`nsems`指定为0
+* `flag`：
+
+创建队列时，需要初始化`semid_ds`结构的下列成员：
+
+* `ipc_perm`结构按[XSI IPC中的描述](#42-权限结构)初始化。结构中的`mode`成员被设置为`flag`中的相应权限位
+* `sem_otime`设置为0
+* `sem_ctime`设置为当前时间
+* `sem_nsems`设置为`nsems`
+
+### 6.3 操作信号量
+
+<div align="center"> <img src="../pic/apue-ipc-16.png"/> </div>
+
+* 参数
+    - `semid`：信号量集合
+    - `semnum`：信号量集合中的某一信号量
+    - `cmd`：命令
+        + `IPC_STAT`：获取信号量集合的`semid_ds`结构，存储在arg.buf指向的结构中
+        + `IPC_SET`：按arg.buf指向的结构中的值设置集合`semid_ds`结构中的sem_perm.uid、sem_perm.gid和sem_perm.mode字段（此命令只能由下列2种进程执行：1）其有效ID等于sem_perm.cuid或sem_perm.uid；2）具有超级用户特权的进程；）
+        + `IPC_RMID`：从系统中删除该信号量集合。这种删除是立即发生的。删除时仍在使用这一信号量集合的其它进程在他们下一次试图对此信号量集合进行操作时，将得到`EIDRM`错误（此命令只能由下列2种进程执行：1）其有效ID等于sem_perm.cuid或sem_perm.uid；2）具有超级用户特权的进程；）
+        + `GETVAL`：返回`semnum`指定信号量的值
+        + `SETVAL`：设置`semnum`指定信号量的值
+        + `GETPID`：返回`semnum`指定信号量的`sempid`（最后一个操作信号量的进程ID）
+        + `GETNCNT`：返回`semnum`指定信号量的`semncnt`
+        + `GETZCNT`：返回`semnum`指定信号量的`semzcnt`
+        + `GETALL`：取该集合中所有的信号量值。这些值存储在arg.array指向的数组中
+        + `SETALL`：将该集合中所有的信号量值设置成arg.array指向的数组中的值
+    - `semun`：可选参数，是否使用取决于命令`cmd`，如果使用则类型是联合结构`semun`
+        ```c
+        union semun{
+            int             val;    /* for SETVAL */
+            struct semid_ds *buf;   /* for ICP_STAT and IPC_SET */
+            unsigned short  *array; /* for GETALL and SETALL */
+        };
+        ```
+
+* 返回值：对于除`GETALL`以外的所有`GET`命令，函数都返回相应值。对于其他命令，若成功则返回值为0，若出错，则设置`errno`并返回-1
+
+函数`semop`自动执行信号量集合上的操作数组：
+
+<div align="center"> <img src="../pic/apue-ipc-17.png"/> </div>
+
+* 指定信号量集合
+* `semoparray`：一个指针，指向一个由`sembuf`结构表示的信号量操作数组
+    ```c
+    struct sembuf{
+        unsigned short  sem_num;    /* 信号量集合中的某个信号量 */
+        short           sem_op;     /* 操作 */
+        short           sem_flg;    /* IPC_NOWAIT，SEM_UNDO */
+    };
+    ```
+    * `sem_op`为正值：**这对应于进程释放的占用的资源数。sem_op值会加到该信号量的值上**
+    * `sem_op`为负值：**则表示要获取由该信号量控制的资源**
+        - 如果**信号量的值**大于等于`sem_op`的绝对值，则从信号值中减去`sem_op`的绝对值
+        - 如果**信号量的值**小于`sem_op`的绝对值
+            + 若指定了`IPC_NOWAIT`，则出错返回`EAGAIN`
+            + 若未指定`IPC_NOWAIT`，则该信号量的`semncnt`增加1，然后调用进程被挂起直到下列事件之一发生
+                * 该信号量的值变成大于等于`sem_op`的绝对值。此信号量的`semncnt`值减1，并且从信号量值中减去`sem_op`的绝对值
+                * 从系统中删除了此信号量。在这种情况下，函数出错返回`EIDRM`
+                * 进程捕捉到一个信号，并从信号处理程序返回，在这种情况下，此信号量的`semncnt`值减1，并且函数出错返回`EINTR`
+    * `sem_op`为0：**则表示调用进程希望等待到信号量的值变为0**
+        - 如果**信号量的值**是0，则表示函数立即返回
+        - 如果**信号量的值**非0，则：
+            + 若指定了`IPC_NOWAIT`，则`semop`出错返回`EAGAIN`
+            + 若未指定`IPC_NOWAIT`，则该信号量的`semncnt`增加1，然后调用进程被挂起直到下列事件之一发生
+                * 该信号量值变为0，此信号量的`semncnt`值减1
+                * 从系统中删除了此信号量。在这种情况下，函数出错返回`EIDRM`
+                * 进程捕捉到一个信号，并从信号处理程序返回，在这种情况下，此信号量的`semncnt`值减1，并且函数出错返回`EINTR`
+* `nops`：数组的数量，即操作的数量
+
+该函数具有原子性，它或者执行了数组中的所有操作，或者一个也不做
+
+#### exit时的信号量调整
+
+如果在进程终止时，它占用了经由信号量分配的资源，那么就会成为一个问题。无论何时只要为信号量操作指定了`SEM_UNDO`标志，然后分配资源(`sem_op`值小于0)，那么内核就会记住对于该特定信号量，分配给调用进程多少资源（`sem_op`的绝对值）。当该进程终止时，无论自愿或不自愿，内核都将检验该进程是否还有尚未处理的信号量调整值。如果有，则按调整值对相应信号量值进行处理
+
+如果用带`SETVAL`或`SETALL`命令的`semctl`设置一个信号量的值，则在所有进程中，该信号量的调整值都将设置为0
+
+<br>
+
+## 7.共享存储
+
+**共享存储允许2个或多个进程共享一个给定的存储区**
+
+**因为数据不需要再客户进程和服务器进程之间复制，所以这是最快的一种IPC**
+
+使用共享存储要注意的是：进程在往共享存储写完成之前，读进程不应该去取数据。通常，信号量用于同步共享存储访问
+
+> mmap就是共享存储的一种形式，但是XSI共享存储与其区别在于，XSI共享存储没有相关文件。XSI共享存储段是内存的匿名段
+
+### 7.1 共享存储的内核结构
+
+内核为每个共享存储段维护着一个结构，至少包含以下成员：
+
+```c
+struct shmid_ds{
+    struct ipc_perm     shm_perm;   
+    size_t              shm_segsz;  /* 共享存储段的字节大小 */
+    pid_t               shm_lpid;   /* 最后调用shmop()的进程ID */
+    pid_t               shm_cpid;   /* 创建该共享存储段的进程ID */
+    shmatt_t            shm_nattch; /* 当前访问计数 */
+    time_t              shm_atime;  /* 最后一次attach的时间 */
+    time_t              shm_dtime;  /* 最后一次detach的时间 */
+    time_t              shm_ctime;  /* 最后一次change的时间 */
+    ...
+};
+```
+
+下图为影响共享存储的系统限制：
+
+<div align="center"> <img src="../pic/apue-ipc-18.png"/> </div>
+
+### 7.2 创建或获得共享存储
+
+<div align="center"> <img src="../pic/apue-ipc-19.png"/> </div>
+
+* `key`：创建IPC结构时需要指定一个键，作为IPC对象的外部名。键由内核转变成标识符
+* `size`：共享存储段的长度，单位是字节。实现通常将其向上取为系统页长的整倍数。但是，如果指定的值不是系统页长的整倍数，那么最后一页的余下部分是不可使用的
+    - 如果正在创建一个新段，则必须指定`size`（段内的内容初始化为0）
+    - 如果正在引用一个现存的段，则将`size`指定为0
+
+创建一个新共享存储段时，初始化`shmid_ds`结构的下列成员：
+
+* `ipc_perm`结构按[XSI IPC中的描述](#42-权限结构)初始化。结构中的`mode`成员被设置为`flag`中的相应权限位
+* `shm_lpid`、`shm_nattach`、`shm_atime`和`shm_dtime`都设置为0
+* `shm_ctime`设置为当前时间
+* `sem_segsz`设置为`size`
+
+### 7.3 操作共享存储
+
+<div align="center"> <img src="../pic/apue-ipc-20.png"/> </div>
+
+* `shmid`：共享存储标识符，由函数`shmget`得到
+* `cmd`
+    - `IPC_STAT`：获取段对应的`shmid_ds`结构，并将其存储在由`buf`指向的结构中
+    - `IPC_SET`：按`buf`指向的结构中的值设置此共享存储段相关的`shmid_ds`结构中的下列3个字段：shm_perm.uid、shm_perm.gid和shm_perm.mode字段（此命令只能由下列2种进程执行：1）其有效ID等于shm_perm.cuid或shm_perm.uid；2）具有超级用户特权的进程；）
+    - `IPC_RMID`：从系统中删除该共享存储段。因为每个共享存储段维护着一个连接计数(`shmid_ds`中的`shm_nattach`字段)，所以除非使用该段的最后一个进程终止或与该段分离，否则不会实际上删除该存储段。不管此段是否仍在使用，该段标识符都会被立即删除，所以不能再用`shmat`与该段连接（此命令只能由下列2种进程执行：1）其有效ID等于shm_perm.cuid或shm_perm.uid；2）具有超级用户特权的进程；）
+    Linux和Solaris提供了另外两种命令，但它们并非Single UNIX Specification的组成部分
+
+    - `SHM_LOCK`：在内存中对共享存储段加锁（该命令只能由超级用户执行）
+    - `SHM_UNLOCK`：解锁共享存储段（该命令只能由超级用户执行）
+
+### 7.4 与共享存储段连接
+
+可以调用`shmat`将共享存储段连接到进程的地址空间中
+
+<div align="center"> <img src="../pic/apue-ipc-21.png"/> </div>
+
+* `shmid`：共享存储段的标识符
+* `addr`：共享存储段连接到进程的该地址
+    - `0`：由内核选择（推荐的方式）
+    - `非0`
+        + `flag`指定了`SHM_RND`，则连接到`addr`所指的地址上
+        + `flag`没指定`SHM_RND`，则此段连接到 `addr-(addr mod SHMLAB)` 所表示的地址上（`SHM_RND`意思是”取整“，`SHMLBA`的意思是”低边界地址倍数“）
+* `flag`
+    - `SHM_RDONLY`：以只读方式连接此段
+    - `否则`：以读写方式连接此段
+
+如果函数成功，内核会将与该共享存储段相关的`shmid_ds`结构中的`shm_nattch`计数器值加1
+
+### 7.5 与共享存储段分离
+
+下列函数可以与共享存储段分离。该调用并不从系统中删除其标识符以及其相关的数据结构。该标识符仍然存在，直到某个进程调用`shmctl`并使用`IPC_RMID`命令特地删除它为止
+
+<div align="center"> <img src="../pic/apue-ipc-22.png"/> </div>
+
+* `addr`：进程与共享存储段连接的地址
+
+如果函数成功，共享存储段相关的`shmid_ds`结构中的`shm_nattch`计数器值减1
+
+### 进程连接共享存储段的位置
+
+内核将以地址0连接共享存储段放在什么位置上与系统密切相关，下列程序可以进行测试：
+
+```c++
+#include "apue.h"
+#include <sys/shm.h>
+
+#define ARRAY_SIZE  40000
+#define MALLOC_SIZE 100000
+#define SHM_SIZE    100000
+#define SHM_MODE    0600    /* user read/write */
+
+char    array[ARRAY_SIZE];  /* uninitialized data = bss */
+
+int
+main(void)
+{
+    int     shmid;
+    char    *ptr, *shmptr;
+
+    printf("array[] from %p to %p\n", (void *)&array[0],
+      (void *)&array[ARRAY_SIZE]);
+    printf("stack around %p\n", (void *)&shmid);
+
+    if ((ptr = malloc(MALLOC_SIZE)) == NULL)
+        err_sys("malloc error");
+    printf("malloced from %p to %p\n", (void *)ptr,
+      (void *)ptr+MALLOC_SIZE);
+
+    if ((shmid = shmget(IPC_PRIVATE, SHM_SIZE, SHM_MODE)) < 0)
+        err_sys("shmget error");
+    if ((shmptr = shmat(shmid, 0, 0)) == (void *)-1)
+        err_sys("shmat error");
+    printf("shared memory attached from %p to %p\n", (void *)shmptr,
+      (void *)shmptr+SHM_SIZE);
+
+    if (shmctl(shmid, IPC_RMID, 0) < 0)
+        err_sys("shmctl error");
+
+    exit(0);
+}
+```
+
+<div align="center"> <img src="../pic/apue-ipc-23.png"/> </div>
+
+<br>
+
+## 8.POSIX信号量
+
+POSIX信号量接口意在解决XSI信号量接口的几个缺陷：
+
+* 相比于XSI接口，POSIX信号量接口考虑到了**更高性能**的实现
+* POSIX信号量接口**使用更简单**：没有信号量集，在书序的文件系统操作后一些接口被模式化了
+* POSIX信号量在**删除时表现更完美**
+
+**POSIX信号量有2种形式：命名的和未命名的**。差异在于创建和销毁的形式上
+
+* **未命名信号量**只存在于内存中，并要求能使用信号量的进程必须可以访问内存。意味着它们只能用于同一进程的线程中，或者不同进程中已经映射相同内存内容到他们的地址空间中的线程
+* **命名信号量**可以通过名字访问，因此可被任何已知它们名字的进程中的线程使用
+
+### 8.1 创建或获取命名信号量
+
+<div align="center"> <img src="../pic/apue-ipc-24.png"/> </div>
+
+* 使用现有的命名信号量时，仅指定2个参数：
+    - `name`：信号量的名字
+    - `oflag`：设为0
+* 创建新的命名信号量
+    - `name`：信号量的名字
+    - `oflag`：指定了`O_CREAT`标志。当该参数置为`O_CREAT|O_EXCL`并且信号量存在时，函数会失败
+    - `mode`：谁可以访问信号量，值与[open函数](#21-打开文件)的权限位相同
+    - `value`：信号量的初始值（`0~SEM_VALUE_MAX`）
+
+**为了移植性，信号量的命名应该遵循下列规则**：
+
+* 名字的第一个字符应该为斜杠(`/`)
+* 名字不应该包含其他斜杠以此避免实现定义的行为
+* 信号量名字的最大长度是实现定义的，不应该鲳鱼`_POSIX_NAME_MAX`个字符长度。因为这是文件系统的实现能允许的最大名字长度的限制
+
+### 8.2 关闭释放信号量
+
+<div align="center"> <img src="../pic/apue-ipc-25.png"/> </div>
+
+如果进程没有首先调用`sem_close`而退出，那么内核将自动关闭任何打开的信号量
+
+调用该函数，或者内核自动关闭都不会影响信号量值的状态
+
+### 8.3 销毁命名信号量
+
+<div align="center"> <img src="../pic/apue-ipc-26.png"/> </div>
+
+该函数删除信号量的名字。如果没有打开的信号量引用，则该信号量会被销毁。否则，销毁将延迟到最后一个打开的引用关闭
+
+### 8.4 调节信号量的值
+
+#### 1）减1
+
+不像XSI信号量，我们只能通过一个函数调用来调节POSIX信号量的值
+
+<div align="center"> <img src="../pic/apue-ipc-27.png"/> </div>
+
+* **sem_wait函数**：如果信号量计数是0就会发生阻塞。直到成功使信号量减1或者被信号中断时才返回
+* **sem_trywait函数**：可以避免阻塞。当信号量是0时，会返回-1并且将`errno`置为`EAGAIN`
+
+函数`sem_timewait`可以选择阻塞一段时间
+
+<div align="center"> <img src="../pic/apue-ipc-28.png"/> </div>
+
+`tsptr`：绝对时间，超时是基于`CLOCK_REALTIME`时钟的
+
+如果信号量可以立即减1，那么超时值就不重要了，此时即使指定的是过去的某个时间，操作依然会成功
+
+如果超时将返回-1，并且将`errno`置为`ETIMEDOUT`
+
+#### 2）增1
+
+<div align="center"> <img src="../pic/apue-ipc-29.png"/> </div>
+
+### 8.5 创建未命名信号量
+
+<div align="center"> <img src="../pic/apue-ipc-30.png"/> </div>
+
+* `pshared`：表明是否在多个进程中使用信号量
+    - `非0`：在多个进程中使用信号量
+    - `0`：不在多个进程中使用信号量
+* `sem`：未命名信号量，传入其地址，当函数调用返回后，这个未命名信号量会被初始化（如果要在2个进程之间使用信号量，需要确保该参数指向个进程之间共享的内存范围）
+* `value`：初始值
+
+### 8.6 销毁未命名信号量
+
+<div align="center"> <img src="../pic/apue-ipc-31.png"/> </div>
+
+该函数调用后，不能再使用任何带有`sem`的信号量函数，除非通过调用`sem_init`重新初始化
+
+### 8.7 检索未命名信号量的值
+
+<div align="center"> <img src="../pic/apue-ipc-32.png"/> </div>
+
+* `valp`：包含了信号量的值
+
+注意，我们试图要使用刚读出来的值时，信号量的值可能已经改变。除非使用额外的同步机制来避免这种竞争，否则该函数只能用于测试
+
+> Mac OS X 10.6.8不支持该函数
 
 <br>
 <br>
