@@ -4,7 +4,7 @@
     - 八.高级I/O
 * [Part2：文件和目录](#part2文件和目录)
     - 二.文件和目录
-* [Part3：进程](#part2进程)
+* [Part3：进程](#part3进程)
     - 四.进程环境
     - 五.进程控制
 * [Part4：线程](#part4线程)
@@ -1849,6 +1849,143 @@ struct dirent{
 * 系统中与每个文件名关联的`st_dev`值是文件系统的设备号，该文件系统包含了这一文件名以及与其对应的inode
 * 只有字符特殊文件和块特殊文件才有`st_rdev`值。此值包含实际设备的设备号
 
+可以使用```cat /proc/devices```查看系统上的字符设备和块设备号：
+
+```bash
+chenximing@chenximing-MS-7823:~$ cat /proc/devices
+Character devices:
+  1 mem
+  4 /dev/vc/0
+  4 tty
+  4 ttyS
+  5 /dev/tty
+  5 /dev/console
+  5 /dev/ptmx
+  5 ttyprintk
+  6 lp
+  7 vcs
+ 10 misc
+ 13 input
+ 21 sg
+ 29 fb
+ 89 i2c
+ 99 ppdev
+108 ppp
+116 alsa
+128 ptm
+136 pts
+180 usb
+189 usb_device
+216 rfcomm
+226 drm
+247 mei
+248 hidraw
+249 bsg
+250 watchdog
+251 rtc
+252 dimmctl
+253 ndctl
+254 tpm
+
+Block devices:
+  1 ramdisk
+259 blkext
+  7 loop
+  8 sd
+  9 md
+ 11 sr
+ 65 sd
+ 66 sd
+ 67 sd
+ 68 sd
+ 69 sd
+ 70 sd
+ 71 sd
+128 sd
+129 sd
+130 sd
+131 sd
+132 sd
+133 sd
+134 sd
+135 sd
+252 device-mapper
+253 virtblk
+254 mdp
+```
+
+我的环境中有一块磁盘划分了3个分区：
+
+```bash
+chenximing@chenximing-MS-7823:~$ df -h | grep 'sda'
+/dev/sda2        46G   32G   12G   74% /
+/dev/sda1       453M  433M     0  100% /boot
+/dev/sda3       275G   30G  232G   12% /home
+
+chenximing@chenximing-MS-7823:~$ ls -l /dev/sda1 /dev/sda2 /dev/sda3
+brw-rw---- 1 root disk 8, 1  6月 19 10:11 /dev/sda1
+brw-rw---- 1 root disk 8, 2  6月 19 10:11 /dev/sda2
+brw-rw---- 1 root disk 8, 3  6月 19 10:11 /dev/sda3
+```
+
+对于下列程序：
+
+```c
+#include <sys/stat.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{
+    struct stat buf1,buf2,buf3;
+    if(stat("/dev/sda1",&buf1) < 0)
+        exit(1);
+    if(stat("/dev/sda2",&buf2) < 0)
+        exit(1);
+    if(stat("/dev/sda3",&buf3) < 0)
+        exit(1);
+
+    printf("dev = %d/%d",major(buf1.st_dev),minor(buf1.st_dev));
+    if(S_ISCHR(buf1.st_mode) || S_ISBLK(buf1.st_mode))
+        printf("  (%s) rdev = %d/%d",
+                (S_ISCHR(buf1.st_mode)) ? "character" : "block",
+                major(buf1.st_rdev),minor(buf1.st_rdev));
+    printf("\n");
+    printf("dev = %d/%d",major(buf2.st_dev),minor(buf2.st_dev));
+    if(S_ISCHR(buf2.st_mode) || S_ISBLK(buf2.st_mode))
+        printf("  (%s) rdev = %d/%d",
+                (S_ISCHR(buf2.st_mode)) ? "character" : "block",
+                major(buf2.st_rdev),minor(buf2.st_rdev));
+    printf("\n");
+    printf("dev = %d/%d",major(buf3.st_dev),minor(buf3.st_dev));
+    if(S_ISCHR(buf3.st_mode) || S_ISBLK(buf3.st_mode))
+        printf("  (%s) rdev = %d/%d",
+                (S_ISCHR(buf3.st_mode)) ? "character" : "block",
+                major(buf3.st_rdev),minor(buf3.st_rdev));
+    printf("\n");
+
+    return 0;
+}
+```
+
+输出结果为：
+
+```
+chenximing@chenximing-MS-7823:~$ ./a.out
+dev = 0/6  (block) rdev = 8/1
+dev = 0/6  (block) rdev = 8/2
+dev = 0/6  (block) rdev = 8/3
+```
+
+将"/dev/sda1"，"/dev/sda2"、"/dev/sda3"分别替换成"/boot"、"/"和"/home"，输出结果为:
+
+```
+chenximing@chenximing-MS-7823:~$ ./a.out
+dev = 8/1
+dev = 8/2
+dev = 8/3
+```
+
 <br>
 <br>
 <br>
@@ -2074,6 +2211,8 @@ return 100;
 
 1. 栈从高地址向低地址增长。堆顶和栈顶之间未使用的虚拟地址空间很大
 2. 未初始化数据段的内容并不存放在磁盘程序文件中。需要**存放在磁盘文件中**的段只有**正文段**和**初始化数据段**（`size a.out`令可以查看程序的正文段、数据段 和`bss`段长度）
+
+[C进程内存空间](http://blog.csdn.net/ljianhui/article/details/21666327)
 
 <br>
 
