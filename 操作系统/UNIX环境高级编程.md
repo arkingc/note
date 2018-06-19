@@ -2133,7 +2133,7 @@ return 100;
 - 与参数表一样，环境表也是一个字符指针数组
     - 其中数组中的每个指针指向一个以`null`结束的 C 字符串，这些字符串称之为环境字符串
     - 数组的最后一项是`null`
-- 全局变量`envrion`包含了该指针数组的地址：`extern char **envrion`。我们称`environ`为环境指针，它位于头文件`unistd.h`中
+- 全局变量`environ`包含了该指针数组的地址：`extern char **environ`。我们称`environ`为环境指针，它位于头文件`unistd.h`中
 - 按照惯例，环境字符串由`name=value`这种格式的字符串组成
 
 <div align="center"> <img src="../pic/apue-processenv-4.png"/> </div>
@@ -2195,9 +2195,9 @@ return 100;
 <div align="center"> <img src="../pic/apue-processenv-5.png"/> </div>
 
 * **正文段**：这是由CPU执行的机器指令部分
-    * 通常正文段是可以共享的。一个程序的可以同时执行`N`次，但是该程序的正文段在内存中只需要有一份而不是`N`份
+    * 通常正文段是可以共享的。一个程序可以同时执行`N`次，但是该程序的正文段在内存中只需要有一份而不是`N`份
     * 通常正文段是只读的，以防止程序由于意外而修改其指令
-* **初始化数据段**：通常将它称作数据段
+* **初始化数据段**：通常将它称作数据段（存放在磁盘可执行文件中，故而占磁盘空间）
     * 它包含了程序中明确地赋了初值的变量：包括函数外的赋初值的全局变量、函数内的赋初值的静态变量
 * **未初始化数据段**：通常将它称作`bss`段。在程序开始执行之前，内核将此段中的数据初始化为0或者空指针
     * 它包含了程序中未赋初值的变量：包括函数外的未赋初值的全局变量、函数内的未赋初值的静态变量
@@ -2212,7 +2212,85 @@ return 100;
 1. 栈从高地址向低地址增长。堆顶和栈顶之间未使用的虚拟地址空间很大
 2. 未初始化数据段的内容并不存放在磁盘程序文件中。需要**存放在磁盘文件中**的段只有**正文段**和**初始化数据段**（`size a.out`令可以查看程序的正文段、数据段 和`bss`段长度）
 
-[C进程内存空间](http://blog.csdn.net/ljianhui/article/details/21666327)
+下列程序打印不同段数据的位置：
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+extern char** environ;
+
+int global1;
+int global2 = 1;
+
+int main()
+{
+    //1.环境变量
+    char **env = environ;
+    while(*env){
+        printf("(%p) (%p) %s\n",env,*env,*env);
+        env++;
+    }
+    printf("\n");
+    //2.全局变量
+    printf("%p\n",&global1);
+    printf("%p\n\n",&global2);
+    //3.栈
+    int local;
+    char *localc = (char*)malloc(10);
+    printf("%p\n",&local);
+    printf("%p\n\n",&localc);
+    //4.堆
+    printf("%p\n\n",localc);
+    return 0;
+}
+```
+
+我的环境下，输出如下：
+
+```
+chenximing@chenximing-MS-7823:~$ ./a.out
+(0x7ffe4aa6f4c8) (0x7ffe4aa7078a) XDG_SESSION_ID=1
+(0x7ffe4aa6f4d0) (0x7ffe4aa7079b) TERM=xterm-256color
+(0x7ffe4aa6f4d8) (0x7ffe4aa707af) SHELL=/bin/bash
+(0x7ffe4aa6f4e0) (0x7ffe4aa707bf) XDG_SESSION_COOKIE=526d72c400c09a742df8809a58e50d0e-1529375799.783462-1767108743
+(0x7ffe4aa6f4e8) (0x7ffe4aa70810) SSH_CLIENT=192.168.2.1 53068 22
+(0x7ffe4aa6f4f0) (0x7ffe4aa70830) SSH_TTY=/dev/pts/25
+(0x7ffe4aa6f4f8) (0x7ffe4aa70844) USER=chenximing
+...
+(0x7ffe4aa6f508) (0x7ffe4aa70d75) MAIL=/var/mail/chenximing
+(0x7ffe4aa6f510) (0x7ffe4aa70d8f) PATH=/home/chenximing/bin:/usr/local/go/bin:/usr/lib/jvm/jdk1.8.0_144/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/home/chenximing/bin
+(0x7ffe4aa6f518) (0x7ffe4aa70e47) QT_QPA_PLATFORMTHEME=appmenu-qt5
+(0x7ffe4aa6f520) (0x7ffe4aa70e68) PWD=/home/chenximing
+(0x7ffe4aa6f528) (0x7ffe4aa70e7d) JAVA_HOME=/usr/lib/jvm/jdk1.8.0_144
+(0x7ffe4aa6f530) (0x7ffe4aa70ea1) LANG=zh_CN.UTF-8
+(0x7ffe4aa6f538) (0x7ffe4aa70eb2) SHLVL=1
+(0x7ffe4aa6f540) (0x7ffe4aa70eba) HOME=/home/chenximing
+(0x7ffe4aa6f548) (0x7ffe4aa70ed0) GOROOT=/usr/local/go
+(0x7ffe4aa6f550) (0x7ffe4aa70ee5) LANGUAGE=zh_CN:zh
+(0x7ffe4aa6f558) (0x7ffe4aa70ef7) LOGNAME=chenximing
+(0x7ffe4aa6f560) (0x7ffe4aa70f0a) CLASSPATH=.:/usr/lib/jvm/jdk1.8.0_144/lib
+(0x7ffe4aa6f568) (0x7ffe4aa70f34) SSH_CONNECTION=192.168.2.1 53068 192.168.2.4 22
+(0x7ffe4aa6f570) (0x7ffe4aa70f64) LC_CTYPE=zh_CN.UTF-8
+(0x7ffe4aa6f578) (0x7ffe4aa70f79) GOPATH=~/go
+(0x7ffe4aa6f580) (0x7ffe4aa70f85) LESSOPEN=| /usr/bin/lesspipe %s
+(0x7ffe4aa6f588) (0x7ffe4aa70fa5) XDG_RUNTIME_DIR=/run/user/1000
+(0x7ffe4aa6f590) (0x7ffe4aa70fc4) LESSCLOSE=/usr/bin/lesspipe %s %s
+(0x7ffe4aa6f598) (0x7ffe4aa70fe6) _=./a.out
+
+0x60106c
+0x601050
+
+0x7ffe4aa6f3bc
+0x7ffe4aa6f3c0
+
+0x1725010
+```
+
+画图表示：
+
+<div align="center"> <img src="../pic/apue-processenv-13.png"/> </div>
 
 <br>
 
@@ -2247,7 +2325,7 @@ gcc hello1.c
 * `calloc` ：为指定数量指定长度的对象分配存储空间。空间中的每一位都初始化为0
 * `realloc` ：增加或减少以前分配区的长度
     - 当增加长度时，可能需将以前分配区的内容移到另外一个足够大的区域，以便在尾端提供增加的存储区，而新增区域内的初始值则不确定
-    - 函数调用前后可用是不同的存储区，所有调用前不应该有指针指向这段存储区，不然修改后，可能该指针会非法访问
+    - 函数调用前后可用是不同的存储区，所以调用前不应该有指针指向这段存储区，不然修改后，可能该指针会非法访问
     - 应该使用另一个指针保存`realloc`的返回值，因为如果使用传入的实参保存返回值，那么一旦`realloc`失败，则会传回NULL，原来的动态内存区再也无法访问，从而发生内存泄露
 * `free` ：上述3个函数都需通过free释放，被释放的空间通常被送入可用存储区池，以便以后利用
 
