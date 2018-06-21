@@ -63,11 +63,12 @@
     * 2）内存管理有几种方式？（new、delete、malloc、free、allocators）
     * 3）new和malloc的区别？（函数，运算符、类型安全、计算空间、步骤）
     * 4）malloc的实现？
-    * 5）delete（步骤、delete与析构、可以delete空指针、可以delete动态const对象）
-    * 6）为什么要内存对齐？(性能原因、平台原因)
-    * 7）[struct内存对齐方式？](https://github.com/arkingc/llc/blob/master/cpp/alignment/struct.cpp#L1)
-    * 8）什么是内存泄露？如何检测与避免？（Mtrace，[valgrind](https://www.ibm.com/developerworks/cn/linux/l-cn-valgrind/)）
-    * 9）智能指针相关
+    * 5）调用malloc函数之后，OS会马上分配内存空间吗？（不会，只会返回一个虚拟地址，待用户要使用内存时，OS会发出一个缺页中断，此时，内存管理模块才会为程序分配真正内存）
+    * 6）delete（步骤、delete与析构、可以delete空指针、可以delete动态const对象）
+    * 7）为什么要内存对齐？(性能原因、平台原因)
+    * 8）[struct内存对齐方式？](https://github.com/arkingc/llc/blob/master/cpp/alignment/struct.cpp#L1)
+    * 9）什么是内存泄露？如何检测与避免？（Mtrace，[valgrind](https://www.ibm.com/developerworks/cn/linux/l-cn-valgrind/)）
+    * 10）智能指针相关
         * 种类、区别、原理、能否管理动态数组
         * shared_ptr（使用、计数的变化，get()函数要注意什么）
         * unique_ptr(如何转移控制权)
