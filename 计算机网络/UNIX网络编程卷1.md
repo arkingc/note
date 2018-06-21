@@ -389,7 +389,25 @@ close一个TCP套接字的默认行为是把套接字标记为关闭，立即返
 
 close会将套接字描述符的引用计数减1，如果引用计数仍大于0，则不会引起TCP的四次挥手终止序列
 
-### 7）getsockname和getpeername函数
+### 7）shutdown函数
+
+<div align="center"> <img src="../pic/unp-tcp-17.png"/> </div>
+
+* **howto**
+    - `SHUT_RD`：**关闭连接的读这一半**，套接字接收缓冲区中的现有数据都被丢弃。进程不能再对这样的套接字调用任何读函数（对一个TCP套接字这样调用shutdown函数后，由该套接字接收的来自对端的任何数据都被确认，然后悄然丢弃）
+    - `SHUT_WR`：**关闭连接的写这一半**（**对于TCP，称为半关闭**），套接字发送缓冲区中的数据将被发送掉，后跟TCP的正常连接终止序列。进程不能再对这样的套接字调用任何写函数
+    - `SHUT_RDWR`：**连接的读半部和写半部都关闭**。等价于调用2次shutdown，分别指定SHUT_RD与SHUT_WR
+
+**shutdown与close的区别**：
+
+1. **关闭套接字的时机不同**
+    * close把描述符的引用计数减1，仅在该计数变为0时才关闭套接字
+    * shutdown不管引用计数就能激发TCP的正常连接终止序列
+2. **全关闭与半关闭**
+    * close终止读和写两个方向的数据传送
+    * shutdown可以只关闭一个方向的数据传送（具体见上面的howto参数）
+
+### 8）getsockname和getpeername函数
 
 这两个函数与TCP连接建立过程中套接字地址结构的信息获取相关
 
@@ -1456,11 +1474,11 @@ getaddrinfo的互补函数
     <td> <a href="#1recvfrom与sendto函数">sendto</a> </td>
 </tr>
 <tr>
-    <td> <a href="#7getsockname和getpeername函数">getsockname</a> </td>
+    <td> <a href="#8getsockname和getpeername函数">getsockname</a> </td>
     <td> <b>根据套接字获取本地协议地址</b> </td>
 </tr>
 <tr>
-    <td> <a href="#7getsockname和getpeername函数">getpeername</a> </td>
+    <td> <a href="#8getsockname和getpeername函数">getpeername</a> </td>
     <td> <b>根据套接字获取外地协议地址</b> </td>
 </tr>
 <tr>
