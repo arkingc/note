@@ -602,9 +602,10 @@ int FD_ISSET(int fd,fd_set *fdset);     //检查fdset中的fd位是否置位
     - `timeout`：(告知)内核等待任意描述符就绪的超时时间，超时函数返回0
         + 永远等待下去：设为空指针
         + 等待一段固定时间
-        + 立即返回(轮询)：timeval结构中的时间设为0
-        和**select**不同，**pselect**的`timeout`参数**使用timespec结构，而不是timeval结构**，timespec的第二个成员是纳秒级，而timeval的第二个成员是微妙级：
+        + 立即返回(轮询)：timespec结构中的时间设为0
         ```c
+        //和select不同，pselect的timeout参数使用timespec结构，而不是timeval结构，
+        //timespec的第二个成员是纳秒级，而timeval的第二个成员是微妙级
         struct timespec{
             time_t tv_sec;    /* 秒 */
             long   tv_nsec;   /* 纳秒 */
@@ -632,9 +633,9 @@ pselect相对于通常的select有2个变化：
         ```
     - `nfds`：pollfd数组的元素个数（即监视的描述符总数）
     - `timeout`：(告知)内核等待任意描述符就绪的超时时间，超时函数返回0
-        + 1）永远等待下去：INFTIM（一个负值）
-        + 2）等待一段固定时间：>0
-        + 3）立即返回(轮询)：0
+        + `INFTIM`（一个负值）：永远等待下去
+        + `>0`：等待一段固定时间
+        + `0`：立即返回(轮询)
 
 **如果不再关心某个特定描述符，可以把与之对应的pollfd结构的fd成员设置成一个负值。poll函数将忽略这样的pollfd结构的events成员，返回时将其revents成员的值置为0**
 
@@ -644,9 +645,9 @@ poll中每个描述符有一个监视的事件以及一个发生的事件，在p
 
 <div align="center"> <img src="../pic/unp-6-2.png"/> </div>
 
-* **第一部分是处理输入的4个常值**
-* **第二部分是处理输出的3个常值**
-* **第三部分是处理错误的3个常值**
+* 第一部分是**输入**事件的**4个**常值
+* 第二部分是**输出**事件的**3个**常值
+* 第三部分是**错误**事件的**3个**常值
 
 对于TCP和UDP而言，以下条件将引起poll返回特定的revent：
 
@@ -674,9 +675,9 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
 
 * **epoll_create函数**：创建一个epoll句柄
     - **参数**
-        + `size`：告诉内核监听的数量，并不是监听数量的最大值，是对内核初始分配内部数据结构的一个建议
+        + `size`：告诉内核监听描述符的数量，并不是监听数量的最大值，是对内核初始分配内部数据结构的一个建议
     - **返回值**：创建的epoll句柄
-* **epoll_ctl函数**：对指定描述符fd执行op操作
+* **epoll_ctl函数**：对描述符`fd`执行`op`操作
     - **参数**
         + `epfd`：epoll_create得到的epoll句柄
         + `op`：操作
@@ -684,19 +685,29 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
             * **EPOLL_CTL_DEL**：修改已注册`fd`的监听事件
             * **EPOLL_CTL_MOD**：从`epfd`中删除一个fd
         + `fd`：操作的描述符
-        + `event`：告知内核**需要监听的事件**
+        + `event`：告知内核**需要监听的事件**。`epoll_event`结构的`events`成员可以是下列宏的集合：
             * **EPOLLIN**：对应的描述符可读
             * **EPOLLOUT**：对应的描述符可写
             * **EPOLLPRI**：对应的描述符有紧急数据可读（带外数据）
             * **EPOLLERR**：对应的描述符发生错误
             * **EPOLLHUP**：对应的描述符被挂断
             * **EPOLLET**：将epoll设为**边缘触发模式**（也就是说默认为**水平(LT)触发模式**？）
-            * **EPOLLONESHOT**：只监听一次事件，监听完后，如果需要再次监听这个socket，需要再次把这个socket加入到epoll队列
+            * **EPOLLONESHOT**：只监听一次事件，监听完后，如果需要再次监听，需再次将描述符加入到epoll队列
             ```c
             struct epoll_event{
                 __uint32_t    events;
                 epoll_data_t  data;
             };
+
+            //一般用法是直接把socket赋给fd即可。
+            //但是，有了void*指针，就可以在注册socket的时候，传进我们想要的参数，
+            //wait出来的时候，用我们自己的函数进行处理
+            typedef union epoll_data{
+                void         *ptr;
+                int          fd;
+                __uint32_t   u32;
+                __uint64_t   u64;
+            } epoll_data_t;
             ```
     - **返回值**：
         + `0`：成功
@@ -729,7 +740,7 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
 ### 4.2 epoll的优缺点：
 
 * **优点**
-    * **监视的描述符数量不受限制**，所支持的FD上限是最大可以打开文件的数目
+    * **监视的描述符数量不受限制**，所支持的`fd`上限是最大可以打开文件的数目
     * **I/O效率不会随着监视fd数量的增长而下降**：epoll不同于select和poll轮询的方式，而是通过每个fd定义的回调函数来实现的，只有就绪的fd才会执行回调函数
     * **用户态和内核态消息传递的开销小**：利用mmap()减少复制开销
 
