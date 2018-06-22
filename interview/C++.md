@@ -1,9 +1,9 @@
 * **一.变量**
     * 1）全局变量与static变量？（作用域、生存周期）
-    * 2）两个.h文件中声明两个同名变量？（使用了与未使用extern） 
+    * 2）两个文件中声明两个同名变量？（使用了与未使用extern？） 
     * 3）全局数组和局部数组的初始化？
-    * 4）指针和引用的区别？（代表意义、内存占用、初始化、指向是否可改、作为参数、作为返回）
-    * 5）C++的四种强制转换
+    * 4）指针和引用的区别？（代表意义、内存占用、初始化、指向是否可改）
+    * 5）[C/C++中的强制转换](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE27%E5%B0%BD%E9%87%8F%E5%B0%91%E5%81%9A%E8%BD%AC%E5%9E%8B%E5%8A%A8%E4%BD%9C)
     * 6）[如何修改const变量、const与volatile](https://blog.csdn.net/heyabo/article/details/8745942)
     * 7）静态类型获取与动态类型获取（[typeid](https://github.com/arkingc/llc/blob/master/cpp/RTTI/typeid.cpp#L4)、dynamic_cast:转换目标类型必须是引用类型）
 * **二.函数**
@@ -12,7 +12,7 @@
     * 1）面向对象的三大特性（封装、继承、多态）
     * 2）struct和class的区别？
     * 3）[访问权限说明符](../C++/访问控制说明符.md)？（目的是加强类的封装性）
-    * 4）类的静态成员（所属、定义时不能重复使用static、静态成员函数与const、类类型的成员、具有类内初始值的静态成员定义时不可再设初值）
+    * 4）类的静态成员（所属？静态成员函数不能声明成const、类类型的成员、定义时不能重复使用static、具有类内初始值的静态成员定义时不可再设初值）
     * 5）构造函数相关
         - 有哪些构造函数（默认、委托、拷贝、移动）
         - 合成的默认拷贝构造函数（默认行为？什么情况下不会合成？怎么解决？如果成员包含类内初始值，合成默认构造函数会使用该成员的类内初始值初始化该成员）
@@ -43,7 +43,7 @@
         - 虚继承（解决什么问题？(多继承中的子对象冗余)）
     * 11）多态的实现？
     * 12）[虚函数的实现原理？对类大小的影响？](https://www.cnblogs.com/malecrab/p/5572730.html)（vtbl是一个由函数指针组成的数组，无论pb指向哪种类型的对象，只要能够确定被调函数在虚函数中的偏移值，待运行时，能够确定具体类型，并能找到相应vptr，进一步能找出真正应该调用的函数）
-    * 13）为什么不要在构造、析构函数中调用虚函数？（子对象的base class构造期间，对象的类型是base class Effective C++:条款9》）
+    * 13）为什么不要在构造、析构函数中调用虚函数？（子对象的base class构造期间，对象的类型是base class [《Effective C++:条款9》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE09%E7%BB%9D%E4%B8%8D%E5%9C%A8%E6%9E%84%E9%80%A0%E5%92%8C%E6%9E%90%E6%9E%84%E8%BF%87%E7%A8%8B%E4%B8%AD%E8%B0%83%E7%94%A8virtual%E5%87%BD%E6%95%B0)，[设置虚函数指针的时机](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#vptr%E7%9A%84%E8%AE%BE%E7%BD%AE)）
     * 14）[虚函数被覆盖？](https://github.com/arkingc/llc/blob/master/cpp/class/inheritance/virtual_function_hide.cpp#L1)
     * 15）virtual函数动态绑定，缺省参数值静态绑定（《Effective C++:条款37》）
     * 16）纯虚函数与抽象基类（关系、”=0“、必须在类内申明）

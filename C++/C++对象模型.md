@@ -1261,7 +1261,7 @@ Vertex3d* Vertex3d::Vertex3d(Vertex3d *this,bool __most_derived,float x,float y,
 }
 ```
 
-这样，```Point3d origin;``` 和 ```Vertex3d cv;``` 都能挣钱的调用Point constructor
+这样，```Point3d origin;``` 和 ```Vertex3d cv;``` 都能正确的调用Point constructor
 
 > 某些新进的编译器把每个constructor分裂为二，一个针对完整的object，另一个针对subobject。”完整object“版无条件地调用virtual base constructor，设定所有的vptrs等。”subobject“版则不调用virtual base constructors，也可能不设定vptrs等。constructor的分裂可带来程序速度的提升，但是使用这个技术的编译器似乎很少，或者说没有
 
@@ -1281,12 +1281,12 @@ PVertex(x,y,z);     //5
 
 假设这个继承体系中的每一个class都定义了一个virtual function size()，函数负责传回class的大小，并且在每一个构造函数中调用这个size()函数。那么当定义PVertex object时，5个constructors会如何？每一次size()都是调用PVertex::size()？或者每次调用会被决议为”目前正在执行的constructor所对应的class“的size()函数实例？答案是后者，关键是编译器如何处理，来实现这一点
 
-* 如果调用操作限制必须在constructor中直接调用，那么将每一个调用操作以静态方式决议，而不使用虚拟机制。例如，在Point3d constructor中，就显式调用Point3d::size()。然而，如果size()之中又调用一个virtual function，会发生什么？这种情况下，这个调用也必须决议为Point3d的size()函数实例。而在其它情况下，这个调用是纯正的virtual，必须经由虚拟机制来决定其归向。也就是说，虚拟机制本身必须知道是否这个调用源自于一个constructor之中
+* 如果调用操作限制必须在constructor中直接调用，那么将每一个调用操作以静态方式决议，而不使用虚拟机制。例如，在Point3d constructor中，就显式调用Point3d::size()。然而，如果size()之中又调用一个virtual function，会发生什么？这种情况下，这个调用也必须决议为Point3d的函数实例。而在其它情况下，这个调用是纯正的virtual，必须经由虚拟机制来决定其归向。也就是说，虚拟机制本身必须知道是否这个调用源自于一个constructor之中
 * **根本的解决之道是，在执行一个constructor时，必须限制一组virtual functions候选名单**。因此需要处理virtual table，而处理virtual table又需要通过vptr。所以为了控制一个class中有所作用的函数，编译系统只要简单地控制vptr的初始化和设定操作即可
 
 **vptr应该在base class constructors调用之后，在程序员提供的代码及member initialization list中所列的members初始化操作之前进行初始化**
 
-* 在base class constructors执行完毕之后才设定vptr，那么每次都能调用正确的virtual function实例
+* 如果每一个constructor都一直等待到其base class constructors执行完毕之后才设定其对象的vptr，那么每次都能调用正确的virtual function实例
 * 在程序员提供的代码之前设定vptr是因为程序员提供的代码中可能会调用virtual function，因此必须先设定
 * 在member initialization list之前设定是因为member initialization list中也可能调用virtual function。因此需要先进行设定
 
