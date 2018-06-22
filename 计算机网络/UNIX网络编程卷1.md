@@ -673,7 +673,7 @@ int epoll_ctl(int epfd,int op,int fd,struct epoll_event *event);
 int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
 ```
 
-* **epoll_create函数**：创建一个epoll句柄
+* **epoll_create函数**：创建一个epoll句柄。它会占用1个`fd`，在用完epoll后，须调用close()关闭
     - **参数**
         + `size`：告诉内核监听描述符的数量，并不是监听数量的最大值，是对内核初始分配内部数据结构的一个建议
     - **返回值**：创建的epoll句柄
@@ -691,7 +691,7 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
             * **EPOLLPRI**：对应的描述符有紧急数据可读（带外数据）
             * **EPOLLERR**：对应的描述符发生错误
             * **EPOLLHUP**：对应的描述符被挂断
-            * **EPOLLET**：将epoll设为**边缘触发模式**（也就是说默认为**水平(LT)触发模式**？）
+            * **EPOLLET**：将epoll设为**边缘触发模式**（说默认为**水平(LT)触发模式**）
             * **EPOLLONESHOT**：只监听一次事件，监听完后，如果需要再次监听，需再次将描述符加入到epoll队列
             ```c
             struct epoll_event{
@@ -726,23 +726,23 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
 
 ### 4.1 工作模式
 
-**epoll对描述符的操作有两种模式，当epoll_wait检测到描述符事件发生时，向应用程序通常此事件**：
+**epoll对描述符的操作有两种模式，当epoll_wait检测到描述符事件发生时，向应用程序通知此事件**：
 
 * **水平触发(LT)模式(默认)**：
     - 应用程序可以不立即处理该事件。下次调用epoll_wait时，会再次向应用程序通知此事件
-    - 支持阻塞或非阻塞套接口
-* **边缘触发(ET)模式**：
+    - 同时支持block和no-block socket
+* **边缘触发(ET)模式**（高速工作方式）：
     - 应用程序必须立即处理该事件。如果不处理，下次调用epoll_wait时，不再向应用程序通知此事件
-    - 只支持非阻塞套接口（以免一个文件句柄的阻塞读/阻塞写操作把处理多个文件描述符的任务饿死）
+    - 只支持no-block socket（以免一个文件句柄的阻塞读/阻塞写操作把处理多个文件描述符的任务饿死）
 
 **ET模式在很大程度上减少了epoll事件被重复触发的次数，因此效率要比LT模式高**
 
 ### 4.2 epoll的优缺点：
 
 * **优点**
-    * **监视的描述符数量不受限制**，所支持的`fd`上限是最大可以打开文件的数目
+    * **监视的描述符数量不受限制**，所支持的`fd`上限是最大可以打开文件的数目（一般远大于2048，和系统内存关系较大，可以使用`cat /proc/sys/fs/file-max`查看）
     * **I/O效率不会随着监视fd数量的增长而下降**：epoll不同于select和poll轮询的方式，而是通过每个fd定义的回调函数来实现的，只有就绪的fd才会执行回调函数
-    * **用户态和内核态消息传递的开销小**：利用mmap()减少复制开销
+    * **用户态和内核态消息传递的开销小**
 
 > 如果没有大量的“idle连接”或“dead连接”，epoll的效率并不会比select/poll高很多
 > * 当连接数少并且连接都十分活跃的情况下，select和poll的性能可能比epoll好
