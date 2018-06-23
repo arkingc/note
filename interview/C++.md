@@ -22,18 +22,18 @@
     * 6）初始值列表（顺序、效率(内置类型不进行隐式初始化故无所谓,但..)、无默认构造函数的成员,const成员,引用成员必须通过初始值列表初始化）
     * 7）赋值运算符相关
         - 拷贝赋值运算符（合成版的行为？、与delete？、自定义时要注意自赋值，参数与返回类型、大部分组合了拷贝构造函数与析构函数的工作）
-        - 阻止拷贝（某些对象应该独一无二(比方说人)、C++11前:private并且不定义(试图拷贝会报链接错误)，C++11:=delete 《Effective C++:条款6》）
+        - 阻止拷贝（某些对象应该独一无二(比方说人)、C++11前:private并且不定义(试图拷贝会报链接错误)，C++11:=delete [《Effective C++:条款6》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE06%E8%8B%A5%E4%B8%8D%E6%83%B3%E4%BD%BF%E7%94%A8%E7%BC%96%E8%AF%91%E5%99%A8%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E7%9A%84%E5%87%BD%E6%95%B0%E5%B0%B1%E8%AF%A5%E6%98%8E%E7%A1%AE%E6%8B%92%E7%BB%9D)）
         - 移动赋值运算符（与noexcept？何时合成）
         - 可以定义为成员或非成员函数，定义成成员函数时第一个操作数隐式绑定到this指针
         - 不可重载的操作符有哪些？（?:，::）
     * 8）析构函数相关
-        - 销毁过程的理解（delete会执行那些操作？[逆序析构成员](https://github.com/arkingc/llc/blob/master/cpp/class/constructorANDdestructor/order.cpp#L1)）
-        - 为什么析构函数中不能抛出异常？（不能是指“不应该”，C++本身并不禁止《Effective C++:条款8》）
+        - 销毁过程的理解（delete会执行哪些操作？[逆序析构成员](https://github.com/arkingc/llc/blob/master/cpp/class/constructorANDdestructor/order.cpp#L1)）
+        - 为什么析构函数中不能抛出异常？（不能是指“不应该”，C++本身并不禁止[《Effective C++:条款8》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE08%E5%88%AB%E8%AE%A9%E5%BC%82%E5%B8%B8%E9%80%83%E7%A6%BB%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0)）
         - 如果析构函数中包含可能抛出异常的代码怎么办？（Effective C++:条款8》）
         - 可否通过对象或对象的引用(指针或引用)调用
-        - 为什么将继承体系中基类的析构函数声明为虚函数？（delete 指向子类对象的基类指针）
-        - 不应该将非继承体系中的类的虚函数声明为虚函数（《Effective C++:条款7》）
-        - 不应该继承析构函数非虚的类（《Effective C++:条款7》，可以谈final了）
+        - 为什么将继承体系中基类的析构函数声明为虚函数？（[《Effective C++:条款7》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE07%E4%B8%BA%E5%A4%9A%E6%80%81%E5%9F%BA%E7%B1%BB%E5%A3%B0%E6%98%8Evirtual%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0)）
+        - 不应该将非继承体系中的类的虚函数声明为虚函数（[《Effective C++:条款7》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE07%E4%B8%BA%E5%A4%9A%E6%80%81%E5%9F%BA%E7%B1%BB%E5%A3%B0%E6%98%8Evirtual%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0)）
+        - 不应该继承析构函数非虚的类（[《Effective C++:条款7》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE07%E4%B8%BA%E5%A4%9A%E6%80%81%E5%9F%BA%E7%B1%BB%E5%A3%B0%E6%98%8Evirtual%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0)，final防止继承）
         - [防止继承的方式](https://blog.twofei.com/672/)
     * 9）[删除的合成函数](https://github.com/arkingc/llc/blob/master/cpp/class/delete/README.md)（一般函数而言不想调用的话不定义就好）
     * 10）继承相关
@@ -45,11 +45,11 @@
     * 12）[虚函数的实现原理？对类大小的影响？](https://www.cnblogs.com/malecrab/p/5572730.html)（vtbl是一个由函数指针组成的数组，无论pb指向哪种类型的对象，只要能够确定被调函数在虚函数中的偏移值，待运行时，能够确定具体类型，并能找到相应vptr，进一步能找出真正应该调用的函数）
     * 13）为什么不要在构造、析构函数中调用虚函数？（子对象的base class构造期间，对象的类型是base class [《Effective C++:条款9》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE09%E7%BB%9D%E4%B8%8D%E5%9C%A8%E6%9E%84%E9%80%A0%E5%92%8C%E6%9E%90%E6%9E%84%E8%BF%87%E7%A8%8B%E4%B8%AD%E8%B0%83%E7%94%A8virtual%E5%87%BD%E6%95%B0)，[设置虚函数指针的时机](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#vptr%E7%9A%84%E8%AE%BE%E7%BD%AE)）
     * 14）[虚函数被覆盖？](https://github.com/arkingc/llc/blob/master/cpp/class/inheritance/virtual_function_hide.cpp#L1)
-    * 15）virtual函数动态绑定，缺省参数值静态绑定（《Effective C++:条款37》）
+    * 15）virtual函数动态绑定，缺省参数值静态绑定（[《Effective C++:条款37》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE37%E7%BB%9D%E4%B8%8D%E9%87%8D%E6%96%B0%E5%AE%9A%E4%B9%89%E7%BB%A7%E6%89%BF%E8%80%8C%E6%9D%A5%E7%9A%84%E7%BC%BA%E7%9C%81%E5%8F%82%E6%95%B0%E5%80%BC)）
     * 16）纯虚函数与抽象基类（关系、”=0“、必须在类内申明）
     * 17）静态类型与动态类型（引用是否可实现动态绑定）
     * 18）浅拷贝与深拷贝（安全性、行为像值的类与行为像指针的类）
-    * 19）如何定义类内常量？（enum而不是static const 《Effective C++:条款3》）
+    * 19）如何定义类内常量？（enum而不是static const [《Effective C++:条款2》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE02%E5%B0%BD%E9%87%8F%E4%BB%A5constenuminline%E6%9B%BF%E6%8D%A2define)）
 * **四.容器**
     * 1）vector底层的实现？insert具体做了哪些事？resize()调用的是什么？
     * 2）vector的push_back要注意什么（大量调用会伴随大量的拷贝构造与析构，内存分配与释放）
