@@ -74,7 +74,7 @@
         * [weak_ptr(特点、用途)](https://www.cnblogs.com/DswCnblog/p/5628314.html)
         * 手写实现智能指针
     * 10）[实现memcpy](temp/C++.md/#3实现memcpy)
-    * 11）[memcpy与memmove的区别](temp/C++.md/#3实现memcpy)
+    * 11）memcpy与memmove的区别（前者不处理重叠，后者处理重叠）
 * **六.关键字**
     * 1）extern？（extern "C"?、与static？、有什么问题？、extern的时候定义变量？）
     * 2）const？（修饰变量、修饰指针与引用、修饰成员函数 《Effective C++:条款3》）
