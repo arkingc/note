@@ -15,11 +15,11 @@ vagrind包括下列一些工具：
 
 * **Memcheck**：valgrind应用最广泛的工具，一个重量级的**内存检查**器，能够发现开发中绝大多数内存错误使用情况，**我们主要使用即此工具，默认选项**。此工具检查下面的程序错误：
     - [使用未初始化的内存](#1使用未初始化内存)(Use of uninitialised memory)
-    - **使用已经释放了的内存**(Reading/writing memory after it has been free’d)
+    - [使用已经释放了的内存](#4动态内存管理错误)(Reading/writing memory after it has been free’d)
     - [使用超过malloc分配的内存空间](2内存越界访问)(Reading/writing off the endof malloc’d blocks)
     - **对堆栈的非法访问**(Reading/writing inappropriate areas on the stack)
-    - **申请的空间是否有释放**(Memory leaks – where pointers to malloc’d blocks are lost forever)
-    - **malloc/free/new/delete申请和释放内存的匹配**(Mismatched use of malloc/new/new \[\] vs free/delete/delete \[\])
+    - [内存泄露](#5内存泄露)(Memory leaks – where pointers to malloc’d blocks are lost forever)
+    - [malloc/free/new/delete申请和释放内存的匹配](#4动态内存管理错误)(Mismatched use of malloc/new/new \[\] vs free/delete/delete \[\])
     - [src和dst的重叠](#3内存覆盖)(Overlapping src and dst pointers inmemcpy() and related functions)
 * **Callgrind**：主要用来检查程序中**函数调用过程**中出现的问题
 * **Cachegrind**：它主要用来检查程序中**缓存使用**出现的问题
@@ -29,7 +29,7 @@ vagrind包括下列一些工具：
 
 ### 2.2 内存检测原理
 
-<div align="center"> <img src="pic/6.png"/> </div>
+<div align="center"> <img src="pic/7.png"/> </div>
 
 Memcheck 能够检测出内存问题，关键在于其建立了两个全局表：
 
@@ -45,11 +45,11 @@ Memcheck 能够检测出内存问题，关键在于其建立了两个全局表�
 
 **步骤**：
 
-* **1）编译源文件获取可执行程序**：为了使valgrind发现的错误更精确，如能够定位到源代码行，建议在编译时加上-g参数
+* **编译源文件获取可执行程序**：为了使valgrind发现的错误更精确，如能够定位到源代码行，建议在编译时加上-g参数
     ```
-    gcc -g test.c
+    gcc|g++ -g 源文件
     ```
-* **2）在valgrind下，运行可执行程序**：
+* **在valgrind下，运行可执行程序**：
     - Valgrind 的参数分为两类：
         + 一类是 core 的参数，它对所有的工具都适用
         + 另外一类就是具体某个工具如 memcheck 的参数。Valgrind 默认的工具就是 memcheck，也可以通过“--tool=tool name”指定其他的工具
@@ -197,7 +197,7 @@ int main()
 
 * **确定的内存泄露**
     - **直接的内存泄露**（**definitely lost**）：直接是没有任何指针指向该内存
-    - **间接的内存泄露**（**indirectly lost**）：间接是指指向该内存的指针都位于内存泄露处，即由直接内存泄露引起的内存泄露
+    - **间接的内存泄露**（**indirectly lost**）：间接是指向该内存的指针都位于内存泄露处，即由直接内存泄露引起的内存泄露
 * **可能的内存泄露**（**possibly lost**）：指仍然存在某个指针能够访问某块内存，但该指针指向的已经不是该内存首地址
 
 <br>
