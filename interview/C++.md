@@ -67,38 +67,37 @@
     * 6）为什么要内存对齐？([性能原因、平台原因](temp/C++.md/#1为什么要内存对齐))
     * 7）[struct内存对齐方式？](https://github.com/arkingc/llc/blob/master/cpp/alignment/struct.cpp#L1)
     * 8）什么是内存泄露？如何检测与避免？（Mtrace，[valgrind](temp/C++.md/#2valgrind)）
-    * 9）智能指针相关
+    * 9）[智能指针相关](https://mubu.com/doc/BGwWx-huk)
         * 种类、区别、原理、能否管理动态数组
         * shared_ptr（使用、计数的变化，get()函数要注意什么）
         * unique_ptr(如何转移控制权)
-        * [weak_ptr(特点、用途)](https://www.cnblogs.com/DswCnblog/p/5628314.html)
+        * [weak_ptr(特点、用途：可以解决shared_ptr的循环引用问题)](https://www.cnblogs.com/DswCnblog/p/5628314.html)
         * 手写实现智能指针
     * 10）[实现memcpy](temp/C++.md/#3实现memcpy)
     * 11）memcpy与memmove的区别（前者不处理重叠，后者处理重叠）
+    * 12）实现[strlen](temp/C++.md/#41-实现strlen)、[strcmp](temp/C++.md/#42-实现strcmp)、[strcat](temp/C++.md/#43-实现strcat)、[strcpy](temp/C++.md/#44-实现strcpy)
 * **六.关键字**
     * 1）extern？（extern "C"?、与static？、有什么问题？、extern的时候定义变量？）
-    * 2）const？（修饰变量、修饰指针与引用、修饰成员函数 《Effective C++:条款3》）
-    * 3）mutable？（可变数据成员，[除此之外？](https://github.com/arkingc/llc/blob/master/cpp/class/modify_const_object.cpp)）
+    * 2）const？（修饰变量、修饰指针与引用、修饰成员函数 [《Effective C++:条款3》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE03%E5%B0%BD%E5%8F%AF%E8%83%BD%E4%BD%BF%E7%94%A8const)）
+    * 3）mutable？
     * 4）static？（修饰变量、类中使用）
-    * 5）define与const、enum、template inline？（《Effective C++:条款2》、C中默认const是外部连接的，而C++中默认const是内部连接的）
+    * 5）define与const、enum、template inline？（[《Effective C++:条款2》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE02%E5%B0%BD%E9%87%8F%E4%BB%A5constenuminline%E6%9B%BF%E6%8D%A2define)、C中默认const是外部连接的，而C++中默认const是内部连接的）
     * 6）explict?（抑制隐式转换、可通过显示转换或直接初始化解决、类外定义时不应重复出现）
     * 7）noexcept？（承诺不会抛出异常）
     * 8）default、delete?（显示要求编译器合成、不能被调用）
     * 9）using？（用于命名空间？、用于类中？）
     * 10）final？（修饰类？、修饰成员函数？）
-    * 11）auto？(类型推导、初始化、不能用于函数及模板)
+    * 11）auto、decltype？(初始值为引用时类型为所引对象的类型、必须初始化、不能用于函数及模板)
     * 12）volatile?（对象的值可能在程序的控制外被改变时，应将变量申明为volatile，告诉编译器不应对这样的对象进行优化，如果优化，从内存读取后CPU会优先访问数据在寄存器中的结果，但是内存中的数据可能在程序之外被改变、可以既是const又是volatile，const只是告诉程序不能试图去修改它.volatile是告诉编译器不要优化，因为变量可能在程序外部被改变）
 * **七.其它**
-    * 1）调试程序的方法?
+    * 1）调试程序的方法?（[gdb](https://github.com/arkingc/note/blob/master/Linux/Linux%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4.md#3%E8%B0%83%E8%AF%95%E5%B7%A5%E5%85%B7gdb)）
     * 2）遇到coredump要怎么调试？
     * 3）模板的用法与适用场景
-    * 4）用过C++11？新特性？（auto,decltype、explicit、lambda、final）
-    * 5）C++函数调用的压栈过程
+    * 4）用过C++11？新特性？（auto,decltype、explicit、[lambda](https://mubu.com/doc/1ckW18B1Ak)、final）
+    * 5）[函数调用的压栈过程](https://arkingc.github.io/2018/01/12/c-stack_frame/)
     * 6）[sizeof](https://github.com/arkingc/llc/blob/master/cpp/sizeof.cpp#L4)和strlen的区别？（运算符与函数、计算的对象、编译时运行时）
     * 7）union？
     * 8）覆盖、重载与隐藏（覆盖要求参数完全相同，用于继承体系的虚函数中，重载要求参数不同）
     * 9）C++是不是类型安全的？（不是，两个不同类型指针可以强制转换）
     * 10）gcc和g++的区别？（gcc代表GUN Compiler Collection，是一堆编译器的集合，包括g++）
-    * 11）[C字符串处理函数](../C++/C字符串处理函数.md)
-    * 12）[C内存操作函数](../C++/C内存操作函数.md)
-    * 13）[运行时类型识别实现对象比较函数](https://github.com/arkingc/llc/blob/master/cpp/RTTI/RTTI.cpp#L9)
+    * 11）[运行时类型识别实现对象比较函数](https://github.com/arkingc/llc/blob/master/cpp/RTTI/RTTI.cpp#L9)

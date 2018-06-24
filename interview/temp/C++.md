@@ -237,3 +237,74 @@ void* memcpy(void *dst,const void *src,size_t size)
     return dst;
 }
 ```
+
+## 4.实现C字符串处理函数
+
+### 4.1 实现strlen
+
+```c
+#include <cassert>
+
+//字符串长度计算
+int strlen(const char *str)
+{
+    assert(str);
+
+    int len = 0;
+    while(*str++)   len++;
+    return  len;
+}
+```
+
+### 4.2 实现strcmp
+
+```c
+//字符串比较
+int strcmp(const char *str1,const char *str2)
+{
+    assert(str1 && str2);
+
+    //128种扩展ascii码使用最高位来标识
+    while((*(unsigned char *)str1 == *(unsigned char *)str2) && *str1){
+        str1++;
+        str2++;
+    }
+
+    int ret = *(unsigned char*)str1 - *(unsigned char*)str2;
+    if(ret < 0) ret = -1;
+    else if(ret > 0) ret = 1;
+    return ret;
+}
+```
+
+### 4.3 实现strcat
+
+```c
+//字符串拼接
+char* strcat(char *strDest,const char *strSrc)
+{
+    assert(strDest && strSrc);
+
+    char *p = strDest;
+    while(*p) p++;
+
+    while(*p++ = *strSrc++);
+    return strDest;
+}
+
+```
+
+### 4.4 实现strcpy
+
+```c
+//字符串拷贝
+char* strcpy(char *strDest,const char *strSrc)
+{
+    assert(strDest && strSrc);
+
+    char *p = strDest;
+    while(*p++ = *strSrc++);
+    return strDest;
+}
+```
+
