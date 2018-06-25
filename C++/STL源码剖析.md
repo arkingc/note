@@ -289,9 +289,9 @@ public:
 
 > 上图中Alloc=alloc中的缺省alloc可以是第一级分配器，也可以是第二级分配器。SGI STL已经把它设为第二级分配器
 
-#### 2）第一级分配器__malloc_alloc_template
+两级分配器都定义在头文件[<stl_alloc.h>](tass-sgi-stl-2.91.57-source/stl_alloc.h)中
 
-第一级分配器__malloc_alloc_template定义在头文件[<stl_alloc.h>](tass-sgi-stl-2.91.57-source/stl_alloc.h)中：
+#### 2）第一级分配器__malloc_alloc_template
 
 ```c++
 //一般而言是线程安全，并且对于空间的运用比较高效
@@ -498,7 +498,7 @@ __default_alloc_template<threads, inst> ::free_list[__NFREELISTS] =
 <div align="center"> <img src="../pic/stl-2-8.png"/> </div>
 
 * 重新填充free-list的函数[refill()](tass-sgi-stl-2.91.57-source/stl_alloc.h#L537)
-    - 若free-list中没有可用区块时，会调用chunk_alloc从内存池中申请空间重新填充free-list。缺省申请20个新节点(新区块)，如果内存池空间不足，获得的节点数可能小于20
+    - 若free-list中没有可用区块时，会调用chunk_alloc**从内存池**中申请空间重新填充free-list。缺省申请20个新节点(新区块)，如果内存池空间不足，获得的节点数可能小于20
 
 * [chunk_alloc()](tass-sgi-stl-2.91.57-source/stl_alloc.h#L465)函数从内存池申请空间，根据end_free-start_free判断内存池中剩余的空间
     - 如果剩余空间充足
@@ -508,7 +508,7 @@ __default_alloc_template<threads, inst> ::free_list[__NFREELISTS] =
     - 如果剩余空间连一个区块都无法供应
         + 利用malloc()从heap中分配内存（大小为需求量的2倍，加上一个随着分配次数增加而越来越大的附加量），为内存池注入新的可用空间（**详细例子见下图**）
         + 如果malloc()获取失败，chunk_alloc()就四处寻找有无”尚有未用且区块足够大“的free-list。找到了就挖出一块交出
-        + 如果上一步仍为成果，那么就调用第一级分配器，第一级分配器有out-of-memory处理机制，或许有机会释放其它的内存拿来此处使用。如果可以，就成功，否则抛出bad_alloc异常
+        + 如果上一步仍未成功，那么就调用第一级分配器，第一级分配器有out-of-memory处理机制，或许有机会释放其它的内存拿来此处使用。如果可以，就成功，否则抛出bad_alloc异常
     
     <div align="center"> <img src="../pic/stl-2-9.png"/> </div>
 
@@ -786,6 +786,7 @@ struct __list_node{
     typedef void* void_pointer;
     void_pointer prev;  //类型为void*
     void_pointer next;
+    T data;
 };
 ```
 

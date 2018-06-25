@@ -6,6 +6,7 @@
     * 5）[C/C++中的强制转换](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE27%E5%B0%BD%E9%87%8F%E5%B0%91%E5%81%9A%E8%BD%AC%E5%9E%8B%E5%8A%A8%E4%BD%9C)
     * 6）[如何修改const变量、const与volatile](https://blog.csdn.net/heyabo/article/details/8745942)
     * 7）静态类型获取与动态类型获取（[typeid](https://github.com/arkingc/llc/blob/master/cpp/RTTI/typeid.cpp#L4)、dynamic_cast:转换目标类型必须是引用类型）
+    * 8）[如何比较浮点数大小？](https://blog.csdn.net/jk110333/article/details/8902707)（[直接使用==比较出现错误的例子](https://stackoverflow.com/questions/26261466/in-current-c-and-java-double-type-and-float-type-if-x-0-0-is-correct)）
 * **二.函数**
     * 1）重载（[参数必须不同(const修饰形参)](https://github.com/arkingc/llc/blob/master/cpp/overload/main.cpp#L9)、重载与作用域、继承中的重载\(using\)、重载与const成员函数） 
 * **三.类**
@@ -51,31 +52,44 @@
     * 18）浅拷贝与深拷贝（安全性、行为像值的类与行为像指针的类）
     * 19）如何定义类内常量？（enum而不是static const [《Effective C++:条款2》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE02%E5%B0%BD%E9%87%8F%E4%BB%A5constenuminline%E6%9B%BF%E6%8D%A2define)）
 * **四.STL**
-    * 1）[vector底层的实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#1vector)？insert具体做了哪些事？[resize()](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_vector.h#L209)调用的是什么？
-    * 2）vector的push_back要注意什么（大量调用会伴随大量的拷贝构造与析构，内存分配与释放）
-    * 3）vector的resize()与[reserve()](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_vector.h#L129)（[测试程序](https://github.com/arkingc/llc/blob/master/cpp/container/vector/size.cpp#L5)）
-    * 4）[map](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#3map)、[set](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2set)的实现原理（红黑树、对于set来说key和value合一，value就是key，map的元素是一个pair，包括key和value、set不支持[]，map(不包括multimap)支持[]）
-    * 5）set(map)和multiset(multimap)的区别？（set不允许key重复,其insert操作调用rb_tree的insert_unique函数，multiset允许key重复,其insert操作调用rb_tree的insert_equal函数）
-    * 6）set(multiset)和map(multimap)的迭代器（由于set(multiset)key和value合一，迭代器不允许修改key、map(multimap)除了key有data，迭代器允许修改data不允许修改key）
-    * 7）map与unordered_map的区别？
+    * 1）[顺序容器与关联容器的比较？](https://blog.csdn.net/JIEJINQUANIL/article/details/51175858)[有哪些顺序容器与关联容器？](https://github.com/arkingc/note/blob/master/pic/stl-4-1.jpeg)
+    * 2）[vector底层的实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#1vector)（迭代器类型为随机迭代器）？insert具体做了哪些事？[resize()](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_vector.h#L209)调用的是什么？
+    * 3）vector的push_back要注意什么（大量调用会伴随大量的拷贝构造与析构，内存分配与释放）
+    * 4）vector的resize()与[reserve()](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_vector.h#L129)（[测试程序](https://github.com/arkingc/llc/blob/master/cpp/container/vector/size.cpp#L5)）
+    * 5）[list的底层实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#23-list%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)（迭代器类型为双向迭代器）
+    * 6）[deque的底层实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#33-deque%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)（迭代器类型为随机迭代器）
+    * 7）vector与deque的区别？（deque能以常数时间在首尾插入元素；deque没有capacity的概念）
+    * 8）[map](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#3map)、[set](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2set)的实现原理（红黑树、对于set来说key和value合一，value就是key，map的元素是一个pair，包括key和value、set不支持[]，map(不包括multimap)支持[]）
+    * 9）set(map)和multiset(multimap)的区别？（set不允许key重复,其insert操作调用rb_tree的insert_unique函数，multiset允许key重复,其insert操作调用rb_tree的insert_equal函数）
+    * 10）set(multiset)和map(multimap)的迭代器（由于set(multiset)key和value合一，迭代器不允许修改key、map(multimap)除了key有data，迭代器允许修改data不允许修改key）
+    * 11）map与[unordered_map](https://blog.csdn.net/hk2291976/article/details/51037095)的区别？（hash_map需要hash函数及等于函数，map只需小于函数）
+    * 12）空间分配器allocator
+        - [将new和delete的2阶段操作分离](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#%E4%BA%8C%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D%E5%99%A8)（construct和destroy负责内存分配？allocate和deallocate负责对象构造析构？）
+        - [SGI符合部分标准的空间分配器——std::allocator](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#%E4%BA%8C%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D%E5%99%A8)
+        - [SGI特殊的空间分配器——std::alloc](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#3sgi%E7%89%B9%E6%AE%8A%E7%9A%84%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D%E5%99%A8stdalloc)（[对象构造与析构](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#31-%E5%AF%B9%E8%B1%A1%E6%9E%84%E9%80%A0%E4%B8%8E%E6%9E%90%E6%9E%84)、内存分配与释放——[两级分配器](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#1%E4%B8%A4%E7%BA%A7%E5%88%86%E9%85%8D%E5%99%A8)）
+            + [第一级分配器](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2%E7%AC%AC%E4%B8%80%E7%BA%A7%E5%88%86%E9%85%8D%E5%99%A8__malloc_alloc_template)（如何仿真new-handler机制？不能直接用C++ new-handler，因为没有使用::operator new）
+            + [第二级分配器](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#3%E7%AC%AC%E4%BA%8C%E7%BA%A7%E5%88%86%E9%85%8D%E5%99%A8__default_alloc_template)（为什么要二级分配器？内存池与16个free-list？空间分配和释放的步骤？）
 * **五.内存管理**
     * 1）[C++内存分区](../C++/内存分区.md)
     * 2）[new](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#1new)和malloc的区别？（函数，运算符、类型安全、计算空间、步骤）
-    * 3）[malloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[calloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[realloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[alloca](https://blog.csdn.net/lan120576664/article/details/38078855)，malloc的实现？
-    * 4）调用malloc函数之后，OS会马上分配内存空间吗？（不会，只会返回一个虚拟地址，待用户要使用内存时，OS会发出一个缺页中断，此时，内存管理模块才会为程序分配真正内存）
-    * 5）[delete](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#1new)（步骤、delete与析构、可以delete空指针、可以delete动态const对象）
-    * 6）为什么要内存对齐？([性能原因、平台原因](temp/C++.md/#1为什么要内存对齐))
-    * 7）[struct内存对齐方式？](https://github.com/arkingc/llc/blob/master/cpp/alignment/struct.cpp#L1)
-    * 8）什么是内存泄露？如何检测与避免？（Mtrace，[valgrind](temp/C++.md/#2valgrind)）
-    * 9）[智能指针相关](https://mubu.com/doc/BGwWx-huk)
+    * 3）new带括号和不带括号的区别？（无自定义构造函数时，不带括号的new只分配内存，带括号的new会初始化为0）
+    * 4）new时内存不足？（[《Effective C++:条款49》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE49%E4%BA%86%E8%A7%A3new-handler%E7%9A%84%E8%A1%8C%E4%B8%BA)）(new-handler)
+    * 5）[malloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[calloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[realloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[alloca](https://blog.csdn.net/lan120576664/article/details/38078855)，malloc的实现？
+    * 6）调用malloc函数之后，OS会马上分配内存空间吗？（不会，只会返回一个虚拟地址，待用户要使用内存时，OS会发出一个缺页中断，此时，内存管理模块才会为程序分配真正内存）
+    * 7）[delete](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#1new)（步骤、delete与析构、可以delete空指针、可以delete动态const对象）
+    * 8）为什么要内存对齐？([性能原因、平台原因](temp/C++.md/#1为什么要内存对齐))
+    * 9）[struct内存对齐方式？](https://github.com/arkingc/llc/blob/master/cpp/alignment/struct.cpp#L1)
+    * 10）什么是内存泄露？如何检测与避免？（Mtrace，[valgrind](temp/C++.md/#2valgrind)）
+    * 11）[智能指针相关](https://mubu.com/doc/BGwWx-huk)
         * 种类、区别、原理、能否管理动态数组
         * shared_ptr（使用、计数的变化，get()函数要注意什么）
         * unique_ptr(如何转移控制权)
         * [weak_ptr(特点、用途：可以解决shared_ptr的循环引用问题)](https://www.cnblogs.com/DswCnblog/p/5628314.html)
         * 手写实现智能指针
-    * 10）[实现memcpy](temp/C++.md/#3实现memcpy)
-    * 11）memcpy与memmove的区别（前者不处理重叠，后者处理重叠）
-    * 12）实现[strlen](temp/C++.md/#41-实现strlen)、[strcmp](temp/C++.md/#42-实现strcmp)、[strcat](temp/C++.md/#43-实现strcat)、[strcpy](temp/C++.md/#44-实现strcpy)
+    * 12）[实现memcpy](temp/C++.md/#3实现memcpy)
+    * 13）memcpy与memmove的区别（前者不处理重叠，后者处理重叠）
+    * 14）[能否使用memcpy比较两个结构体对象？](https://blog.csdn.net/peng314899581/article/details/60766892)
+    * 15）实现[strlen](temp/C++.md/#41-实现strlen)、[strcmp](temp/C++.md/#42-实现strcmp)、[strcat](temp/C++.md/#43-实现strcat)、[strcpy](temp/C++.md/#44-实现strcpy)
 * **六.关键字**
     * 1）extern？（extern "C"?、与static？、有什么问题？、extern的时候定义变量？）
     * 2）const？（修饰变量、修饰指针与引用、修饰成员函数 [《Effective C++:条款3》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE03%E5%B0%BD%E5%8F%AF%E8%83%BD%E4%BD%BF%E7%94%A8const)）
