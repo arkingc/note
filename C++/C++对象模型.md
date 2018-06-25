@@ -324,6 +324,7 @@ private:
 
 * 把vptr放在class object的尾端，可以保留base class C struct的对象布局，因而允许在C程序代码中也能使用。这种做法在C++最初问世时，被许多人采用
 <div align="center"> <img src="../pic/cppmode-3-11.png"/> </div>
+
 * 把vptr放在class object的首端，对于“在多重继承之下，通过指向class members的指针调用virtual function”，会带来一些帮助。否则，不仅“从class object起始点开始量起”的offset必须在执行期备妥，甚至与class vptr之间的offset也必须备妥。当然，vptr放在前端，代价就是丧失了C语言兼容性（但是似乎并没有多少程序会从一个C struct派生出一个具有多态性质的class）
 <div align="center"> <img src="../pic/cppmode-3-12.png"/> </div>
 
