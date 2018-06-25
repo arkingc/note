@@ -233,7 +233,7 @@ pt->x = 0.0;
 通过origin存取和通过pt存取有什么差异？对x是静态数据成员与不是静态成员时进行分析
 
 * **Static Data Members**：这是C++中“通过一个指针和通过一个对象来存取member，结论完全相同”的唯一一种情况。这是因为“经由'.'对一个static data member进行存取操作”只是文法上的一种便宜行事。member其实并不在class object之中，因此存取static member并不需要通过class object（如果有两个类，每一个都声明了一个同名的static member，那么当它们都被放在程序的data segment时，就会导致命名冲突。编译器的解决方法是暗中对每一个static member编码，以获得一个独一无二的程序识别代码）
-* **Nonstatic Data Members**：欲对一个nonstatic data member进行存取操作，编译器需要把class object的起始位置加上data member的偏移位置。每一个nonstatic data member的偏移位置在编译时期即可获知，甚至如果member属于一个“基类子对象”也是一样，因此，存取一个nonstatic data member的效率和存取一个C struct member或一个非派生类的member是一样的。虚继承将为“经由基类子对象存取class members”导入一层新的间接性，如果通过指针存取，这个存取操作必须延迟至执行期，经由一个额外的间接引导才能解决
+* **Nonstatic Data Members**：欲对一个nonstatic data member进行存取操作，编译器需要把class object的起始位置加上data member的偏移位置。每一个nonstatic data member的偏移位置在编译时期即可获知，甚至如果member属于一个“基类子对象”也是一样，因此，存取一个nonstatic data member的效率和存取一个C struct member或一个非派生类的member是一样的。**但是，虚继承将为“经由基类子对象存取class members”导入一层新的间接性，如果通过指针存取，这个存取操作必须延迟至执行期，经由一个额外的间接引导才能解决**（原因在于，在继承体系中，”虚基类子对象“在不同派生类中的偏移量不同，指针所指的对象类型需要在运行时确定，因此只能在运行时得到”虚基类子对象“确切的偏移量）
 
 假设，x是一个Nonstatic Data Members，那么地址 ```&origin.x``` 将等于：
 
@@ -323,9 +323,11 @@ private:
 某些编译器会把vptr放置在class object的尾端，另一些编译器会把vptr放置在class object的首端
 
 * 把vptr放在class object的尾端，可以保留base class C struct的对象布局，因而允许在C程序代码中也能使用。这种做法在C++最初问世时，被许多人采用
-* 把vptr放在class object的首端，对于“在多重继承之下，通过指向class members的指针调用virtual function”，会带来一些帮助。否则，不仅“从class object起始点开始量起”的offset必须在执行器备妥，甚至与class vptr之间的offset也必须备妥。当然，vptr放在前端，代价就是丧失了C语言兼容性（但是似乎并没有多少程序会从一个C struct派生出一个具有多态性质的class）
+<div align="center"> <img src="../pic/cppmode-3-11.png"/> </div>
+* 把vptr放在class object的首端，对于“在多重继承之下，通过指向class members的指针调用virtual function”，会带来一些帮助。否则，不仅“从class object起始点开始量起”的offset必须在执行期备妥，甚至与class vptr之间的offset也必须备妥。当然，vptr放在前端，代价就是丧失了C语言兼容性（但是似乎并没有多少程序会从一个C struct派生出一个具有多态性质的class）
+<div align="center"> <img src="../pic/cppmode-3-12.png"/> </div>
 
-假设把vptr放在base class的尾端，则Point2d和Point3d的成员布局如下：
+假设把vptr放在**base class**的尾端，则Point2d和Point3d的成员布局如下：
 
 <div align="center"> <img src="../pic/cppmode-3-7.png"/> </div>
 
