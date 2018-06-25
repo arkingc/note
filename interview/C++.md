@@ -94,12 +94,12 @@
     * 15）实现[strlen](temp/C++.md/#41-实现strlen)、[strcmp](temp/C++.md/#42-实现strcmp)、[strcat](temp/C++.md/#43-实现strcat)、[strcpy](temp/C++.md/#44-实现strcpy)
 * **六.对象内存模型**
     * [成员变量在类对象中的布局规则](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#32-data-member%E7%9A%84%E5%B8%83%E5%B1%80)
-    * [通过指针和通过'.'进行Data Member存取的区别](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#33-data-member%E7%9A%84%E5%AD%98%E5%8F%96)
+    * [通过指针和通过'.'进行Data Member存取的区别](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#33-data-member%E7%9A%84%E5%AD%98%E5%8F%96)（结合下面对象模型中的“多重继承”部分，了解在将一个派生类对象或基类对象地址指定给基类指针时，会如何移动指针；结合“虚继承”部分，分析为什么通过指针存取在虚继承下可能存在效率问题）
     * 对象模型
         - [无继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#33-data-member%E7%9A%84%E5%AD%98%E5%8F%96)
         - [不含多态的继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#2%E4%B8%8D%E5%90%AB%E5%A4%9A%E6%80%81%E7%9A%84%E7%BB%A7%E6%89%BF)（C++标准并未强制指定派生类和基类成员的排列顺序；理论上编译器可以自由安排。在大部分编译器上，基类成员总是先出现，虚基类除外）
         - [含多态的继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#3%E5%90%AB%E5%A4%9A%E6%80%81%E7%9A%84%E7%BB%A7%E6%89%BF)（vptr的位置也没有强制规定，放在不同位置分别有什么好处？）
-        - [多重继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#4%E5%A4%9A%E9%87%8D%E7%BB%A7%E6%89%BF)
+        - [多重继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#4%E5%A4%9A%E9%87%8D%E7%BB%A7%E6%89%BF)（基类子对象的排列顺序也没有硬性规定；指针的调整方式？）
         - [虚继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#5%E8%99%9A%E7%BB%A7%E6%89%BF)
 * **七.关键字**
     * 1）extern？（extern "C"?、与static？、有什么问题？、extern的时候定义变量？）
