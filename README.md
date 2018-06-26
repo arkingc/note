@@ -20,7 +20,7 @@
 * [7.图](数据结构与算法/图.md)
 * [算法题总结](数据结构与算法/算法题总结.md)
 
-> 参考:
+> 理论知识参考:
 > * 《数据结构与算法分析》(C++版) Clifford A. Shaffer
 > * 《算法》Robert Sedgewick & Kevin Wayne
 
