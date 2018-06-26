@@ -24,8 +24,12 @@
     * [6.1 对象的构造和析构](#61-对象的构造和析构) 
     * [6.2 new和delete运算符](#62-new和delete运算符)
     * [6.3 临时性对象](#63-临时性对象)
+* [附：使用gdb分析对象模型](#附使用gdb分析对象模型)
 <!-- GFM-TOC -->
 
+<br>
+<br>
+<br>
 <br>
 <br>
 <br>
@@ -120,6 +124,7 @@ int main(){
 
 > 相关问题：是否可以使用memcpy来拷贝一个class对象，并解释原因
 
+<br>
 <br>
 
 # 第3章 Data语意学
@@ -480,6 +485,7 @@ float Point3d::*p2 = &Point3d::x;
 为了区分p1和p2，每一个真正的member offset的值都被加上1（如我测的结果所示，**如果没有增加1，可能是编译器做了特殊处理**）。因此，无论编译器或使用者都必须记住，在真正使用该值以指出一个member之前请减掉1
 
 <br>
+<br>
 
 # 第4章 Function语意学
 
@@ -725,7 +731,7 @@ ptr->z();
 (*ptr->vptr[4])(ptr);
 ```
 
-唯一一个在执行期才能知道的东西是：slot4所指的到达是哪一个z()函数实例
+唯一一个在执行期才能知道的东西是：slot4所指的到底是哪一个z()函数实例
 
 > 在一个单一继承体系中，virtual function机制的行为十分良好，不但有效率而且很容易塑造出模型来。但是在多重继承和虚拟继承之中，对virtual functions的支持就没有那么好了
 
@@ -771,7 +777,7 @@ protected:
 
 针对每一个virtual tables，Derived对象中有对应的vptr
 
-用以支持“一个class拥有多个virtual tables”的传统方法是，将每一个tables以外部对象的形式产生出来，并给与独一无二的名称。例如，Derived所关联的两个tables可能有这样的名称：
+用以支持“一个class拥有多个virtual tables”的传统方法是，将每一个tables以外部对象的形式产生出来，并给予独一无二的名称。例如，Derived所关联的两个tables可能有这样的名称：
 
 ```c++
 vtbl__Derived;          //主要表格
@@ -820,7 +826,7 @@ Base2 *pb2 = pb1->clone();
 ```c++
 class Point2d{
 public:
-	Point2d(float = 0.0,float = 0.0);
+    Point2d(float = 0.0,float = 0.0);
     virtual ~Point2d();
 
     virtual void mumble();
@@ -969,6 +975,7 @@ struct __mptr{
 
 暂略
 
+<br>
 <br>
 
 # 第5章 构造、析构、拷贝语意学
@@ -1392,6 +1399,7 @@ inline Vertex3d& Vertex3d::operator=(const Vertex3d &v)
 > 一个object的生命结束于其destructor开始执行之时。由于每一个base class destructor都轮番被调用，所以derived object实际上变成了一个完整的object。例如一个PVertex对象归还其内存空间之前，会依次变成一个Vertex3d对象、一个Vertex对象，一个Point3d对象，最后成为一个Point对象。当我们在destructor中调用member functions时，对象的蜕变会因为vptr的重新设定（在每一个destructor中，在程序员所提供的代码执行之前）而受到影响
 
 <br>
+<br>
 
 # 第6章 执行期语意学
 
@@ -1695,3 +1703,71 @@ const String &space = " ";
 如果临时对象在初始化space后就销毁，那么reference也就没用了
 
 > 在类似 ```if(s + t || u + v)``` 这种表达式中，临时对象是根据程序的执行期语意，有条件地被产生出来的，如果把临时对象的destructor放在每一个子算式的求值过程中，可以免除”努力追踪第二个子算式是否真的需要被评估“。然后现在C++标准以及要求这类表达式在整个完整表达式结束后才销毁临时对象，因此某些形式的测试会被安插进来，以决定是否要摧毁和第二算式有关的临时对象
+
+<br>
+<br>
+
+# 附：使用gdb分析对象模型
+
+[gdb的使用](https://github.com/arkingc/note/blob/master/Linux/Linux%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4.md#3%E8%B0%83%E8%AF%95%E5%B7%A5%E5%85%B7gdb)
+
+环境信息：
+
+<div align="center"> <img src="../pic/cppmode-f-0.png"/> </div>
+
+代码如下：
+
+```c++
+#include <iostream>
+
+using namespace std;
+
+class Base{
+public:
+    virtual void f() {cout << "Base::f()" << endl;}
+    virtual void g() {cout << "Base::g()" << endl;}
+    virtual void h() {cout << "Base::h()" << endl;}
+};
+
+class Derived : public Base{
+public:
+    void print() {cout << "Derived::print" << endl;}
+};
+
+int main()
+{
+    typedef void (*func)();
+
+    Derived d;
+
+    func pFunc1 = (func)(*(long *)*(long *)(&d));
+    func pFunc2 = (func)(*((long *)*(long *)(&d) + 1));
+    func pFunc3 = (func)(*((long *)*(long *)(&d) + 2));
+
+    pFunc1();   //Base::f()
+    pFunc2();   //Base::g()
+    pFunc3();   //Base::h()
+
+    return 0;
+}
+```
+
+查看**对象的内存布局**：
+
+* 可以使用`p 对象`直接打印对象：
+<div align="center"> <img src="../pic/cppmode-f-2.png"/> </div>
+
+* 可以通过打印对象地址查看虚函数表：
+<div align="center"> <img src="../pic/cppmode-f-1.png"/> </div>
+
+查看**虚函数表**：
+
+* 通过虚函数表的地址打印出每个虚函数的地址
+<div align="center"> <img src="../pic/cppmode-f-3.png"/> </div>
+
+* 使用`info line 行号`打印出虚函数的地址
+<div align="center"> <img src="../pic/cppmode-f-4.png"/> </div>
+
+画图表示如下（typeinfo在虚函数表上方）：
+
+<div align="center"> <img src="../pic/cppmode-f-5.png"/> </div>
