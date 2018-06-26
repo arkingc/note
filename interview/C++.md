@@ -102,6 +102,7 @@
         - [含多态的继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#3%E5%90%AB%E5%A4%9A%E6%80%81%E7%9A%84%E7%BB%A7%E6%89%BF)（vptr的位置也没有强制规定，放在不同位置分别有什么好处？）
         - [多重继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#4%E5%A4%9A%E9%87%8D%E7%BB%A7%E6%89%BF)（基类子对象的排列顺序也没有硬性规定；指针的调整方式？）
         - [虚继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#5%E8%99%9A%E7%BB%A7%E6%89%BF)（虚基类子对象的偏移信息记录在虚函数表中与使用一个额外指针来记录的对比？）
+        - [指向数据成员的指针](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#35-%E6%8C%87%E5%90%91data-members%E7%9A%84%E6%8C%87%E9%92%88)
 * **七.关键字**
     * 1）extern？（extern "C"?、与static？、有什么问题？、extern的时候定义变量？）
     * 2）const？（修饰变量、修饰指针与引用、修饰成员函数 [《Effective C++:条款3》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE03%E5%B0%BD%E5%8F%AF%E8%83%BD%E4%BD%BF%E7%94%A8const)）
@@ -113,7 +114,7 @@
     * 8）default、delete?（显示要求编译器合成、不能被调用）
     * 9）using？（用于命名空间？、用于类中？）
     * 10）final？（修饰类？、修饰成员函数？）
-    * 11）auto、decltype？(初始值为引用时类型为所引对象的类型、必须初始化、不能用于函数及模板)
+    * 11）auto(初始值为引用时类型为所引对象的类型、必须初始化、不能用于函数及模板)、decltype？
     * 12）volatile?（对象的值可能在程序的控制外被改变时，应将变量申明为volatile，告诉编译器不应对这样的对象进行优化，如果优化，从内存读取后CPU会优先访问数据在寄存器中的结果，但是内存中的数据可能在程序之外被改变、可以既是const又是volatile，const只是告诉程序不能试图去修改它.volatile是告诉编译器不要优化，因为变量可能在程序外部被改变）
 * **八.其它**
     * 1）调试程序的方法?（[gdb](https://github.com/arkingc/note/blob/master/Linux/Linux%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4.md#3%E8%B0%83%E8%AF%95%E5%B7%A5%E5%85%B7gdb)）
