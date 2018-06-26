@@ -40,7 +40,7 @@
     * 9）[删除的合成函数](https://github.com/arkingc/llc/blob/master/cpp/class/delete/README.md)（一般函数而言不想调用的话不定义就好）
     * 10）继承相关
         - 继承体系中的构造、拷贝、析构顺序？（派生类只负责自己成员的拷贝控制，可以(换而言之非必须，如果不显示调用，会调用父类合成的默认版本)在初始值列表或函数体中调用基类相应函数）
-        - 继承中的名字查找（作用域嵌套、从子类到父类查找）
+        - 继承中的名字查找（作用域嵌套、从子类到父类查找；[成员名字的处理](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#%E5%90%8D%E7%A7%B0%E7%9A%84%E7%89%B9%E6%AE%8A%E5%A4%84%E7%90%86)）
         - [成员函数体内、成员函数的参数列表的名字解析时机](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#31-data-member%E7%9A%84%E7%BB%91%E5%AE%9A)（因此，务必将“内嵌的类型声明”放在class起始处）
         - 同名名字隐藏（如何解决？(域作用符，从指示的类开始查找)、不同作用域无法重载、using的作用？除此之外呢？） 
         - 虚继承（解决什么问题？(多继承中的子对象冗余)）
@@ -94,15 +94,21 @@
     * 14）[能否使用memcpy比较两个结构体对象？](https://blog.csdn.net/peng314899581/article/details/60766892)
     * 15）实现[strlen](temp/C++.md/#41-实现strlen)、[strcmp](temp/C++.md/#42-实现strcmp)、[strcat](temp/C++.md/#43-实现strcat)、[strcpy](temp/C++.md/#44-实现strcpy)
 * **六.对象内存模型**
-    * [成员变量在类对象中的布局规则](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#32-data-member%E7%9A%84%E5%B8%83%E5%B1%80)
-    * [通过指针和通过'.'进行Data Member存取的区别](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#33-data-member%E7%9A%84%E5%AD%98%E5%8F%96)（结合下面对象模型中的“多重继承”部分，了解在将一个派生类对象或基类对象地址指定给基类指针时，会如何移动指针；结合“虚继承”部分，分析为什么通过指针存取在虚继承下可能存在效率问题）
-    * 对象模型
+    * **数据成员的布局**
+        - [成员变量在类对象中的布局规则](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#32-data-member%E7%9A%84%E5%B8%83%E5%B1%80)
+        - [通过指针和通过'.'进行Data Member存取的区别](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#33-data-member%E7%9A%84%E5%AD%98%E5%8F%96)
         - [无继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#33-data-member%E7%9A%84%E5%AD%98%E5%8F%96)
         - [不含多态的继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#2%E4%B8%8D%E5%90%AB%E5%A4%9A%E6%80%81%E7%9A%84%E7%BB%A7%E6%89%BF)（C++标准并未强制指定派生类和基类成员的排列顺序；理论上编译器可以自由安排。在大部分编译器上，基类成员总是先出现，虚基类除外）
         - [含多态的继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#3%E5%90%AB%E5%A4%9A%E6%80%81%E7%9A%84%E7%BB%A7%E6%89%BF)（vptr的位置也没有强制规定，放在不同位置分别有什么好处？）
         - [多重继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#4%E5%A4%9A%E9%87%8D%E7%BB%A7%E6%89%BF)（基类子对象的排列顺序也没有硬性规定；指针的调整方式？）
         - [虚继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#5%E8%99%9A%E7%BB%A7%E6%89%BF)（虚基类子对象的偏移信息记录在虚函数表中与使用一个额外指针来记录的对比？）
         - [指向数据成员的指针](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#35-%E6%8C%87%E5%90%91data-members%E7%9A%84%E6%8C%87%E9%92%88)
+        - [指向函数成员的指针](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#43-%E6%8C%87%E5%90%91member-function%E7%9A%84%E6%8C%87%E9%92%88)
+    * **成员函数**
+        - [Nonstatic成员函数的转换](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#41-member%E7%9A%84%E5%90%84%E7%A7%8D%E8%B0%83%E7%94%A8%E6%96%B9%E5%BC%8F)（目的为了提供和一般非成员函数相同的效率）
+        - [重载成员函数的名字处理](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#%E6%88%90%E5%91%98%E5%87%BD%E6%95%B0%E9%87%8D%E8%BD%BD%E7%9A%84%E5%A4%84%E7%90%86)
+        - [Static成员函数的转换](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#2static-member-functions%E9%9D%99%E6%80%81%E6%88%90%E5%91%98%E5%87%BD%E6%95%B0)
+        - [编译器如何处理经由指针和经由‘.’进行的调用](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#3virtual-member-functions%E8%99%9A%E5%87%BD%E6%95%B0)
 * **七.关键字**
     * 1）extern？（extern "C"?、与static？、有什么问题？、extern的时候定义变量？）
     * 2）const？（修饰变量、修饰指针与引用、修饰成员函数 [《Effective C++:条款3》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE03%E5%B0%BD%E5%8F%AF%E8%83%BD%E4%BD%BF%E7%94%A8const)）

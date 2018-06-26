@@ -653,7 +653,7 @@ obj.normalize();
 (*ptr->vptr[1])(ptr);
 ```
 
-那么通过obj调用时，会如何转化？如果类似ptr，虽然语意正确，却没有必要。上述经由origin调用的函数实例只可能是Point3d::normalize()。“经由一个class object调用一个virtual function”，这种操作应该总是被编译器像对待一般nonstatic member function一样地解析，因此转化如下：
+那么通过obj调用时，会如何转化？如果类似ptr，虽然语意正确，却没有必要。上述经由origin调用的函数实例只可能是Point3d::normalize()。**“经由一个class object调用一个virtual function”，这种操作应该总是被编译器像对待一般nonstatic member function一样地解析**，因此转化如下：
 
 ```c++
 normalize__7Point3dFv
@@ -928,7 +928,7 @@ pmf1能够指向一般成员函数和虚拟成员函数，因此编译器必须�
 (((int)pmf1) & ~127) ? (*pmf1)(ptr) : (*pp->vptr[(int)pmf1](ptr));
 ```
 
-这种实现技巧必须假设继承体系中最多只有128个virtual functions，这并不是我们所希望的，但却证明是可行的。然而多重继承的引入，导致需要更多一般化的实现模式，并趁机出去对virtual functions的个数限制
+这种实现技巧必须假设继承体系中最多只有128个virtual functions，这并不是我们所希望的，但却证明是可行的。然而多重继承的引入，导致需要更多一般化的实现模式，并趁机除去对virtual functions的个数限制
 
 #### 2）多重继承下，指向Member Functions的指针
 
