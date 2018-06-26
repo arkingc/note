@@ -1765,7 +1765,7 @@ int main()
 * 通过虚函数表的地址打印出每个虚函数的地址
 <div align="center"> <img src="../pic/cppmode-f-3.png"/> </div>
 
-* 使用`info line 行号`打印出虚函数的地址
+* 使用`info line 行号`打印出虚函数的地址，使用`x`命令核对虚函数表中虚函数指针的布局：
 <div align="center"> <img src="../pic/cppmode-f-4.png"/> </div>
 
 画图表示如下（typeinfo在虚函数表上方）：
