@@ -1,6 +1,6 @@
 * **一.变量**
     * 1）全局变量与static变量？（作用域、生存周期）
-    * 2）[static函数与普通函数的区别？](temp/C++.md#6static函数与普通函数的区别)
+    * 2）[static函数与普通函数的区别？](temp/C++.md#4static函数与普通函数的区别)
     * 3）两个文件中声明两个同名变量？（使用了与未使用extern？） 
     * 4）全局数组和局部数组的初始化？
     * 5）指针和引用的区别？（代表意义、内存占用、初始化、指向是否可改）
@@ -13,7 +13,7 @@
 * **三.类**
     * 1）面向对象的三大特性（封装、继承、多态）
     * 2）struct和class的区别？
-    * 3）[访问权限说明符](temp/C++.md/#5访问控制说明符)？（目的是加强类的封装性）
+    * 3）[访问权限说明符](temp/C++.md/#3访问控制说明符)？（目的是加强类的封装性）
     * 4）类的静态成员（所属？静态成员函数不能声明成const、类类型的成员、定义时不能重复使用static、具有类内初始值的静态成员定义时不可再设初值）
     * 5）构造函数相关
         - 有哪些构造函数（默认、委托、拷贝、移动）
@@ -70,10 +70,10 @@
         * unique_ptr(如何转移控制权)
         * [weak_ptr(特点、用途：可以解决shared_ptr的循环引用问题)](https://www.cnblogs.com/DswCnblog/p/5628314.html)
         * 手写实现智能指针
-    * 12）[实现memcpy](temp/C++.md/#3实现memcpy)
+    * 12）[实现memcpy](../数据结构与算法/算法题总结.md#1实现memcpy)
     * 13）memcpy与memmove的区别（前者不处理重叠，后者处理重叠）
     * 14）[能否使用memcpy比较两个结构体对象？](https://blog.csdn.net/peng314899581/article/details/60766892)
-    * 15）实现[strlen](temp/C++.md/#41-实现strlen)、[strcmp](temp/C++.md/#42-实现strcmp)、[strcat](temp/C++.md/#43-实现strcat)、[strcpy](temp/C++.md/#44-实现strcpy)
+    * 15）实现[strlen](../数据结构与算法/算法题总结.md#1实现strlen)、[strcmp](../数据结构与算法/算法题总结.md#2实现strcmp)、[strcat](../数据结构与算法/算法题总结.md#3实现strcat)、[strcpy](../数据结构与算法/算法题总结.md#4实现strcpy)
 * **五.STL**
     * 1）[顺序容器与关联容器的比较？](https://blog.csdn.net/JIEJINQUANIL/article/details/51175858)[有哪些顺序容器与关联容器？](https://github.com/arkingc/note/blob/master/pic/stl-4-1.jpeg)
     * 2）[vector底层的实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#1vector)（迭代器类型为随机迭代器）？insert具体做了哪些事？[resize()](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_vector.h#L209)调用的是什么？

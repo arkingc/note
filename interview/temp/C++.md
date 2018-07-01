@@ -202,117 +202,7 @@ int main()
 
 <br>
 
-## 3.实现memcpy
-
-> 实现的实际上是memmove，实际的memcpy是不考虑重叠的
-
-重点在于**处理重叠**的情况：
-
-```c
-//#include<string.h>
-void* memcpy(void *dst,const void *src,size_t size)
-{
-    if(dst == NULL || src == NULL){
-        return NULL;
-    }
-
-    char *pdst = (char*)dst;
-    char *psrc = (char*)src;
-
-    //有重叠，从高地址开始复制
-    if(pdst > psrc && pdst < psrc + size){
-        pdst = pdst + size - 1;
-        psrc = psrc + size - 1;
-        while(size--){
-            *pdst-- == *psrc--;
-        }
-    }
-    //没有重叠，从低地址开始复制
-    else{
-        while(size--){
-            *pdst++ = *psrc++;
-        }
-    }
-
-    return dst;
-}
-```
-
-<br>
-
-## 4.实现C字符串处理函数
-
-### 4.1 实现strlen
-
-```c
-#include <cassert>
-
-//字符串长度计算
-int strlen(const char *str)
-{
-    assert(str);
-
-    int len = 0;
-    while(*str++)   len++;
-    return  len;
-}
-```
-
-### 4.2 实现strcmp
-
-```c
-//字符串比较
-int strcmp(const char *str1,const char *str2)
-{
-    assert(str1 && str2);
-
-    //128种扩展ascii码使用最高位来标识
-    while((*(unsigned char *)str1 == *(unsigned char *)str2) && *str1){
-        str1++;
-        str2++;
-    }
-
-    int ret = *(unsigned char*)str1 - *(unsigned char*)str2;
-    if(ret < 0) ret = -1;
-    else if(ret > 0) ret = 1;
-    return ret;
-}
-```
-
-### 4.3 实现strcat
-
-```c
-//字符串拼接
-char* strcat(char *strDest,const char *strSrc)
-{
-    assert(strDest && strSrc);
-
-    char *p = strDest;
-    while(*p) p++;
-
-    while(*p++ = *strSrc++);
-    return strDest;
-}
-
-```
-
-### 4.4 实现strcpy
-
-```c
-//字符串拷贝
-char* strcpy(char *strDest,const char *strSrc)
-{
-    assert(strDest && strSrc);
-
-    char *p = strDest;
-    while(*p++ = *strSrc++);
-    return strDest;
-}
-```
-
-<br>
-
-## 5.访问控制说明符
+## 3.访问控制说明符
 
 1. **类的成员的访问控制说明符**用于控制**类的使用者**对类中成员的访问权限
 2. **派生列表中的访问控制说明符**用于控制**派生类的使用者**对**派生类从基类继承的成员**的访问权限
@@ -398,7 +288,7 @@ public:
 
 <br>
 
-## 6.static函数与普通函数的区别
+## 4.static函数与普通函数的区别
 
 * static函数与普通函数作用域不同,仅在本文件。只在当前源文件中使用的函数应该说明为内部函数(static修饰的函数)，内部函数应该在当前源文件中说明和定义。对于可在当前源文件以外使用的函数，应该在一个头文件中说明，要使用这些函数的源文件要包含这个头文件*
 * static函数在内存中只有一份，普通函数在每个被调用中维持一份拷贝（这里暂时不理解）
