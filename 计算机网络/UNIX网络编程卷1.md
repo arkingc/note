@@ -1,6 +1,13 @@
-## 第一部分 基本套接字编程
 
-<!-- GFM-TOC -->
+|基本套接字编程|高级套接字编程|附录|
+|:--:|:--:|:--:|
+|[一.套接字编程简介](#ch1)<br>[二.基本TCP套接字编程](#ch2)<br>[三.基本UDP套接字编程](#ch3)<br>[四.I/O复用](#ch4)<br>[五.套接字选项](#ch5)<br>[六.名字与数值转换](#ch6)|[七.高级I/O函数](#ch7)<br>[八.Unix域协议](#ch8)<br>[九.非阻塞式I/O](#ch9)<br>[十.线程](#ch10)<br>[十一.客户/服务器程序设计范式](#ch11)|[TCP回射服务器程序](#fl1)<br>[UDP回射服务器程序](#fl2)<br>[类型与头文件映射表](#fl3)<br>[函数与头文件映射表](#fl4)|
+
+<br>
+<br>
+
+<h2 id="ch1"></h2>
+
 * [一.套接字编程简介](#一套接字编程简介)
     * [1.端口号与套接字](#1端口号与套接字)
         * [1.1 端口号](#11-端口号)
@@ -11,13 +18,22 @@
         * [2.2 字节操纵函数](#22-字节操纵函数)
         * [2.3 字节序](#23-字节序)
         * [2.4 地址转换](#24-地址转换)
+
+<h2 id="ch2"></h2>
+
 * [二.基本TCP套接字编程](#二基本tcp套接字编程) 
     * [1.连接管理](#1连接管理)
     * [2.缓冲区](#2缓冲区)
     * [3.相关函数](#3相关函数)
+
+<h2 id="ch3"></h2>
+
 * [三.基本UDP套接字编程](#三基本udp套接字编程)
     * [1.缓冲区](#1缓冲区)
     * [2.相关函数](#2相关函数)
+
+<h2 id="ch4"></h2>
+
 * [四.I/O复用](#四io复用)
     * [1.select](#1select)
         * [1.1 描述符就绪条件](#11-描述符就绪条件) 
@@ -28,48 +44,55 @@
         * [3.2 poll的优缺点](#32-poll的优缺点) 
     * [4.epoll](#4epoll) 
         * [4.1 工作模式](#41-工作模式) 
-        * [4.2 epoll的优缺点](#42-epoll的优缺点)  
+        * [4.2 epoll的优缺点](#42-epoll的优缺点)
+
+<h2 id="ch5"></h2>
+
 * [五.套接字选项](#五套接字选项)
     * [1.获取及设置套接字选项的函数](#1获取及设置套接字选项的函数)
     * [2.套接字选项分类](#2套接字选项分类)
         * [2.1 通用套接字选项](#21-通用套接字选项)
         * [2.2 TCP套接字选项](#22-tcp套接字选项)
+
+<h2 id="ch6"></h2>
+
 * [六.名字与数值转换](#六名字与数值转换)
     * [1.主机名字与IP地址之间的转换](#1主机名字与ip地址之间的转换)
     * [2.服务名字与端口号之间的转换](#2服务名字与端口号之间的转换)
     * [3.主机与服务名字转IP地址与端口号](#3主机与服务名字转ip地址与端口号)
     * [4.IP地址与端口号转主机与服务名字](#4ip地址与端口号转主机与服务名字)
     * [5.其它网络相关信息](#5其它网络相关信息)
-* [附1.回射服务器程序](#附1回射服务器程序)
-    * [1.TCP回射服务器程序](#1tcp回射服务器程序)
-    * [2.UDP回射服务器程序](#2udp回射服务器程序) 
-* [附2.头文件映射表](#附2头文件映射表)
-    * [1.类型与头文件映射表](#1类型与头文件映射表)
-    * [2.函数与头文件映射表](#2函数与头文件映射表)
-<!-- GFM-TOC -->
 
-## 第二部分 高级套接字编程
+<h2 id="ch7"></h2>
 
 * [七.高级I/O函数](#七高级io函数)
     * [1.套接字超时](#1套接字超时) 
     * [2.排队的数据量](#2排队的数据量)
     * [3.Unix I/O函数](#3unix-io函数)
     * [4.标准I/O函数](#4标准io函数)
+
+<h2 id="ch8"></h2>
+
 * [八.Unix域协议](#八unix域协议)
     * [1.Unix域套接字地址结构](#1unix域套接字地址结构)
     * [2.相关函数](#1socketpair函数)
     * [3.描述符传递](#3描述符传递)
+
+<h2 id="ch9"></h2>
+
 * [九.非阻塞式I/O](#九非阻塞式io)
     * [1.非阻塞读和写](#1非阻塞读和写)
     * [2.非阻塞connect](#2非阻塞connect)
     * [3.非阻塞accept](#3非阻塞accept)
+
+<h2 id="ch10"></h2>
+
 * [十.线程](#十线程)
     * [1.相关函数](#1相关函数)
     * [2.线程安全的函数](#2线程安全的函数)
     * [3.线程特定数据](#3线程特定数据)
     * [4.互斥锁](#4互斥锁)
     * [5.条件变量](#5条件变量)
-* [十一.客户/服务器程序设计范式](#十一客户服务器程序设计范式)
 
 <br>
 <br>
@@ -257,6 +280,7 @@ const char* inet_ntop(int family,const void *addrptr,char *strptr,size_t len);
 ```
 
 <br>
+<br>
 
 # 二.基本TCP套接字编程
 
@@ -424,6 +448,7 @@ close会将套接字描述符的引用计数减1，如果引用计数仍大于0�
 <div align="center"> <img src="../pic/unp-tcp-15.png"/> </div>
 
 <br>
+<br>
 
 # 三.基本UDP套接字编程
 
@@ -512,6 +537,7 @@ TCP要再次调用connect必须先close套接字再重新调用socket创建套�
 
 **当应用进程在一个未连接的UDP套接字上调用sendto时，源自Berkeley的内核暂时连接该套接字，发送数据报，然后断开该连接**。因此，当应用进程要给同一目的地址发送多个数据报时，使用连接套接字可以获得更高的效率
 
+<br>
 <br>
 
 # 四.I/O复用
@@ -749,6 +775,7 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
 > * 当遇到大量的"idle连接"，epoll的效率会大大高于select/poll
 
 <br>
+<br>
 
 # 五.套接字选项
 
@@ -918,6 +945,7 @@ Nagle算法的目的在于防止一个连接在任何时刻有多个小分组待
 
 Nagle算法常常与另一个TCP算法联合使用：**ACK延滞算法**，该算法使得TCP在接收到数据后不立即发送ACK，而是等待一小段时间（典型值为50ms~200ms），然后才发送ACK。TCP期待在这一小段时间内自身有数据发送回对端，被延滞的ACK就可以由这些数据捎带，从而省掉一个TCP分节（这种情形对于Rlogin和Telnet客户来说通常可行，因为他们的服务器一般都回显客户发送来的每个字符，这样对客户端字符的ACK完全可以在服务器对该字符的回显中捎带返回；然而对于服务器不在相反方向产生数据以便捎带ACK的客户来说，ACK延滞算法存在问题。这些客户可能觉察到明显的延迟）
 
+<br>
 <br>
 
 # 六.名字与数值转换
@@ -1191,427 +1219,6 @@ getaddrinfo的互补函数
 * 如果使用DNS查找主机和网络信息，只有键值查找函数才有意义。如果调用gethostent，那么它仅仅读取/etc/hosts文件并避免访问DNS
 
 <br>
-
-# 附1.回射服务器程序
-
-## 1.TCP回射服务器程序
-
-<table>
-<tr>
-    <td rowspan="10" align="center"> <b>TCP回射服务器</b> </td>
-    <td rowspan="2" align="center"> v1 </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpcli01.c">客户端</a> </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/lib/str_cli.c">str_cli函数</a>(阻塞于标准输入时无法处理来自服务器子进程的FIN分节) </td>
-</tr>
-<tr>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv01.c">服务器</a>(多进程) </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#1%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%AD%A3%E5%B8%B8%E7%BB%88%E6%AD%A2">服务器会产生僵尸子进程</a> </td>
-</tr>
-<tr>
-    <td rowspan="1" align="center"> v2 </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv02.c">服务器</a>(多进程) </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#11-%E4%BD%BF%E7%94%A8wait%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">处理服务器僵尸子进程，会中断服务器系统调用</a> </td>
-</tr>
-<tr>
-    <td rowspan="1" align="center"> v3 </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv03.c">服务器</a>(多进程) </td>
-    <td align="center"> 处理服务器被中断的系统调用，无法同时处理多个SIGCHLD信号 </td>
-</tr>
-<tr>
-    <td rowspan="2" align="center"> v4 </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpcli04.c">客户端</a> </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#12-%E4%BD%BF%E7%94%A8waitpid%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">正常终止时引起服务器5个子进程终止</a> </td>
-</tr>
-<tr>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv04.c">服务器</a>(多进程) </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#12-%E4%BD%BF%E7%94%A8waitpid%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">同时处理多个SIGCHLD信号</a> </td>
-</tr>
-<tr>
-    <td rowspan="3" align="center"> select </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/tcpcli01.c">客户端</a> </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/strcliselect01.c">str_cli函数</a>(解决v1版的问题，但无法处理重定向、无法处理I/O缓冲) </td>
-</tr>
-<tr>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/tcpcli02.c">客户端</a> </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/strcliselect02.c">str_cli函数</a>(解决前一版的问题) </td>
-</tr>
-<tr>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/select.md#%E4%BB%A3%E7%A0%81">服务器</a>(单进程) </td>
-    <td align="center"> 重写v4版服务器，使用单进程减少了多进程的开销 </td>
-</tr>
-<tr>
-    <td rowspan="1" align="center"> poll </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpservpoll01.c">服务器</a>(单进程) </td>
-    <td align="center"> 重写v4版服务器，使用单进程减少了多进程的开销 </td>
-</tr>
-
-<tr>
-    <td align="center"> <b>总结</b> </td>
-    <td colspan="3" align="center"> <b>v1-v4：正确处理服务器终止的子进程</b> </td>
-</tr>
-</table>
-
-## 2.UDP回射服务器程序
-
-<table>
-<tr>
-    <td rowspan="7" align="center"> <b>UDP回射服务器</b> </td>
-    <td rowspan="2" align="center"> v1 </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpcli01.c">客户端</a> </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/lib/dg_cli.c">dg_cli函数</a>(v1)<br>问题一：任何进程可向客户端发数据，会与服务器的回射数据报混杂<br>问题二：客户数据报或服务器应答丢失会使客户永久阻塞于recvfrom<br>
-    <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/UDP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#2%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%BF%9B%E7%A8%8B%E6%9C%AA%E8%BF%90%E8%A1%8C">问题三：服务器未启动会使客户端阻塞于recvfrom</a></td>
-</tr>
-<tr>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpserv01.c">服务器</a>(单进程) </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/lib/dg_echo.c">dg_echo函数</a> </td>
-</tr>
-<tr>
-    <td rowspan="1" align="center"> v2 </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpcli02.c">客户端</a> </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgcliaddr.c">dg_cli函数</a>(v2)<br> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/UDP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#11-%E9%AA%8C%E8%AF%81%E6%94%B6%E5%88%B0%E7%9A%84%E6%95%B0%E6%8D%AE">处理问题一，验证接收到的响应。但无法处理服务器多宿(多个IP)的情况</a> </td>
-</tr>
-<tr>
-    <td rowspan="1" align="center"> v3 </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpcli04.c">客户端</a>(connect版) </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgcliconnect.c">dg_cli函数</a>(v3)<br> </td>
-</tr>
-<tr>
-    <td rowspan="2" align="center"> v4 </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpcli06.c">客户端</a> </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgcliloop1.c">dg_cli函数</a>(v4)：写2000个1400字节的UDP数据报给服务器<br>问题：UDP缺乏流量控制，服务器接收速率慢时，缓冲区被发送端淹没<br></td>
-</tr>
-<tr>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpserv06.c">服务器</a>(单进程) </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgecholoop1.c">dg_echo函数</a> </td>
-</tr>
-<tr>
-    <td rowspan="1" align="center"> v5 </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpserv07.c">服务器</a>(单进程) </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgecholoop2.c">dg_echo函数</a>(增大接收缓冲区的大小)</td>
-</tr>
-<tr>
-    <td align="center"> <b>总结</b> </td>
-    <td colspan="3" align="center"> <b>v1：问题二、三的根本原因是UDP数据传输不可靠</b>（可使用<a href="#1套接字超时">套接字超时</a>来处理）<br><b>v4-v5：UDP缺乏流量控制，服务器接收的数据报数目不定，依赖诸多因素</b>  </td>
-</tr>
-</table>
-
-# 附2.头文件映射表
-
-## 1.类型与头文件映射表
-
-<table>
-<tr>
-    <td rowspan="6"> 整形 </td>
-    <td rowspan="6"> &lt;sys/types.h&gt; </td>
-    <td> int8_t </td>
-    <td> 带符号的8位整数 </td>
-</tr>
-<tr>
-    <td> uint8_t </td>
-    <td> 无符号的8位整数 </td>
-</tr>
-<tr>
-    <td> int16_t </td>
-    <td> 带符号的16位整数 </td>
-</tr>
-<tr>
-    <td> uint16_t </td>
-    <td> 无符号的16位整数 </td>
-</tr>
-<tr>
-    <td> int32_t </td>
-    <td> 带符号的32位整数 </td>
-</tr>
-<tr>
-    <td> uint32_t </td>
-    <td> 无符号的32位整数 </td>
-</tr>
-
-<tr>
-    <td rowspan="2"> 时间 </td>
-    <td rowspan="1"> &lt;sys/time.h&gt; </td>
-    <td> timeval </td>
-    <td> 时间结构，包含“秒”和“微妙”成员 </td>
-</tr>
-<tr>
-    <td rowspan="1"> &lt;time.h&gt; </td>
-    <td> timespec </td>
-    <td> 时间结构，包含“秒”和“纳秒”成员 </td>
-</tr>
-
-<tr>
-    <td rowspan="8"> 套接字地址结构相关 </td>
-   <td rowspan="3"> &lt;sys/socket.h&gt; </td>
-    <td> <b>sockaddr</b> </td>
-   <td> <b>通用套接字地址结构</b> </td>
-</tr>
-<tr>
-   <td> sa_family_t </td>
-   <td> 套接字地址结构的地址族 </td>
-</tr>
-<tr>
-    <td> socklen_t </td>
-    <td> 套接字地址结构的长度，一般为uint32_t  </td>
-</tr>
-<tr>
-    <td rowspan="5"> &lt;netinet/in.h&gt; </td>
-   <td> <b>sockaddr_in</b> </td>
-    <td> <b>IPv4套接字地址结构</b> </td> 
-</tr>
-<tr>
-    <td> <b>sockaddr_in6</b> </td>
-    <td> <b>IPv6套接字地址结构</b> </td>   
-</tr>
-<tr>
-    <td> <b>sockaddr_storage</b> </td>
-    <td> <b>新版通用套接字地址结构</b> </td>
-</tr>
-<tr>
-    <td> in_addr_t </td>
-   <td> IPv4地址，一般为uint32_t </td>
-</tr>
-<tr>
-    <td> in_port_t </td>
-    <td> TCP或UDP端口，一般为uint16_t </td>
-</tr>
-</table>
-
-## 2.函数与头文件映射表
-
-<table>
-<tr>
-    <td rowspan="6"> <b>字节操纵</b> </td>
-    <td rowspan="3"> &lt;strings.h&gt; </td>
-    <td> <b>bzero</b> </td>
-</tr>
-<tr>
-    <td> <b>bcopy</b> </td>
-</tr>
-<tr>
-    <td> <b>bcmp</b> </td>
-</tr>
-<tr>
-    <td rowspan="3"> &lt;string.h&gt; </td>
-    <td> <b>memset</b> </td>
-</tr>
-<tr>
-    <td> <b>memcpy</b></td>
-</tr>
-<tr>
-    <td> <b>memcmp</b> </td>
-</tr>
-
-<tr>
-    <td rowspan="4"> <b>字节序转换</b> </td>
-    <td rowspan="4"> &lt;netinet/in.h&gt; </td>
-    <td> <b>htons</b> </td>
-</tr>
-<tr>
-    <td> <b>htonl</b> </td>
-</tr>
-<tr>
-    <td> <b>ntohs</b> </td>
-</tr>
-<tr>
-    <td> <b>ntohl</b> </td>
-</tr>
-
-<tr>
-    <td rowspan="5"> <b>地址转换</b> </td>
-    <td rowspan="5"> &lt;arpa/inet.h&gt; </td>
-    <td> <b>inet_aton</b> </td>
-</tr>
-<tr>
-    <td> <b>inet_addr</b> </td>
-</tr>
-<tr>
-    <td> <b>inet_ntoa</b> </td>
-</tr>
-<tr>
-    <td> <b>inet_pton</b> </td>
-</tr>
-<tr>
-    <td> <b>inet_ntop</b> </td>
-</tr>
-
-<tr>
-    <td rowspan="10"> <b>基本套接字编程</b> </td>
-    <td rowspan="9"> &lt;sys/socket.h&gt; </td>
-    <td> <a href="#1socket函数">socket</a> </td>
-</tr>
-<tr>
-    <td> <a href="#2connect函数">connect</a> </td>
-</tr>
-<tr>
-    <td> <a href="#3bind函数">bind</a> </td>
-</tr>
-<tr>
-    <td> <a href="#4listen函数">listen</a> </td>
-</tr>
-<tr>
-    <td> <a href="#5accept函数">accept</a> </td>
-</tr>
-<tr>
-    <td> <a href="#1recvfrom与sendto函数">recvfrom</a> </td>
-</tr>
-<tr>
-    <td> <a href="#1recvfrom与sendto函数">sendto</a> </td>
-</tr>
-<tr>
-    <td> <a href="#8getsockname和getpeername函数">getsockname</a> </td>
-    <td> <b>根据套接字获取本地协议地址</b> </td>
-</tr>
-<tr>
-    <td> <a href="#8getsockname和getpeername函数">getpeername</a> </td>
-    <td> <b>根据套接字获取外地协议地址</b> </td>
-</tr>
-<tr>
-    <td rowspan="1"> &lt;unistd.h&gt; </td>
-    <td> <a href="#6close函数">close</a> </td>
-</tr>
-
-<tr>
-    <td rowspan="6"> <b>I/O复用</b> </td>
-    <td rowspan="2"> &lt;sys/select.h&gt; </td>
-    <td> <b>select</b> </td>
-</tr>
-<tr>
-    <td> <b>pselect</b> </td>
-</tr>
-<tr>
-    <td rowspan="1"> &lt;sys/poll.h&gt; </td>
-    <td> <b>poll</b> </td>
-</tr>
-<tr>
-    <td rowspan="3"> &lt;sys/epoll.h&gt; </td>
-    <td> <b>epoll_create</b> </td>
-</tr>
-<tr>
-    <td> <b>epoll_ctl</b> </td>
-</tr>
-<tr>
-    <td> <b>epoll_wait</b> </td>
-</tr>
-
-<tr>
-    <td rowspan="6"> <b>名字与数值转换</b> </td>
-    <td rowspan="6"> &lt;netdb.h&gt; </td>
-    <td> <a href="#1gethostbyname函数">gethostbyname</a> </td>
-    <td> <b>主机名字转IP地址(只支持IPv4)</b> </td>
-</tr>
-<tr>
-    <td> <a href="#2gethostbyaddr函数">gethostbyaddr</a> </td>
-    <td> <b>IP地址转主机名字(只支持IPv4)</b> </td>
-</tr>
-<tr>
-    <td> <a href="#1getservbyname函数">getservbyname</a> </td>
-    <td> <b>服务名字转端口号</b> </td>
-</tr>
-<tr>
-    <td> <a href="#2getservbyport函数">getservbyport</a> </td>
-    <td> <b>端口号转服务名字</b> </td>
-</tr>
-<tr>
-    <td> <a href="#1getaddrinfo函数">getaddrinfo</a> </td>
-    <td> <b>主机与服务名字转IP地址与端口号</b> </td>
-</tr>
-<tr>
-    <td> <a href="#getnameinfo函数">getnameinfo</a> </td>
-    <td> <b>IP地址与端口号转主机与服务名字</b> </td>
-</tr>
-
-<tr>
-    <td rowspan="6"> <b>高级I/O函数</b> </td>
-    <td rowspan="4"> &lt;sys/socket.h&gt; </td>
-    <td> <a href="#1recv和send函数">recv</a> </td>
-</tr>
-<tr>
-    <td> <a href="#1recv和send函数">send</a> </td>
-</tr>
-<tr>
-    <td> <a href="#3recvmsg和sendmsg函数">recvmsg</a> </td>
-</tr>
-<tr>
-    <td> <a href="#3recvmsg和sendmsg函数">sendmsg</a> </td>
-</tr>
-<tr>
-    <td rowspan="2"> &lt;sys/uio.h&gt; </td>
-    <td> <a href="#2readv和writev函数">readv</a> </td>
-</tr>
-<tr>
-    <td> <a href="#2readv和writev函数">writev</a> </td>
-</tr>
-
-<tr>
-    <td rowspan="1"> <b>Unix域套接字</b> </td>
-    <td rowspan="1"> &lt;sys/socket.h&gt; </td>
-    <td> <a href="#1socketpair函数">socketpair</a> </td>
-</tr>
-
-<tr>
-    <td rowspan="15"> <b>线程</b> </td>
-    <td rowspan="15"> &lt;pthread.h&gt; </td>
-    <td> <a href="#1pthread_create函数">pthread_create</a> </td>
-    <td> <b>线程的基本操作</b>：创建线程 </td>
-</tr>
-<tr>
-    <td> <a href="#2pthread_join函数">pthread_join</a> </td>
-    <td> <b>线程的基本操作</b>：等待指定的线程终止 </td>
-</tr>
-<tr>
-    <td> <a href="#3pthread_self函数">pthread_self</a> </td>
-    <td> <b>线程的基本操作</b>：线程获取自身ID </td>
-</tr>
-<tr>
-    <td> <a href="#4pthread_detach函数">pthread_detach</a> </td>
-    <td> <b>线程的基本操作</b>：将线程转变为脱离状态 </td>
-</tr>
-<tr>
-    <td> <a href="#5pthread_exit函数">pthread_exit</a> </td>
-    <td> <b>线程的基本操作</b>：线程显示终止 </td>
-</tr>
-<tr>
-    <td> <a href="#1pthread_once和pthread_key_create函数">pthread_once</a> </td>
-    <td> <b>用于线程特定数据</b> </td>
-</tr>
-<tr>
-    <td> <a href="#1pthread_once和pthread_key_create函数">pthread_key_create</a> </td>
-    <td> <b>用于线程特定数据</b> </td>
-</tr>
-<tr>
-    <td> <a href="#2pthread_getspecific和pthread_setspecific函数">pthread_getspecific</a> </td>
-    <td> <b>用于线程特定数据</b> </td>
-</tr>
-<tr>
-    <td> <a href="#2pthread_getspecific和pthread_setspecific函数">pthread_setspecific</a> </td>
-    <td> <b>用于线程特定数据</b> </td>
-</tr>
-<tr>
-    <td> <a href="#1pthread_mutex_lock和pthread_mutex_unlock函数">pthread_mutex_lock</a> </td>
-    <td> <b>互斥锁</b> </td>
-</tr>
-<tr>
-    <td> <a href="#1pthread_mutex_lock和pthread_mutex_unlock函数">pthread_mutex_unlock</a> </td>
-    <td> <b>互斥锁</b> </td>
-</tr>
-<tr>
-    <td> <a href="#1pthread_cond_wait和pthread_cond_signal函数">pthread_cond_wait</a> </td>
-    <td> <b>条件变量</b> </td>
-</tr>
-<tr>
-    <td> <a href="#1pthread_cond_wait和pthread_cond_signal函数">pthread_cond_signal</a> </td>
-    <td> <b>条件变量</b> </td>
-</tr>
-<tr>
-    <td> <a href="#2pthread_cond_broadcast和pthread_cond_timedwait函数">pthread_cond_broadcast</a> </td>
-    <td> <b>条件变量</b> </td>
-</tr>
-<tr>
-    <td> <a href="#2pthread_cond_broadcast和pthread_cond_timedwait函数">pthread_cond_timedwait</a> </td>
-    <td> <b>条件变量</b> </td>
-</tr>
-</table>
-
 <br>
 
 # 七.高级I/O函数
@@ -1797,6 +1404,7 @@ cmsg_level和cmsg_type的取值和说明如下表：
 * 所有**其他I/O流**都是**完全缓冲**，除非他们**指代终端设备**（这种情况下**行缓冲**）
 
 <br>
+<br>
 
 # 八.Unix域协议
 
@@ -1887,6 +1495,7 @@ socketpair函数创建2个随后连接起来的套接字：
     - [write_fd函数](https://github.com/arkingc/unpv13e/blob/master/lib/write_fd.c#L5)
 
 <br>
+<br>
 
 # 九.非阻塞式I/O
 
@@ -1970,6 +1579,7 @@ socketpair函数创建2个随后连接起来的套接字：
 * 当使用select获悉某个监听套接字上何时有已完成连接准备好被accept时，总是把这个监听套接字设置为非阻塞
 * 在后续的accept调用中忽略以下错误：EWOULDBLOCK(源自Berkeley的实现，客户终止连接时)、ECONNABORTED(POSIX实现，客户终止连接时)、EPROTO(SVR4实现，客户终止连接时)和EINTR(如果有信号被捕获)
 
+<br>
 <br>
 
 # 十.线程
@@ -2342,6 +1952,8 @@ pthread_once函数：
 
 <br>
 
+<h2 id="ch11"></h2>
+
 # 十一.客户/服务器程序设计范式
 
 * [客户端程序](https://github.com/arkingc/unpv13e/blob/master/server/client.c)
@@ -2474,3 +2086,441 @@ pthread_once函数：
     - 相比于多进程传递描述符的版本，主线程不必将描述符传递到其它线程，只需知道描述符的值（描述符传递实际传递的并非值，而是套接字的引用，将返回一个不同于原值的描述符，因而套接字的引用计数也被递增）
 * 缺点
     - 比每个线程各自accept的版本慢，原因在于该版本同时需要互斥锁和条件变量，前者只需互斥锁
+
+<br>
+<br>
+
+# 附1.回射服务器程序
+
+<h2 id="fl1"></h2>
+
+## 1.TCP回射服务器程序
+
+<table>
+<tr>
+    <td rowspan="10" align="center"> <b>TCP回射服务器</b> </td>
+    <td rowspan="2" align="center"> v1 </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpcli01.c">客户端</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/lib/str_cli.c">str_cli函数</a>(阻塞于标准输入时无法处理来自服务器子进程的FIN分节) </td>
+</tr>
+<tr>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv01.c">服务器</a>(多进程) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#1%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%AD%A3%E5%B8%B8%E7%BB%88%E6%AD%A2">服务器会产生僵尸子进程</a> </td>
+</tr>
+<tr>
+    <td rowspan="1" align="center"> v2 </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv02.c">服务器</a>(多进程) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#11-%E4%BD%BF%E7%94%A8wait%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">处理服务器僵尸子进程，会中断服务器系统调用</a> </td>
+</tr>
+<tr>
+    <td rowspan="1" align="center"> v3 </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv03.c">服务器</a>(多进程) </td>
+    <td align="center"> 处理服务器被中断的系统调用，无法同时处理多个SIGCHLD信号 </td>
+</tr>
+<tr>
+    <td rowspan="2" align="center"> v4 </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpcli04.c">客户端</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#12-%E4%BD%BF%E7%94%A8waitpid%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">正常终止时引起服务器5个子进程终止</a> </td>
+</tr>
+<tr>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv04.c">服务器</a>(多进程) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#12-%E4%BD%BF%E7%94%A8waitpid%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">同时处理多个SIGCHLD信号</a> </td>
+</tr>
+<tr>
+    <td rowspan="3" align="center"> select </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/tcpcli01.c">客户端</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/strcliselect01.c">str_cli函数</a>(解决v1版的问题，但无法处理重定向、无法处理I/O缓冲) </td>
+</tr>
+<tr>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/tcpcli02.c">客户端</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/strcliselect02.c">str_cli函数</a>(解决前一版的问题) </td>
+</tr>
+<tr>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/select.md#%E4%BB%A3%E7%A0%81">服务器</a>(单进程) </td>
+    <td align="center"> 重写v4版服务器，使用单进程减少了多进程的开销 </td>
+</tr>
+<tr>
+    <td rowspan="1" align="center"> poll </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpservpoll01.c">服务器</a>(单进程) </td>
+    <td align="center"> 重写v4版服务器，使用单进程减少了多进程的开销 </td>
+</tr>
+
+<tr>
+    <td align="center"> <b>总结</b> </td>
+    <td colspan="3" align="center"> <b>v1-v4：正确处理服务器终止的子进程</b> </td>
+</tr>
+</table>
+
+<br>
+
+<h2 id="fl2"></h2>
+
+## 2.UDP回射服务器程序
+
+<table>
+<tr>
+    <td rowspan="7" align="center"> <b>UDP回射服务器</b> </td>
+    <td rowspan="2" align="center"> v1 </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpcli01.c">客户端</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/lib/dg_cli.c">dg_cli函数</a>(v1)<br>问题一：任何进程可向客户端发数据，会与服务器的回射数据报混杂<br>问题二：客户数据报或服务器应答丢失会使客户永久阻塞于recvfrom<br>
+    <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/UDP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#2%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%BF%9B%E7%A8%8B%E6%9C%AA%E8%BF%90%E8%A1%8C">问题三：服务器未启动会使客户端阻塞于recvfrom</a></td>
+</tr>
+<tr>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpserv01.c">服务器</a>(单进程) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/lib/dg_echo.c">dg_echo函数</a> </td>
+</tr>
+<tr>
+    <td rowspan="1" align="center"> v2 </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpcli02.c">客户端</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgcliaddr.c">dg_cli函数</a>(v2)<br> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/UDP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#11-%E9%AA%8C%E8%AF%81%E6%94%B6%E5%88%B0%E7%9A%84%E6%95%B0%E6%8D%AE">处理问题一，验证接收到的响应。但无法处理服务器多宿(多个IP)的情况</a> </td>
+</tr>
+<tr>
+    <td rowspan="1" align="center"> v3 </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpcli04.c">客户端</a>(connect版) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgcliconnect.c">dg_cli函数</a>(v3)<br> </td>
+</tr>
+<tr>
+    <td rowspan="2" align="center"> v4 </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpcli06.c">客户端</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgcliloop1.c">dg_cli函数</a>(v4)：写2000个1400字节的UDP数据报给服务器<br>问题：UDP缺乏流量控制，服务器接收速率慢时，缓冲区被发送端淹没<br></td>
+</tr>
+<tr>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpserv06.c">服务器</a>(单进程) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgecholoop1.c">dg_echo函数</a> </td>
+</tr>
+<tr>
+    <td rowspan="1" align="center"> v5 </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpserv07.c">服务器</a>(单进程) </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgecholoop2.c">dg_echo函数</a>(增大接收缓冲区的大小)</td>
+</tr>
+<tr>
+    <td align="center"> <b>总结</b> </td>
+    <td colspan="3" align="center"> <b>v1：问题二、三的根本原因是UDP数据传输不可靠</b>（可使用<a href="#1套接字超时">套接字超时</a>来处理）<br><b>v4-v5：UDP缺乏流量控制，服务器接收的数据报数目不定，依赖诸多因素</b>  </td>
+</tr>
+</table>
+
+<br>
+<br>
+
+# 附2.头文件映射表
+
+<h2 id="fl3"></h2>
+
+## 1.类型与头文件映射表
+
+<table>
+<tr>
+    <td rowspan="6"> 整形 </td>
+    <td rowspan="6"> &lt;sys/types.h&gt; </td>
+    <td> int8_t </td>
+    <td> 带符号的8位整数 </td>
+</tr>
+<tr>
+    <td> uint8_t </td>
+    <td> 无符号的8位整数 </td>
+</tr>
+<tr>
+    <td> int16_t </td>
+    <td> 带符号的16位整数 </td>
+</tr>
+<tr>
+    <td> uint16_t </td>
+    <td> 无符号的16位整数 </td>
+</tr>
+<tr>
+    <td> int32_t </td>
+    <td> 带符号的32位整数 </td>
+</tr>
+<tr>
+    <td> uint32_t </td>
+    <td> 无符号的32位整数 </td>
+</tr>
+
+<tr>
+    <td rowspan="2"> 时间 </td>
+    <td rowspan="1"> &lt;sys/time.h&gt; </td>
+    <td> timeval </td>
+    <td> 时间结构，包含“秒”和“微妙”成员 </td>
+</tr>
+<tr>
+    <td rowspan="1"> &lt;time.h&gt; </td>
+    <td> timespec </td>
+    <td> 时间结构，包含“秒”和“纳秒”成员 </td>
+</tr>
+
+<tr>
+    <td rowspan="8"> 套接字地址结构相关 </td>
+   <td rowspan="3"> &lt;sys/socket.h&gt; </td>
+    <td> <b>sockaddr</b> </td>
+   <td> <b>通用套接字地址结构</b> </td>
+</tr>
+<tr>
+   <td> sa_family_t </td>
+   <td> 套接字地址结构的地址族 </td>
+</tr>
+<tr>
+    <td> socklen_t </td>
+    <td> 套接字地址结构的长度，一般为uint32_t  </td>
+</tr>
+<tr>
+    <td rowspan="5"> &lt;netinet/in.h&gt; </td>
+   <td> <b>sockaddr_in</b> </td>
+    <td> <b>IPv4套接字地址结构</b> </td> 
+</tr>
+<tr>
+    <td> <b>sockaddr_in6</b> </td>
+    <td> <b>IPv6套接字地址结构</b> </td>   
+</tr>
+<tr>
+    <td> <b>sockaddr_storage</b> </td>
+    <td> <b>新版通用套接字地址结构</b> </td>
+</tr>
+<tr>
+    <td> in_addr_t </td>
+   <td> IPv4地址，一般为uint32_t </td>
+</tr>
+<tr>
+    <td> in_port_t </td>
+    <td> TCP或UDP端口，一般为uint16_t </td>
+</tr>
+</table>
+
+<br>
+
+<h2 id="fl4"></h2>
+
+## 2.函数与头文件映射表
+
+<table>
+<tr>
+    <td rowspan="6"> <b>字节操纵</b> </td>
+    <td rowspan="3"> &lt;strings.h&gt; </td>
+    <td> <b>bzero</b> </td>
+</tr>
+<tr>
+    <td> <b>bcopy</b> </td>
+</tr>
+<tr>
+    <td> <b>bcmp</b> </td>
+</tr>
+<tr>
+    <td rowspan="3"> &lt;string.h&gt; </td>
+    <td> <b>memset</b> </td>
+</tr>
+<tr>
+    <td> <b>memcpy</b></td>
+</tr>
+<tr>
+    <td> <b>memcmp</b> </td>
+</tr>
+
+<tr>
+    <td rowspan="4"> <b>字节序转换</b> </td>
+    <td rowspan="4"> &lt;netinet/in.h&gt; </td>
+    <td> <b>htons</b> </td>
+</tr>
+<tr>
+    <td> <b>htonl</b> </td>
+</tr>
+<tr>
+    <td> <b>ntohs</b> </td>
+</tr>
+<tr>
+    <td> <b>ntohl</b> </td>
+</tr>
+
+<tr>
+    <td rowspan="5"> <b>地址转换</b> </td>
+    <td rowspan="5"> &lt;arpa/inet.h&gt; </td>
+    <td> <b>inet_aton</b> </td>
+</tr>
+<tr>
+    <td> <b>inet_addr</b> </td>
+</tr>
+<tr>
+    <td> <b>inet_ntoa</b> </td>
+</tr>
+<tr>
+    <td> <b>inet_pton</b> </td>
+</tr>
+<tr>
+    <td> <b>inet_ntop</b> </td>
+</tr>
+
+<tr>
+    <td rowspan="10"> <b>基本套接字编程</b> </td>
+    <td rowspan="9"> &lt;sys/socket.h&gt; </td>
+    <td> <a href="#1socket函数">socket</a> </td>
+</tr>
+<tr>
+    <td> <a href="#2connect函数">connect</a> </td>
+</tr>
+<tr>
+    <td> <a href="#3bind函数">bind</a> </td>
+</tr>
+<tr>
+    <td> <a href="#4listen函数">listen</a> </td>
+</tr>
+<tr>
+    <td> <a href="#5accept函数">accept</a> </td>
+</tr>
+<tr>
+    <td> <a href="#1recvfrom与sendto函数">recvfrom</a> </td>
+</tr>
+<tr>
+    <td> <a href="#1recvfrom与sendto函数">sendto</a> </td>
+</tr>
+<tr>
+    <td> <a href="#8getsockname和getpeername函数">getsockname</a> </td>
+    <td> <b>根据套接字获取本地协议地址</b> </td>
+</tr>
+<tr>
+    <td> <a href="#8getsockname和getpeername函数">getpeername</a> </td>
+    <td> <b>根据套接字获取外地协议地址</b> </td>
+</tr>
+<tr>
+    <td rowspan="1"> &lt;unistd.h&gt; </td>
+    <td> <a href="#6close函数">close</a> </td>
+</tr>
+
+<tr>
+    <td rowspan="6"> <b>I/O复用</b> </td>
+    <td rowspan="2"> &lt;sys/select.h&gt; </td>
+    <td> <b>select</b> </td>
+</tr>
+<tr>
+    <td> <b>pselect</b> </td>
+</tr>
+<tr>
+    <td rowspan="1"> &lt;sys/poll.h&gt; </td>
+    <td> <b>poll</b> </td>
+</tr>
+<tr>
+    <td rowspan="3"> &lt;sys/epoll.h&gt; </td>
+    <td> <b>epoll_create</b> </td>
+</tr>
+<tr>
+    <td> <b>epoll_ctl</b> </td>
+</tr>
+<tr>
+    <td> <b>epoll_wait</b> </td>
+</tr>
+
+<tr>
+    <td rowspan="6"> <b>名字与数值转换</b> </td>
+    <td rowspan="6"> &lt;netdb.h&gt; </td>
+    <td> <a href="#1gethostbyname函数">gethostbyname</a> </td>
+    <td> <b>主机名字转IP地址(只支持IPv4)</b> </td>
+</tr>
+<tr>
+    <td> <a href="#2gethostbyaddr函数">gethostbyaddr</a> </td>
+    <td> <b>IP地址转主机名字(只支持IPv4)</b> </td>
+</tr>
+<tr>
+    <td> <a href="#1getservbyname函数">getservbyname</a> </td>
+    <td> <b>服务名字转端口号</b> </td>
+</tr>
+<tr>
+    <td> <a href="#2getservbyport函数">getservbyport</a> </td>
+    <td> <b>端口号转服务名字</b> </td>
+</tr>
+<tr>
+    <td> <a href="#1getaddrinfo函数">getaddrinfo</a> </td>
+    <td> <b>主机与服务名字转IP地址与端口号</b> </td>
+</tr>
+<tr>
+    <td> <a href="#getnameinfo函数">getnameinfo</a> </td>
+    <td> <b>IP地址与端口号转主机与服务名字</b> </td>
+</tr>
+
+<tr>
+    <td rowspan="6"> <b>高级I/O函数</b> </td>
+    <td rowspan="4"> &lt;sys/socket.h&gt; </td>
+    <td> <a href="#1recv和send函数">recv</a> </td>
+</tr>
+<tr>
+    <td> <a href="#1recv和send函数">send</a> </td>
+</tr>
+<tr>
+    <td> <a href="#3recvmsg和sendmsg函数">recvmsg</a> </td>
+</tr>
+<tr>
+    <td> <a href="#3recvmsg和sendmsg函数">sendmsg</a> </td>
+</tr>
+<tr>
+    <td rowspan="2"> &lt;sys/uio.h&gt; </td>
+    <td> <a href="#2readv和writev函数">readv</a> </td>
+</tr>
+<tr>
+    <td> <a href="#2readv和writev函数">writev</a> </td>
+</tr>
+
+<tr>
+    <td rowspan="1"> <b>Unix域套接字</b> </td>
+    <td rowspan="1"> &lt;sys/socket.h&gt; </td>
+    <td> <a href="#1socketpair函数">socketpair</a> </td>
+</tr>
+
+<tr>
+    <td rowspan="15"> <b>线程</b> </td>
+    <td rowspan="15"> &lt;pthread.h&gt; </td>
+    <td> <a href="#1pthread_create函数">pthread_create</a> </td>
+    <td> <b>线程的基本操作</b>：创建线程 </td>
+</tr>
+<tr>
+    <td> <a href="#2pthread_join函数">pthread_join</a> </td>
+    <td> <b>线程的基本操作</b>：等待指定的线程终止 </td>
+</tr>
+<tr>
+    <td> <a href="#3pthread_self函数">pthread_self</a> </td>
+    <td> <b>线程的基本操作</b>：线程获取自身ID </td>
+</tr>
+<tr>
+    <td> <a href="#4pthread_detach函数">pthread_detach</a> </td>
+    <td> <b>线程的基本操作</b>：将线程转变为脱离状态 </td>
+</tr>
+<tr>
+    <td> <a href="#5pthread_exit函数">pthread_exit</a> </td>
+    <td> <b>线程的基本操作</b>：线程显示终止 </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_once和pthread_key_create函数">pthread_once</a> </td>
+    <td> <b>用于线程特定数据</b> </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_once和pthread_key_create函数">pthread_key_create</a> </td>
+    <td> <b>用于线程特定数据</b> </td>
+</tr>
+<tr>
+    <td> <a href="#2pthread_getspecific和pthread_setspecific函数">pthread_getspecific</a> </td>
+    <td> <b>用于线程特定数据</b> </td>
+</tr>
+<tr>
+    <td> <a href="#2pthread_getspecific和pthread_setspecific函数">pthread_setspecific</a> </td>
+    <td> <b>用于线程特定数据</b> </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_mutex_lock和pthread_mutex_unlock函数">pthread_mutex_lock</a> </td>
+    <td> <b>互斥锁</b> </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_mutex_lock和pthread_mutex_unlock函数">pthread_mutex_unlock</a> </td>
+    <td> <b>互斥锁</b> </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_cond_wait和pthread_cond_signal函数">pthread_cond_wait</a> </td>
+    <td> <b>条件变量</b> </td>
+</tr>
+<tr>
+    <td> <a href="#1pthread_cond_wait和pthread_cond_signal函数">pthread_cond_signal</a> </td>
+    <td> <b>条件变量</b> </td>
+</tr>
+<tr>
+    <td> <a href="#2pthread_cond_broadcast和pthread_cond_timedwait函数">pthread_cond_broadcast</a> </td>
+    <td> <b>条件变量</b> </td>
+</tr>
+<tr>
+    <td> <a href="#2pthread_cond_broadcast和pthread_cond_timedwait函数">pthread_cond_timedwait</a> </td>
+    <td> <b>条件变量</b> </td>
+</tr>
+</table>
