@@ -1914,6 +1914,8 @@ gcc hello1.c
 
 ## 5.进程堆空间的管理
 
+> 堆上空间分配和释放核心都是通过调整**program break**来实现的，malloc和free维护空闲空间链表，以减少调整**program break**的系统调用的调用次数
+
 ### 1）调整program break来分配与释放
 
 可以通过**brk**函数和**sbrk**函数改变进程的**program break**位置，从而分配或释放内存。**program break**与[进程的内存布局结构](#3c程序的存储空间布局)中&end位置相同
