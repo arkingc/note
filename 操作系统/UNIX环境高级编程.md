@@ -1,11 +1,6 @@
 |**I/O**|**文件和目录**|**进程**|**线程**|**进程间通信**|
 |:--:|:--:|:--:|:--:|:--:|
-|[一.文件I/O](#ch1)<br>[三.标准I/O库](#ch3)<br>[八.高级I/O](#ch8)|[二.文件和目录](#ch2)|[四.进程环境](#ch4)<br>[五.进程控制](#ch5)|[六.线程](#ch6)<br>[七.线程控制](#ch7)|[九.进程间通信](#ch9)|
-
-<br>
-<br>
-
-<div align="center"> <img src="../pic/apue-basic-1.png"/> </div>
+|[一.文件I/O](#ch1)<br>[三.标准I/O库](#ch3)<br>[八.高级I/O](#ch8)|[二.文件和目录](#ch2)|[四.进程环境](#ch4)<br>[五.进程控制](#ch5)|[六.线程](#ch6)<br>[七.线程控制](#ch7)|[九.进程间通信](#ch9)<br>[十.信号](../interview/temp/信号.md)|
 
 <br>
 <br>
@@ -1569,7 +1564,7 @@ Single UNIX Specification为处理临时文件定义了另外两个函数：`mkd
     - `mkdtemp`函数创建的目录具有权限位集： `S_IRUSR|S_IWUSR|S_IXUSR`。调用进程的文件模式创建屏蔽字可以进一步限制这些权限
     - `mkstemp`函数返回的文件描述符以读写方式打开。它创建的文件用访问权限位：`S_IRUSR|S_IWUSR`
 * `mkstemp` 创建一个文件，该文件有一个唯一的名字
-    - 与`tmpfile`不同，`mkstemp`创建的临时文件并不会自动删除。如果希望从文件系统命名空间中删除该文件，必须自己对它接触链接
+    - 与`tmpfile`不同，`mkstemp`创建的临时文件并不会自动删除。如果希望从文件系统命名空间中删除该文件，必须自己对它解除链接
 
 名字是通过template字符串进行选择的。这个字符串是后6位设置为XXXXXX的路径名。函数将这些占位符替换成不同的字符来构建一个唯一的路径名。如果成功的话，这两个函数将修改template字符串反映临时文件名
 
@@ -1918,16 +1913,16 @@ gcc hello1.c
 
 ### 1）调整program break来分配与释放
 
-可以通过**brk**函数和**sbrk**函数改变进程的**program break**位置，从而分配或释放内存。**program break**与[进程的内存布局结构](#3c程序的存储空间布局)中&end位置相同
+可以通过**brk**函数和**sbrk**函数改变进程的**program break**位置，从而分配或释放内存。**program break**与[进程的内存布局结构](#3c程序的存储空间布局)中`&end`位置相同
 
 **program break的位置抬升后，程序可以访问新分配区域内的任何内存地址，而此时物理内存页尚未分配。内核会在进程首次试图访问这些虚拟内存地址时自动分配新的物理内存页**
 
 <div align="center"> <img src="../pic/apue-processenv-14.png"/> </div>
 
-* **brk**函数将**program break**设置为参数指定的位置
+* **brk**：将**program break**设置为参数指定的位置
     - 虚拟内存以页为单位进行分配，所以`end_data_segment`实际会四舍五入到下一个内存页的边界处
     - 当试图将`end_data_segment`设置为一个**低于**其初始值（&end）的位置时，可能导致无法预知的行为
-* **sbrk**将**program break**在原有地址上增加参数`increment`大小（`intptr_t`为整形类型），该函数成功时返回前一**program break**的地址
+* **sbrk**：将**program break**在原有地址上增加参数`increment`大小（`intptr_t`为整形类型），该函数成功时返回前一**program break**的地址
 
 > **sbrk(0)**将返回**program break**的当前位置，可以用于跟踪堆的大小，或是监视内存分配函数的行为
 
@@ -1943,7 +1938,7 @@ malloc相比brk和sbrk，具有以下优点：
 <div align="center"> <img src="../pic/apue-processenv-6.png"/> </div>
 
 * `malloc` ：分配指定字节数的存储区。存储区中的初始值不确定
-    - malloc返回内存所采用的字节对齐方式，总是适宜于搞笑访问任何类型的C语言数据结构。在大多数架构上，意味着是malloc是基于8字节或16字节边界来分配内存的
+    - malloc返回内存所采用的字节对齐方式，总是适宜于高效访问任何类型的C语言数据结构。在大多数架构上，意味着malloc是基于8字节或16字节边界来分配内存的
     - malloc(0)要么返回NULL，要么是一块可（并且应该）被free释放的内存
 * `calloc` ：为指定数量指定长度的对象分配存储空间。空间中的每一位都初始化为0
 * `realloc` ：增加或减少以前分配区的长度
