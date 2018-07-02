@@ -5,6 +5,11 @@
 <br>
 <br>
 
+<div align="center"> <img src="../pic/apue-basic-1.png"/> </div>
+
+<br>
+<br>
+
 <h2 id="ch1"></h2>
 
 * [一.文件I/O](#一文件io)

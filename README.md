@@ -1,10 +1,7 @@
-
 ## 操作系统
 
 * [《操作系统——精髓与设计原理》](操作系统/操作系统.md)
 * [《UNIX环境高级编程》](操作系统/UNIX环境高级编程.md)
-
-<div align="center"> <img src="pic/apue-basic-1.png"/> </div>
 
 ## 计算机网络
 
