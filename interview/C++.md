@@ -53,6 +53,8 @@
     * 17）静态类型与动态类型（引用是否可实现动态绑定）
     * 18）浅拷贝与深拷贝（安全性、行为像值的类与行为像指针的类）
     * 19）如何定义类内常量？（enum而不是static const [《Effective C++:条款2》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE02%E5%B0%BD%E9%87%8F%E4%BB%A5constenuminline%E6%9B%BF%E6%8D%A2define)）
+    * 20）继承与组合(复合)之间如何选择？（[《Effective C++:条款38》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE38%E9%80%9A%E8%BF%87%E5%A4%8D%E5%90%88%E5%A1%91%E6%A8%A1%E5%87%BAhas-a%E6%88%96%E6%A0%B9%E6%8D%AE%E6%9F%90%E7%89%A9%E5%AE%9E%E7%8E%B0%E5%87%BA)）
+    * 21）private继承？（[《Effective C++:条款39》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE39%E6%98%8E%E6%99%BA%E8%80%8C%E5%AE%A1%E6%85%8E%E5%9C%B0%E4%BD%BF%E7%94%A8private%E7%BB%A7%E6%89%BF)）
 * **四.内存管理**
     * 1）[C++内存分区](../C++/内存分区.md)
     * 2）[new](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#1new)和malloc的区别？（函数，运算符、类型安全、计算空间、步骤）
