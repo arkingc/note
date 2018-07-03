@@ -1688,10 +1688,10 @@ private:
     eat(p);                                    // 没问题，p是人，会吃
     eat(s);                                    // 错误！难道学生不是人？！
     ```
-    如果使用public继承，编译器在必要的时候可以将Student隐式转换成Person，但是private继承时不会，所以eat(s)调用失败。从这个例子中表达了，private继承并不表现出is-a的关系。实际上**private表现出的是"is-implemented-in-terms-with"的关系**
+    如果使用public继承，编译器在必要的时候可以将Student隐式转换成Person，但是private继承时不会，所以eat(s)调用失败。从这个例子中表达了，private继承并不表现出is-a的关系。实际上**private表现出的是"is-implemented-in-terms-of"的关系**
 * **父类成员（即使是public、protected）都变成了private**
 
-[条款38](#条款38通过复合塑模出has-a或根据某物实现出)提到，复合也是可以表现出"is-implemented-in-terms-with"的关系，那么两者有什么区别？
+[条款38](#条款38通过复合塑模出has-a或根据某物实现出)提到，复合也是可以表现出"is-implemented-in-terms-of"的关系，那么两者有什么区别？
 
 ### 1）private继承
 
@@ -1711,7 +1711,7 @@ private:
 
 在Widget中重写虚函数onTick，使得Widget可以周期性地执行某个任务
 
-通过private继承来表现"is-implemented-in-terms-with"关系实现非常简单，而且下列情况也只能使用这种方式：
+通过private继承来表现"is-implemented-in-terms-of"关系实现非常简单，而且下列情况也只能使用这种方式：
 
 * 当Widget需要访问Timer的protected成员时。因为对象组合后只能访问public成员，而private继承后可以访问protected成员。
 * 当Widget需要重写Timer的虚函数时。比如上面的例子中，需要重写onTick。单纯的复合是做不到的
@@ -1731,12 +1731,12 @@ private:
 };
 ```
 
-通过复合来表现"is-implemented-in-terms-with"关系，实现较为复杂，但是具有下列优点：
+通过复合来表现"is-implemented-in-terms-of"关系，实现较为复杂，但是具有下列优点：
 
 * 如果希望禁止Widget的子类重定义onTick。因为派生类无法访问私有的WidgetTimer类
 * 可以减小Widget和Timer的编译依赖。如果是private继承，在定义Widget的文件中势必需要引入#include"timer.h"。 但如果采用复合的方式，可以把WidgetTimer放到另一个文件中，在Widget中使用WidgetTimer\*并声明WidgetTimer即可
 
-总的来说，在需要表现"is-implemented-in-terms-with"关系时。如果一个类需要访问基类的protected成员，或需要重新定义其一个或多个virtual函数，那么使用private继承。否则，在考虑过所有其它方案后，仍然认为private继承是最近办法，才使用它
+总的来说，在需要表现"is-implemented-in-terms-of"关系时。如果一个类需要访问基类的protected成员，或需要重新定义其一个或多个virtual函数，那么使用private继承。否则，在考虑过所有其它方案后，仍然认为private继承是最近办法，才使用它
 
 <br>
 
