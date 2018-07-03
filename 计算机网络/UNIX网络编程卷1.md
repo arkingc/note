@@ -1902,14 +1902,14 @@ pthread_key_create函数：
 pthread_once函数：
 
 * **onceptr**：onceptr参数指向的变量中的值，确保init参数所指的函数在进程范围内只被调用一次
-* **init**：进程范围内，对于一个给定的键，pthread_key_create只能被调用一次。所以可以init可以指向一个pthread_key_create函数，通过onceptr参数确保只调用一次
+* **init**：进程范围内，对于一个给定的键，pthread_key_create只能被调用一次。所以init可以指向一个pthread_key_create函数，通过onceptr参数确保只调用一次
 
 ### 2）pthread_getspecific和pthread_setspecific函数
 
 <div align="center"> <img src="../pic/unp-thread-10.png"/> </div>
 
-* pthread_getspecific函数在Pthread结构中把对应指定键的指针设置为指向分配的内存
-* pthread_setspecific函数返回对应指定键的指针
+* pthread_getspecific函数返回对应指定键的指针
+* pthread_setspecific函数在Pthread结构中把对应指定键的指针设置为指向分配的内存
 
 ## 4.互斥锁
 
