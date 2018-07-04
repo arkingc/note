@@ -716,6 +716,7 @@ poll中每个描述符有一个监视的事件以及一个发生的事件，在p
 ## 4.epoll
 
 ```c
+#include <sys/epoll.h>
 int epoll_create(int size);
 int epoll_ctl(int epfd,int op,int fd,struct epoll_event *event);
 int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
@@ -739,7 +740,7 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
             * **EPOLLPRI**：对应的描述符有紧急数据可读（带外数据）
             * **EPOLLERR**：对应的描述符发生错误
             * **EPOLLHUP**：对应的描述符被挂断
-            * **EPOLLET**：将epoll设为**边缘触发模式**（说默认为**水平(LT)触发模式**）
+            * **EPOLLET**：将epoll设为**边缘触发模式**（默认为**水平(LT)触发模式**）
             * **EPOLLONESHOT**：只监听一次事件，监听完后，如果需要再次监听，需再次将描述符加入到epoll队列
             ```c
             struct epoll_event{
