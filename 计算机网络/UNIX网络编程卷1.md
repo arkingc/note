@@ -56,6 +56,7 @@
     * [1.select](#1select)
         * [1.1 描述符就绪条件](#11-描述符就绪条件) 
         * [1.2 select的优缺点](#12-select的优缺点)
+        * [1.3 使用select实现TCP回射服务器](#13-使用select实现tcp回射服务器)
     * [2.pselect](#2pselect)
     * [3.poll](#3poll)
         * [3.1 事件](#31-事件) 
@@ -664,6 +665,57 @@ int FD_ISSET(int fd,fd_set *fdset);     //检查fdset中的fd位是否置位
     - **用户态和内核态传递描述符结构时copy开销大**
 
 **增大描述符集大小的唯一方法是：先增大`FD_SETSIZE`的值，再重新编译内核，不重新编译内核而改变其值是不够的**
+
+### 1.3 使用select实现TCP回射服务器
+
+[代码](https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpservselect01.c)
+
+**使用select实现TCP回射服务器，该服务器具有以下特点**：
+
+* **单服务器进程处理所有用户请求**（换而言之非fork）
+* **所能处理的最大客户数目的限制是以下两个值中的较小者：**
+    - **FD_SETSIZE**
+    - **内核允许本进程打开的最大描述符数**
+
+client数组记录与客户端通信的描述符，rset是记录客户端描述符的描述符集
+
+#### 1）初始状态
+
+创建监听套接字并在指定地址进行监听
+
+<div align="center"> <img src="pic/6-1.png"/> </div>
+
+client和rset状态如下：
+
+<div align="center"> <img src="pic/6-2.png"/> </div>
+
+#### 2）第一个客户与服务器建立连接时
+
+监听描述符变为可读，服务器于是调用accept。由accept返回的新的已连接描述符将是4
+
+<div align="center"> <img src="pic/6-3.png"/> </div>
+
+client和rset状态如下：
+
+<div align="center"> <img src="pic/6-4.png"/> </div>
+
+#### 3）第二个客户与服务器建立连接时
+
+监听描述符变为可读，服务器于是调用accept。由accept返回的新的已连接描述符将是5
+
+<div align="center"> <img src="pic/6-5.png"/> </div>
+
+client和rset状态如下：
+
+<div align="center"> <img src="pic/6-6.png"/> </div>
+
+#### 4）第一个客户终止与服务器的连接
+
+客户TCP发送一个FIN，使得服务器中的描述符4变为可读、当服务器读这个已连接套接字时，read将返回0。于是关闭该套接字并更新相应的数据结构
+
+<div align="center"> <img src="pic/6-7.png"/> </div>
+
+总之，当有客户到达时，在client数组中的第一个可用项（即值为-1的第一个项）中记录其已连接套接字的描述符。还必须把这个已连接描述符加到读描述符集中
 
 ## 2.pselect
 
@@ -2161,12 +2213,12 @@ pthread_once函数：
 </tr>
 <tr>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv01.c">服务器</a>(多进程) </td>
-    <td align="center"> <a href = "#附1回射服务器程序">服务器会产生僵尸子进程</a> </td>
+    <td align="center"> <a href = "#1客户端正常终止">服务器会产生僵尸子进程</a> </td>
 </tr>
 <tr>
     <td rowspan="1" align="center"> v2 </td>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv02.c">服务器</a>(多进程) </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#11-%E4%BD%BF%E7%94%A8wait%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">处理服务器僵尸子进程，会中断服务器系统调用</a> </td>
+    <td align="center"> <a href = "#11-使用wait版sig_chld函数处理子进程sigchld信号">处理服务器僵尸子进程，会中断服务器系统调用</a> </td>
 </tr>
 <tr>
     <td rowspan="1" align="center"> v3 </td>
@@ -2176,11 +2228,11 @@ pthread_once函数：
 <tr>
     <td rowspan="2" align="center"> v4 </td>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpcli04.c">客户端</a> </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#12-%E4%BD%BF%E7%94%A8waitpid%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">正常终止时引起服务器5个子进程终止</a> </td>
+    <td align="center"> <a href = "#12-使用waitpid版sig_chld函数处理子进程sigchld信号">正常终止时引起服务器5个子进程终止</a> </td>
 </tr>
 <tr>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv04.c">服务器</a>(多进程) </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#12-%E4%BD%BF%E7%94%A8waitpid%E7%89%88sig_chld%E5%87%BD%E6%95%B0%E5%A4%84%E7%90%86%E5%AD%90%E8%BF%9B%E7%A8%8Bsigchld%E4%BF%A1%E5%8F%B7">同时处理多个SIGCHLD信号</a> </td>
+    <td align="center"> <a href = "#12-使用waitpid版sig_chld函数处理子进程sigchld信号">同时处理多个SIGCHLD信号</a> </td>
 </tr>
 <tr>
     <td rowspan="3" align="center"> select </td>
@@ -2192,7 +2244,7 @@ pthread_once函数：
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/select/strcliselect02.c">str_cli函数</a>(解决前一版的问题) </td>
 </tr>
 <tr>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/select.md#%E4%BB%A3%E7%A0%81">服务器</a>(单进程) </td>
+    <td align="center"> <a href = "#13-使用select实现tcp回射服务器">服务器</a>(单进程) </td>
     <td align="center"> 重写v4版服务器，使用单进程减少了多进程的开销 </td>
 </tr>
 <tr>
@@ -2208,6 +2260,213 @@ pthread_once函数：
 </table>
 
 <br>
+<br>
+
+* [1.客户端正常终止](#1客户端正常终止)
+    * [1.1 使用wait版sig_chld函数处理子进程SIGCHLD信号](#11-使用wait版sig_chld函数处理子进程sigchld信号)
+    * [1.2 使用waitpid版sig_chld函数处理子进程SIGCHLD信号](#12-使用waitpid版sig_chld函数处理子进程sigchld信号)
+* [2.accept返回前连接终止](#2accept返回前连接终止)
+* [3.服务器子进程终止](#3服务器子进程终止)
+    * [3.1 继续对收到RST分节的套接字写](#31-继续对收到RST分节的套接字写)
+* [4.服务器主机崩溃](#4服务器主机崩溃)
+* [5.服务器主机崩溃后重启](#5服务器主机崩溃后重启)
+* [6.服务器主机关机](#6服务器主机关机)
+
+<br>
+<br>
+
+## 1.客户端正常终止
+
+ctrl+d键入EOF，客户端fget返回空指针，str\_cli函数返回，在客户端main函数中继续执行str\_cli之后的指令，通过exit退出
+
+客户端进程终止会关闭进程所有打开的描述符，因此打开的套接字由内核关闭。这会导致客户端发起TCP的4次挥手过程
+
+服务器子进程收到FIN时，readline返回0，导致str_echo函数返回服务器子进程的main函数，调用exit终止：
+
+* 1）子进程打开的所有描述符随之关闭。由子进程来关闭已连接套接字会引发TCP连接终止序列的最后两次挥手；
+* 2）子进程终止时，给父进程发生一个SIGCHLD信号，这一版本的服务器没有在代码中捕获这个信号，而该信号的默认行为是被忽略。因此子进程进入僵尸状态
+
+<div align="center"> <img src="pic/5-1.png"/> </div>
+
+> 问题：服务器子进程会变成僵尸进程
+
+### 1.1 使用wait版sig_chld函数处理子进程SIGCHLD信号
+
+在服务器代码listen调用之后增加：
+
+```c
+Signal(SIGCHLD,sig_chld);//封装了C函数库的signal函数
+```
+
+sig_chld函数如下：
+
+```c
+void
+sig_chld(int signo)
+{
+    pid_t   pid;
+    int     stat;
+
+    pid = wait(&stat);
+    printf("child %d terminated\n", pid);
+    return;
+}
+```
+
+当SIGCHLD信号递交时，父进程阻塞于accept调用。sig_chld函数执行（信号处理函数），其wait调用取到子进程的PID和终止状态，打印信息并返回
+
+**由于信号是在父进程阻塞于慢系统调用(accept)时由父进程捕获的，如果内核不自动重启被中断的系统调用(accept)，内核就会使accept返回一个EINTR错误(被中断的系统调用)。而父进程不能处理该错误，于是终止**（在调用C函数库提供的signal函数时，如果没有设置SA_RESTART标志，有些系统不会重启被中断的系统调用，而有些系统会自动重启被中断的系统调用，这里主要是强调编写捕获信号的网络程序时，必须认清被中断的系统调用且处理它们）
+
+connect不能重启，当connect被一个捕获的信号中断而且不自动重启时，我们必须调用select来等待连接完成
+
+> 问题：服务器父进程accept系统调用被子进程的SIGCHLD信号处理函数中断，返回EINTR错误，父进程无法处理，导致父进程终止  
+> 慢系统调用：可能永久阻塞的系统调用。当阻塞于某个慢系统调用的一个进程捕获某个信号且相应信号处理函数返回时，该系统调用可能返回一个EINTR错误。有些内核自动重启某些被中断的系统调用。不过为了便于移植，当我们编写捕获信号的程序时（多数并发服务器捕获SIGCHLD），我们必须对慢系统调用返回EINTR有所准备
+
+### 1.2 使用waitpid版sig_chld函数处理子进程SIGCHLD信号
+
+假设对1.1中的服务器进行了修改，使服务器可以处理系统调用被SIGCHLD信号中断的情况，那么现在的服务器是否已经没有其它问题了？问题在sig_chld函数中的wait调用，它无法处理多个同时到达的SIGCHLD信号
+
+```c
+/*******************************************************************
+ * 参数：
+ *     statloc：子进程的终止状态（可以通过3个宏来检查终止状态，辨别子进程
+ *              是正常终止、由某些信号杀死、还是仅仅由作业控制停止）
+ *     pid：waitpid可以指定想等待的进程，-1表示等待第一个终止的子进程
+ *     options：常用的选项是WNOHANG，它告知内核在没有已终止子进程时不要阻塞
+ * 返回：
+ *     已终止子进程的进程ID
+ * 行为：
+ *     wait：wait阻塞到现有子进程第一个终止为止
+ *     waitpid：waitpid就等待哪个进程以及是否阻塞给了我们更多的控制
+ *******************************************************************/
+#include <sys/wait.h>
+pid_t wait(int *statloc);
+pid_t waitpid(pid_t pid,int *statloc,int options);
+```
+
+现在考虑下面的例子：客户端发起5个到服务器的连接，并且仅用第一个连接进行“回射”：
+
+<div align="center"> <img src="pic/5-2.png"/> </div>
+
+当回射结束在终端输入EOF(ctrl+d)时，程序退出，因此5和客户端有关的描述符都将被内核关闭，因此5个连接基本在同一时刻引发5个FIN，这会导致服务器处理5个连接的5个子进程基本在同一时刻终止，因此又导致差不多在同一时刻有5个SIGCHLD信号递交给父进程：
+
+<div align="center"> <img src="pic/5-3.png"/> </div>
+
+看看现在系统上的进程：
+
+<div align="center"> <img src="pic/5-4.png"/> </div>
+
+可以发现，这种情况下，仍然有两个服务器子进程没有得到处理（这个结果是不确定的，依赖于FIN到达服务器主机的时机，信号处理函数可能调用1、2、3次甚至4次），成为了僵尸进程。这是由于Unix信号一般是不排队的（即在信号处理函数调用时到达的信号不排队，如果到达多个，这些信号被解阻塞后，只被递交一次）。解决这个问题的办法是使用waitpid代替wait
+
+```c
+void
+sig_chld(int signo)
+{
+    pid_t   pid;
+    int     stat;
+
+    //不同于前一个wait版的sig_chld函数，这个版本调用waitpid
+    while ( (pid = waitpid(-1, &stat, WNOHANG)) > 0)
+        printf("child %d terminated\n", pid);
+    return;
+}
+```
+
+> 问题：wait无法处理多个同时发起的SIGCHLD信号
+
+## 2.accept返回前连接终止
+
+accept返回前连接终止的情况在较忙的服务器（典型的如Web服务器）上已出现过，这种情况如下图所示：
+
+<div align="center"> <img src="pic/5-5.png"/> </div>
+
+三路握手完成从而连接建立之后，客户TCP却发送了一个RST(复位)。在服务器端看来，就在该连接已由TCP排队，等着服务器进程调用accept的时候RST到达。在这之后，服务器进程才调用accept
+
+如何处理这种终止的连接依赖于不同的实现：
+
+* 源自Berkeley的实现完全在内核中处理中止的连接，服务器进程根本看不到
+* 大多数SVR4实现返回一个错误给服务器进程，作为accept的返回结果，不过错误本身取决于实现。这些SVR4实现返回一个EPROTO(协议错误)errno值，而POSIX指出返回的errno值必须是ECONNABORTED(软件引起的连接终止)。POSIX作出修改的理由在于：流子系统中发生某些致命的协议相关事件时，也会返回EPROTO。如果返回相同的错误，服务器就不知道是该再次调用accept还是不该了
+
+## 3.服务器子进程终止
+
+假设在客户端与服务器建立起一条连接之后，当客户端调用fget阻塞于控制台输入时，服务器处理客户端请求的子进程被杀死，这个时候客户端会发生什么
+
+<div align="center"> <img src="pic/5-6.png"/> </div>
+
+kill掉服务器子进程后，子进程打开的所有描述符都被关闭。导致向客户发送一个FIN，而客户TCP则响应一个ACK，这就是TCP连接终止工作的前半部分
+
+此时，在客户端上再键入一行文本，客户端输出以下内容后退出：
+
+<div align="center"> <img src="pic/5-7.png"/> </div>
+
+当键入一行新文本时，str_cli调用writen，客户TCP连接把数据发送给服务器。TCP允许这么做。因为客户端TCP接收到FIN只是表示服务器进程已关闭了连接的服务器端，从而不再往其中发送任何数据而已。FIN的接收并没有告诉客户TCP服务器进程已经终止（本例中确实是终止了）
+
+当服务器TCP接收到来自客户的数据时，既然先前打开那个套接字的进程已经关闭，于是响应一个RST（可以使用tcpdump来观察分组，验证该RST确实发送了）
+
+然而客户端进程看不到这个RST，因为它在调用writen后立即调用readline，并且由于前面接收的FIN，所调用的readline立即返回0（表示EOF）。客户端此时并未预期收到EOF，于是以出错消息“serve terminated prematurely”(服务器过早终止)退出（上述讨论还取决于时序。客户端调用readline既可能发生在服务器的RST被客户收到之前，也可能发生在收到之后。如果发生在收到RST之前(如本例所示)，那么结果是客户得到一个未预期的EOF；否则结果是由readline返回一个ECONNRESET(“connection reset by peer”，对方复位连接错误)）
+
+> 问题：当FIN到达套接字时，客户正阻塞在fgets调用上，客户实际上在应对两个描述符——套接字和用户输入，它不能单纯阻塞在这两个源中某个特定源的输入上，而是应该阻塞在任何一个源的输入上，正是select和poll的目的之一
+
+### 3.1 继续对收到RST分节的套接字写
+
+当一个进程向某个已收到RST的套接字执行写操作时（客户可能在读回任何数据之前执行两次针对服务器的写操作），**内核向该进程发送一个SIGPIPE信号。该信号的默认行为是终止进程**，因此进程必须捕获它以免不情愿地被终止
+
+不论进程是捕获了该信号并从其信号处理函数返回，还是简单地忽略该信号，**写操作都将返回EPIPE错误**
+
+```c
+//tcpcliserv/str_cli11.c
+
+//这个str_cli函数用来模拟对收到RST分节的套接字进行写
+void
+str_cli(FILE *fp, int sockfd)
+{
+    char    sendline[MAXLINE], recvline[MAXLINE];
+
+    while (Fgets(sendline, MAXLINE, fp) != NULL) {
+
+        Writen(sockfd, sendline, 1);
+        sleep(1);
+        Writen(sockfd, sendline+1, strlen(sendline)-1);
+
+        if (Readline(sockfd, recvline, MAXLINE) == 0)
+            err_quit("str_cli: server terminated prematurely");
+
+        Fputs(recvline, stdout);
+    }
+}
+```
+
+## 4.服务器主机崩溃
+
+启动客户端与服务器，并且在客户端键入一行文本确认连接正常工作。然后从网络上断开服务器主机，并在客户端键入另一行文本（这也模拟了当客户发送数据时服务器主机不可达的情形，即建立连接后某些中间路由器不工作）
+
+可以使用tcpdump观察网络，会发现**客户TCP持续重传数据分节，试图从服务器上接收一个ACK**：
+
+* 源自Berkeley的实现重传该数据分节12次，共等待9分钟才放弃重传
+ 
+当客户TCP最后终于放弃时，给客户进程返回一个错误。既然客户阻塞在readline调用上，该调用将返回一个错误。假设服务器主机已崩溃，从而对客户的数据分节根本没有响应，那么所返回的错误是ETIMEDOUT。然而如果某个中间路由器判断服务器主机已不可达，从而响应一个“destination unreachable”(目的地不可达)ICMP消息，那么所返回的错误是EHOSTUNREACH或ENETUNREACH
+
+* **尽管最终会发现服务器已经崩溃或不可达，但是必须等待一个时间，因此需要对readline调用设置一个超时**
+* **只有在向服务器主机发送数据时才能检测出它已经崩溃。如果想实现自动检测，需要使用SO_KEEPALIVE套接字选项**
+
+## 5.服务器主机崩溃后重启
+
+和“4.服务器主机崩溃”不同的是，前者是在服务器崩溃时客户端向服务器发送数据，而这里是假设连接建立后，服务器崩溃，然后重启后，客户端再向服务器发送数据（假设客户端套接字并没有使用SO_KEEPALIVE套接字选项，因此在发送数据前，客户端并不知道服务器已经崩溃）
+
+**服务器主机崩溃后重启时，由于它的TCP丢失了崩溃前的所有连接信息，因此服务器TCP对于所收到的来自客户的数据分节响应一个RST。客户TCP收到RST时，正阻塞于readline调用，导致该调用返回ECONNRESET错误**
+
+## 6.服务器主机关机
+
+UNIX系统关机时，init进程通常进行以下操作：
+
+1. 先给所有进程发送SIGTERM信号(能被捕获)
+2. 等待一段固定的时间(往往在5到20秒之间)（这么做留给所有运行的进程一小段时间来清除和终止）
+3. 给所有仍在运行的进程发送SIGKILL信号(不能被捕获)
+
+如果服务器进程不捕获SIGTERM信号并终止，服务器将由SIGKILL信号终止。当服务器子进程终止时，它的所有打开着的描述符都被关闭，随后发生的步骤与"[3.服务器子进程终止](#3服务器子进程终止)"一样
+
+<br>
+<br>
 
 <h2 id="fl2"></h2>
 
@@ -2219,7 +2478,7 @@ pthread_once函数：
     <td rowspan="2" align="center"> v1 </td>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpcli01.c">客户端</a> </td>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/lib/dg_cli.c">dg_cli函数</a>(v1)<br>问题一：任何进程可向客户端发数据，会与服务器的回射数据报混杂<br>问题二：客户数据报或服务器应答丢失会使客户永久阻塞于recvfrom<br>
-    <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/UDP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#2%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%BF%9B%E7%A8%8B%E6%9C%AA%E8%BF%90%E8%A1%8C">问题三：服务器未启动会使客户端阻塞于recvfrom</a></td>
+    <a href = "#2服务器进程未运行">问题三：服务器未启动会使客户端阻塞于recvfrom</a></td>
 </tr>
 <tr>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpserv01.c">服务器</a>(单进程) </td>
@@ -2228,7 +2487,7 @@ pthread_once函数：
 <tr>
     <td rowspan="1" align="center"> v2 </td>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/udpcli02.c">客户端</a> </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgcliaddr.c">dg_cli函数</a>(v2)<br> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/UDP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#11-%E9%AA%8C%E8%AF%81%E6%94%B6%E5%88%B0%E7%9A%84%E6%95%B0%E6%8D%AE">处理问题一，验证接收到的响应。但无法处理服务器多宿(多个IP)的情况</a> </td>
+    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/udpcliserv/dgcliaddr.c">dg_cli函数</a>(v2)<br> <a href = "#11-验证收到的数据">处理问题一，验证接收到的响应。但无法处理服务器多宿(多个IP)的情况</a> </td>
 </tr>
 <tr>
     <td rowspan="1" align="center"> v3 </td>
@@ -2254,6 +2513,59 @@ pthread_once函数：
     <td colspan="3" align="center"> <b>v1：问题二、三的根本原因是UDP数据传输不可靠</b>（可使用<a href="#1套接字超时">套接字超时</a>来处理）<br><b>v4-v5：UDP缺乏流量控制，服务器接收的数据报数目不定，依赖诸多因素</b>  </td>
 </tr>
 </table>
+
+<br>
+<br>
+
+* [1.客户端无法验证收到的数据报](#1客户端无法验证收到的数据报)
+    * [1.1 验证收到的数据](#11-验证收到的数据)
+* [2.服务器进程未运行](#2服务器进程未运行) 
+
+<br>
+<br>
+
+## 1.客户端无法验证收到的数据报
+
+v1版本的客户端程序的dg_cli函数调用recvfrom，最后两个参数是NULL，即不关心发送给客户端的数据报来自哪，因此任何进程可以给客户端发送数据报，这些数据报会和服务器正常的回射数据报混杂
+
+### 1.1 验证收到的数据
+
+v2版的dg_cli函数对发送到客户端的数据报的套接字地址结构进行了验证，但是仍然存在问题：如果服务器运行在一个只有单个IP地址的主机上，这个新版本的客户工作正常。然而如果服务器主机是多宿的，客户就有可能失败
+
+假设服务器主机为freebsd4，IP为：
+
+```
+host freebsd4
+freebsd4.unpbook.com has address 172.24.37.94
+freebsd4.unpbook.com has address 135.197.17.100
+```
+
+假设客户端指定的服务器ip为 ```135.197.17.100``` ，并且这个服务器IP与客户机不在同一子网（这样指定服务器的IP是允许的。大多数IP实现接收目的地址为主机任一IP地址的数据报，而不管数据报到达的接口，称之为弱端系统模型）
+
+recvfrom返回的IP地址不是发送数据报的目的IP地址。当服务器发送应答时，IP地址是 ```172.24.37.94``` 。主机freebsd4内核中的路由功能为之选择 ```172.24.37.94``` 作为外出接口。因此客户端recvfrom返回的IP和发送数据时指定的IP ```135.135.197.17.100``` 不同，因此识别这个数据报不是来自服务器的数据报，被忽略掉
+
+有下列2个解决办法：
+
+1. 得到由recvfrom返回的IP地址后，客户通过在DNS中查找服务器主机的名字来验证该主机的域名
+2. UDP服务器给服务器主机上配置的每个IP地址创建一个套接字，用bind捆绑每个IP地址到各自的套接字，然后在所有这些套接字上使用select，再从可读的套接字给出应答。既然用于给出应答的套接字上绑定的IP地址就是客户请求的目的IP地址，这就保证应答的源地址与请求的目的地址相同
+
+## 2.服务器进程未运行
+
+如果不启动服务器，在客户端键入一行文本后，客户将永远阻塞于recvfrom调用，等待一个永远不出现的服务器应答
+
+启动UDP回射服务器客户端，指定服务器IP为本主机，然后键入hello，由于服务器并没有启动，所以没有回射信息，客户此时阻塞于recvfrom：
+
+<div align="center"> <img src="pic/8-2.png"/> </div>
+
+本地使用tcpdump抓包：
+
+<div align="center"> <img src="pic/8-1.png"/> </div>
+
+从抓取到的数据包可以看出，客户端向localhost的9877号端口发送数据，然后由于相应服务器未启动，所以localhost发送一个ICMP消息，响应目的主机不可达，我们称这个ICMP错误为**异步错误**，该错误由sendto引起，但是sendto本身却成功返回（sendto的成功返回仅仅表示在接口输出队列中具有存放所形成IP数据报的空间）。由于sendto成功返回，但是ICMP错误直到后来才返回，所以称其为异步
+
+从上图可以看出，ICMP消息的目的地并不是客户端（图中并没有指定目的端口）。**对于一个UDP套接字，由它引发的异步错误却并不返回给他，除非它已连接**：
+
+ * 考虑在单个UDP套接字上连续发送3个数据报给3个不同的服务器（即3个不同的IP地址）。该客户随后进入一个调用recvfrom读取应答的循环。其中有2个数据报被正确推送，但是第3个主机没有运行服务器。第三个主机于是以一个ICMP端口不可达错误响应。这个ICMP出错消息包含引起错误的数据报的IP首部和UDP首部。发送这3个数据报的客户需要知道引发该错误的数据报的目的地址以区分究竟是哪一个数据报引发了错误。但是内核如何把该信息返回给客户进程？recvfrom可以返回的信息仅有errno值，它没有办法返回出错数据报的目的IP地址和目的UDP端口号。因此作出决定：仅在进程已将其UDP套接字连接到恰恰一个对端后，这些异步消息才返回给进程
 
 <br>
 <br>
