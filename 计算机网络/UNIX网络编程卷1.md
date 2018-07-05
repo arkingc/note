@@ -33,22 +33,22 @@
     * [1.连接管理](#1连接管理)
     * [2.缓冲区](#2缓冲区)
     * [3.相关函数](#3相关函数)
-        - [socket](#1socket函数)
-        - [connect](#2connect函数)
-        - [bind](#3bind函数)
-        - [listen](#4listen函数)
-        - [accept](#5accept函数)
-        - [close](#6close函数)
-        - [shutdown](#7shutdown函数)
-        - [getsockname和getpeername](#8getsockname和getpeername函数)
+        - 1）[socket](#1socket函数)
+        - 2）[connect](#2connect函数)
+        - 3）[bind](#3bind函数)
+        - 4）[listen](#4listen函数)
+        - 5）[accept](#5accept函数)
+        - 6）[close](#6close函数)
+        - 7）[shutdown](#7shutdown函数)
+        - 8）[getsockname和getpeername](#8getsockname和getpeername函数)
 
 <h2 id="ch3"></h2>
 
 * [三.基本UDP套接字编程](#三基本udp套接字编程)
     * [1.缓冲区](#1缓冲区)
     * [2.相关函数](#2相关函数)
-        - [recvfrom和sendto](#1recvfrom与sendto函数)
-        - [connect](#2连接的UDP套接字)
+        - 1）[recvfrom和sendto](#1recvfrom与sendto函数)
+        - 2）[connect](#2连接的udp套接字)
 
 <h2 id="ch4"></h2>
 
@@ -68,12 +68,20 @@
 
 * [五.套接字选项](#五套接字选项)
     * [1.获取及设置套接字选项的函数](#1获取及设置套接字选项的函数)
-        - [getsockopt和setsockopt](#1getsockopt和setsockopt函数)
-        - [fcntl](#2fcntl函数)
-        - ioctl
+        - 1）[getsockopt和setsockopt](#1getsockopt和setsockopt函数)
+        - 2）[fcntl](#2fcntl函数)
+        - 3）ioctl
     * [2.套接字选项分类](#2套接字选项分类)
         * [2.1 通用套接字选项](#21-通用套接字选项)
+            - 1）[SO_ERROR](#1soerror)
+            - 2）[SO_KEEPALIVE](#2sokeepalive)
+            - 3）[SO_LINGER](#3solinger)
+            - 4）[SO_RCVBUF和SO_SNDBUF](#4sorcvbuf和sosndbuf)
+            - 5）[SO_RCVLOWAT和SO_SNDLOWAT](#5sorcvlowat和sosndlowat)
+            - 6）[SO_REUSEADDR和SO_REUSEPORT](#6soreuseaddr和soreuseport)
         * [2.2 TCP套接字选项](#22-tcp套接字选项)
+            - 1）[TCP_MAXSEG](#1tcpmaxseg)
+            - 2）[TCP_NODELAY](#2tcpnodelay)
 
 <h2 id="ch6"></h2>
 
@@ -832,7 +840,9 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
 * **sockfd**：一个打开的套接字描述符
 * **level**：系统中解释选项的代码。或为通用套接字代码，或为某个特定于协议的代码（IPv4、IPv6、TCP或SCTP）
 * **optname**：选项名
-* **optval**：setsockopt从optval中取得选项待设置的新值，getsockopt则把已获取的选项当前值存放到optval中（给标志选项调用getsockopt函数时，\*optval是一个整数。\*optval中返回的值为0表示相应选项被禁止，不为0表示相应选项被启用；给标志选项调用setsockopt函数需要一个不为0的\*optval值来启用选项，一个为0的\*optval值来禁止选项）
+* **optval**：选项的值
+    - getsockopt把已获取的选项当前值存放到optval中。此时\*optval是一个整数。\*optval中返回的值为0表示相应选项被禁止，不为0表示相应选项被启用
+    - setsockopt从optval中取得选项待设置的新值。不为0的\*optval值来启用选项，一个为0的\*optval值来禁止选项
 * **optlen**：指明optval所指结构的大小
 
 **level**和**optname**可以取下图中的值：
