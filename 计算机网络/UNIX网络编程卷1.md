@@ -68,8 +68,8 @@
 
 * [五.套接字选项](#五套接字选项)
     * [1.获取及设置套接字选项的函数](#1获取及设置套接字选项的函数)
-        - 1）[getsockopt和setsockopt](#1getsockopt和setsockopt函数)
-        - 2）[fcntl](#2fcntl函数)
+        - 1）[getsockopt和setsockopt](#1getsockopt和setsockopt函数)（设置或获取套接字选项）
+        - 2）[fcntl](#2fcntl函数)（设置或获取影响套接字描述符的标志）
         - 3）ioctl
     * [2.套接字选项分类](#2套接字选项分类)
         * [2.1 通用套接字选项](#21-通用套接字选项)
@@ -851,13 +851,15 @@ int epoll_wait(int epfd,struct epoll_event *events,int maxevents,int timeout);
 
 #### 2）fcntl函数
 
+该函数可执行各种**描述符控制操作**，在网络编程中主要关注对套接字描述符的控制操作
+
 <div align="center"> <img src="../pic/unp-7-6.png"/> </div>
 
 * **fd**：套接字描述符
 * **cmd**：作用于该描述符上的命令
-    - **F_GETFL**：获取文件标志（影响套接字描述符的两个标志：O_NONBLOCK(非阻塞式I/O)、O_ASYNC(信号驱动式I/O)）
-    - **F_SETFL**：设置文件标志（影响套接字描述符的两个标志：O_NONBLOCK(非阻塞式I/O)、O_ASYNC(信号驱动式I/O)）
-    - **F_SETOWN**：指定用于接收SIGIO和SIGURG信号的套接字属主（进程ID或进程组ID），SIGIO信号是套接字被设置为信号驱动式I/O后产生的，SIGURG信号是在新的带外数据到达套接字时产生的
+    - **F_GETFL**：获取文件标志（**影响套接字描述符的两个标志**：O_NONBLOCK(非阻塞式I/O)、O_ASYNC(信号驱动式I/O)）
+    - **F_SETFL**：设置文件标志（**影响套接字描述符的两个标志**：O_NONBLOCK(非阻塞式I/O)、O_ASYNC(信号驱动式I/O)）
+    - **F_SETOWN**：该命令允许我们指定用于接收SIGIO和SIGURG信号的套接字属主（进程ID或进程组ID），SIGIO信号是套接字被设置为信号驱动式I/O后产生的，SIGURG信号是在新的带外数据到达套接字时产生的
         + SIGIO和SIGURG与其他信号的不同之处在于：这两个信号仅在已使用F_SETOWN命令给相关套接字指派了属主后才会产生
         + F_SETOWN命令的整数类型arg参数既可以是一个正整数，指出接收信号的进程ID，也可以是一个负整数，其绝对值指出接收信号的进程组ID。F_GETOWN命令把套接字属主作为fcntl函数的返回值返回，它既可以是进程ID，也可以是进程组ID(一个除-1以外的负值)
         + 指定接收信号的套接字属主为一个进程或一个进程组的差别在于：前者仅导致单个进程接收信号，而后者则导致整个进程组中的所有进程接收信号
@@ -880,7 +882,7 @@ if(fcntl(fd,F_SETFL,flags) < 0)
 
 **套接字选项粗分为两大基本类型**：
 
-* 某个特性相关的**标志选项**
+* 启用或禁止某个特性相关的**标志选项**
 * 可以设置或检查的特定**值选项**
 
 ### 2.1 通用套接字选项
@@ -888,6 +890,8 @@ if(fcntl(fd,F_SETFL,flags) < 0)
 这些选项是协议无关的。它们由内核中的协议无关代码处理，而不是由诸如IPv4之类特殊的协议模块处理。不过其中有些选项只能应用到某些特定类型的套接字中。举例来说，尽管SO_BROADCAST套接字选项是“通用”的，它却只能应用于数据报套接字
 
 #### 1）SO_ERROR(可以获取，不能设置)
+
+> 获取套接字上发生的错误
 
 当一个套接字上发生错误时，源自Berkeley的内核中的协议模块将该套接字的名为so_error的变量设为标准的Unix Exxx值中的一个，称它为套接字的待处理错误。内核会通知进程这个错误。进程然后可以通过该套接字选项获取so_error的值。由getsockopt返回的整数值就是该套接字的待处理错误。so_error随后由内核复位为0
 
@@ -2157,7 +2161,7 @@ pthread_once函数：
 </tr>
 <tr>
     <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/tcpcliserv/tcpserv01.c">服务器</a>(多进程) </td>
-    <td align="center"> <a href = "https://github.com/arkingc/unpv13e/blob/master/znote/TCP%E5%9B%9E%E5%B0%84%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E9%97%AE%E9%A2%98.md#1%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%AD%A3%E5%B8%B8%E7%BB%88%E6%AD%A2">服务器会产生僵尸子进程</a> </td>
+    <td align="center"> <a href = "#附1回射服务器程序">服务器会产生僵尸子进程</a> </td>
 </tr>
 <tr>
     <td rowspan="1" align="center"> v2 </td>
