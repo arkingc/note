@@ -73,15 +73,15 @@
         - 3）ioctl
     * [2.套接字选项分类](#2套接字选项分类)
         * [2.1 通用套接字选项](#21-通用套接字选项)
-            - 1）[SO_ERROR](#1soerror)
-            - 2）[SO_KEEPALIVE](#2sokeepalive)
-            - 3）[SO_LINGER](#3solinger)
-            - 4）[SO_RCVBUF和SO_SNDBUF](#4sorcvbuf和sosndbuf)
-            - 5）[SO_RCVLOWAT和SO_SNDLOWAT](#5sorcvlowat和sosndlowat)
-            - 6）[SO_REUSEADDR和SO_REUSEPORT](#6soreuseaddr和soreuseport)
+            - 1）[SO_ERROR](#1so_error可以获取不能设置)
+            - 2）[SO_KEEPALIVE](#2so_keepalive)
+            - 3）[SO_LINGER](#3so_linger)
+            - 4）[SO_RCVBUF和SO_SNDBUF](#4so_rcvbuf和so_sndbuf)
+            - 5）[SO_RCVLOWAT和SO_SNDLOWAT](#5so_rcvlowat和so_sndlowat)
+            - 6）[SO_REUSEADDR和SO_REUSEPORT](#6so_reuseaddr和so_reuseport)
         * [2.2 TCP套接字选项](#22-tcp套接字选项)
-            - 1）[TCP_MAXSEG](#1tcpmaxseg)
-            - 2）[TCP_NODELAY](#2tcpnodelay)
+            - 1）[TCP_MAXSEG](#1tcp_maxseg)
+            - 2）[TCP_NODELAY](#2tcp_nodelay)
 
 <h2 id="ch6"></h2>
 
