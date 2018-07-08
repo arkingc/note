@@ -88,10 +88,26 @@
 
 * [六.名字与数值转换](#六名字与数值转换)
     * [1.主机名字与IP地址之间的转换](#1主机名字与ip地址之间的转换)
+        - 1）[gethostbyname](#1gethostbyname函数)（IPV4）
+        - 2）[gethostbyaddr](#2gethostbyaddr函数)（IPV4）
     * [2.服务名字与端口号之间的转换](#2服务名字与端口号之间的转换)
+        - 1）[getservbyname](#1getservbyname函数)
+        - 2）[getservbyport](#2getservbyport函数)
     * [3.主机与服务名字转IP地址与端口号](#3主机与服务名字转ip地址与端口号)
+        - 1）[getaddrinfo与freeaddrinfo](#1getaddrinfo函数)（协议无关）
+        - getaddrinfo的封装函数：
+            + 2）[host_serv](#2host_serv函数)
+            + 3）[tcp_connect](#3tcp_connect函数)
+            + 4）[tcp_listen](#4tcp_listen函数)
+            + 5）[udp_client](#5udp_client函数)
+            + 6）[udp_connect](#6udp_connect函数)
+            + 7）[udp_server](#7udp_server函数)
     * [4.IP地址与端口号转主机与服务名字](#4ip地址与端口号转主机与服务名字)
+        - 1）[getnameinfo](#getnameinfo函数)
     * [5.其它网络相关信息](#5其它网络相关信息)
+        - 1）getXXXent
+        - 2）setXXXent
+        - 3）endXXXent
 
 <h2 id="ch7"></h2>
 
@@ -1068,24 +1084,17 @@ Nagle算法常常与另一个TCP算法联合使用：**ACK延滞算法**，该�
 
 # 六.名字与数值转换
 
-**名字与数值间进行转换**：
+DNS中的资源记录：
 
-* **主机名字与IP地址之间进行转换**（**协议相关**，只支持**IPv4**）：
-    - **主机名字转IP地址**：[gethostbyname](#1gethostbyname函数)
-    - **IP地址转主机名字**：[gethostbyaddr](#2gethostbyaddr函数)
-* **服务名字与端口号之间进行转换**：
-    - **服务名字**转**端口号**：[getservbyname](#1getservbyname函数)
-    - **端口号**转**服务名字**：[getservbyport](#2getservbyport函数)
-* **主机与服务名字**转**IP地址与端口号**：
-    - [getaddrinfo](#1getaddrinfo函数)（**协议无关**）
-    - getaddrinfo的封装函数:
-        + [host_serv](#2host_serv函数)
-        + [tcp_connect](#3tcp_connect函数)
-        + [tcp_listen](#4tcp_listen函数)
-        + [udp_client](#5udp_client函数)
-        + [udp_connect](#6udp_connect函数)
-        + [udp_server](#7udp_server函数)
-* **IP地址与端口号**转**主机与服务名字**：[getnameinfo](#getnameinfo函数)
+* **A**：A记录把一个主机名映射成一个32位的IPV4地址
+* **AAAA**：AAAA记录把一个主机名映射成一个128位的IPV6地址
+* **PTR**：称为“指针记录”，把IP地址映射成主机名
+* **MX**：把一个主机指定为给定主机的“邮件交换器”
+* **CNAME**：常见用法是为常用的服务指派CNAME记录。如果人们使用这些服务名而不是真实的主机名，那么相应的服务挪到另一个主机时他们也不必知道
+
+以下是主机freebsd的4个DNS记录：
+
+<div align="center"> <img src="../pic/unp-name-21.png"/> </div>
 
 ## 1.主机名字与IP地址之间的转换
 
@@ -1093,12 +1102,12 @@ Nagle算法常常与另一个TCP算法联合使用：**ACK延滞算法**，该�
 
 <div align="center"> <img src="../pic/unp-name-1.png"/> </div>
 
-* 解析器代码通过读取其系统相关配置文件(通常是**/etc/resolv.conf**)确定本组织机构的名字服务器的所在位置
+* 解析器代码通过读取其系统相关配置文件(通常是`/etc/resolv.conf`)确定本组织机构的名字服务器的所在位置
 * 解析器使用UDP向本地名字服务器发出查询，如果本地名字服务器不知道答案，通常会使用UDP在整个因特网上查询其它名字服务器（如果答案太长，超出了UDP消息的承载能力，本地名字服务器和解析器会自动切换到TCP）
 
 **不使用DNS也可能获取名字和地址信息，有下列替代方法**：
 
-1. 静态主机文件（通常是**/etc/hosts**文件）
+1. 静态主机文件（通常是`/etc/hosts`文件）
 2. 网络信息系统（NIS）
 3. 轻权目录访问协议（LDAP）
 
@@ -1147,7 +1156,7 @@ struct hostent{
 
 ### 1）getservbyname函数
 
-从服务名字到端口的映射关系通常保存在**/etc/services**文件中，因此如果程序中使用服务名字而非端口号时，即使端口号发生变动，仅需修改这个文件，而不必重新编译应用程序
+从服务名字到端口的映射关系通常保存在`/etc/services`文件中，因此如果程序中使用服务名字而非端口号时，即使端口号发生变动，仅需修改这个文件，而不必重新编译应用程序
 
 <div align="center"> <img src="../pic/unp-name-5.png"/> </div>
 
@@ -1217,7 +1226,7 @@ AI_ADDRCONFIG：按照所在主机的配置选择返回地址类型
 
 常见的使用：
 
-* **TCP或UDP客户同时制定hostname和service**
+* **TCP或UDP客户同时指定hostname和service**
     - **TCP客户**在一个循环中针对每个返回的IP地址，逐一调用socket和connect，直到有一个连接成功，或者所有地址尝试完毕
     - 对于**UDP客户**，由getaddrinfo填入的套接字地址结构用于调用sendto或connect。如果客户能够判断第一个地址看来不工作（或者在已连接的UDP套接字上收到出错消息，或者在未连接的套接字上经历消息接收超时），那么可以尝试其余地址
 * **典型的服务器只指定service而不指定hostname，同时在hints结构中指定AI_PASSIVE标志**。返回的套接字地址结构中应含有一个值为INADDR_ANY(对于IPv4)或IN6ADDR_ANY_INIT(对于IPv6)的IP地址
@@ -1227,7 +1236,11 @@ AI_ADDRCONFIG：按照所在主机的配置选择返回地址类型
 
 如果**客户或服务器**清楚自己只处理一种类型的套接字，那么应该把hints结构的ai_socktype成员设置成SOCK_STREAM或SOCK_DGRAM
 
-如果发生**错误**，函数getaddrinfo返回错误值，该值可以作为函数**gai_strerror()**的参数。调用gai_strerror函数可以得到一个描述错误信息的C字符串指针：
+下表示是getaddrinfo函数及其行为和结果汇总：
+
+<div align="center"> <img src="../pic/unp-name-22.png"/> </div>
+
+如果发生**错误**，函数getaddrinfo返回错误值，该值可以作为函数**gai_strerror**的参数。调用gai_strerror函数可以得到一个描述错误信息的C字符串指针：
 
 <div align="center"> <img src="../pic/unp-name-9.png"/> </div>
 
@@ -1319,8 +1332,6 @@ getaddrinfo的互补函数
 
 <div align="center"> <img src="../pic/unp-name-19.png"/> </div>
 
-> getnameinfo和sock_ntop的差别在于：sock_ntop不涉及DNS
-
 ## 5.其它网络相关信息
 
 应用进程可能想要查找4类与网络相关的信息：**主机**、**网络**、**协议**、**服务**。大多数查找针对的是主机，一小部分查找针对的是服务，更小一部分查找针对的是网络和协议。所有4类信息都可以放在一个文件中，每类信息各定义有3个访问函数：
@@ -1329,7 +1340,7 @@ getaddrinfo的互补函数
 2. 函数setXXXent打开（如果尚未打开的话）并回绕文件
 3. 函数endXXXent关闭文件
 
-每类信息都定义了各自的结构：hostent、netent、protoent、servent。这些结构定义在头文件<netdb.h>中
+每类信息都定义了各自的结构：hostent、netent、protoent、servent。这些结构定义在头文件`<netdb.h>`中
 
 <div align="center"> <img src="../pic/unp-name-20.png"/> </div>
 
