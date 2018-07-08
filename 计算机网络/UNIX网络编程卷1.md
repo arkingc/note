@@ -115,6 +115,10 @@
     * [1.套接字超时](#1套接字超时) 
     * [2.排队的数据量](#2排队的数据量)
     * [3.Unix I/O函数](#3unix-io函数)
+        - 1）[recv和send](#1recv和send函数)
+        - 2）[readv和writev](#2readv和writev函数)
+        - 3）[recvmsg和sendmsg](#3recvmsg和sendmsg函数)
+        - [5组I/O函数的对比](#5组io函数的对比)
     * [4.标准I/O函数](#4标准io函数)
 
 <h2 id="ch8"></h2>
@@ -1419,7 +1423,7 @@ getaddrinfo的互补函数
 <div align="center"> <img src="../pic/unp-io-3.png"/> </div>
 
 * **filedes**：文件描述符
-* **iov**：指向某个iovec结构数组的一个指针，iovec结构定义在<sys/uio.h>中：
+* **iov**：指向某个iovec结构数组的一个指针，iovec结构定义在`<sys/uio.h>`中：
 * **opvcnt**：iov数组中元素个数
 
 ```c++
@@ -1436,7 +1440,7 @@ struct iovec{
 * `writev`函数从缓冲区中聚集输出数据的顺序是：iov\[0\]、iov\[1\]直至iov\[iovcnt-1\]
 * `readv`函数则将读入的数据按同样的顺序散步到缓冲区中
 
-**iovec结构数组中元素的个数存在某个限制，取决于具体实现**。4.3BSD和Linux均最多允许1024个，而HP-UX最多允许2100个。**POSIX要求在头文件<sys/uio.h>中定义IOV_MAX常值，其值至少为16**
+**iovec结构数组中元素的个数存在某个限制，取决于具体实现**。4.3BSD和Linux均最多允许1024个，而HP-UX最多允许2100个。**POSIX要求在头文件`<sys/uio.h>`中定义`IOV_MAX`常值，其值至少为16**
 
 **这两个函数可用于任何描述符，writev是一个原子操作**
 
@@ -1505,6 +1509,10 @@ cmsg_level和cmsg_type的取值和说明如下表：
 * 接着假设从198.6.38.100端口2000到达一个170字节的UDP数据报，它的目的地址是我们的UDP套接字，目的IP地址为206.168.112.96。recvfrom返回时，msghdr结构如下：
 
 <div align="center"> <img src="../pic/unp-io-7.png"/> </div>
+
+### 5组I/O函数的对比
+
+<div align="center"> <img src="../pic/unp-io-13.png"/> </div>
 
 ## 4.标准I/O函数
 
