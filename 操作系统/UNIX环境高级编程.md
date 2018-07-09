@@ -130,6 +130,7 @@
         + [pthread_exit函数](#5pthread_exit函数)
         + [pthread_equal函数](#6pthread_equal函数)
         + [pthread_cancel函数](#7pthread_cancel函数)
+        + [pthread_cleanup_push和pthread_cleanup_pop函数](#pthread_cleanup_push和pthread_cleanup_pop函数)
     - [2.线程同步](#2线程同步)
         + [2.1 互斥锁](#21-互斥锁)
         + [2.2 读写锁](#22-读写锁)
@@ -2742,22 +2743,82 @@ parent:
 
 线程控制自身对pthread_cancel函数的响应行为：[取消选项](#22-取消选项)
 
-以下函数被线程调用时，可以添加或执行清理函数：
+### 8）pthread_cleanup_push和pthread_cleanup_pop函数
+
+以下函数被线程调用时，可以添加或清除清理函数：
 
 <div align="center"> <img src="../pic/unp-thread-16.png"/> </div>
 
-`pthread_cleanup_push`可以为线程添加清理函数，下列情况会调用清理函数：
+> 这2个函数可以被实现为宏，通常pthread_cleanup_push会带有一个`{`，而pthread_cleanup_pop会带有1个'}'。因此，在使用时，2个函数应该配对出现
+
+**下列情况会调用清理函数**：
 
 * 线程调用`pthread_exit`时
 * 线程响应取消请求时
 * 用非零`execute`参数调用`pthread_cleanup_pop`时
 
-以下情况不会调用清理函数；
+**以下情况不会调用清理函数**；
 
-* 线程通过`return`终止时
+* 线程通过`return`或`exit`终止时
 * `execute`参数为0时
 
 不管`excute`参数是否为0，`pthread_cleanup_pop`函数都会将线程清理函数栈的栈顶函数删除
+
+以下为一个测试程序：
+
+```c
+#include <stdio.h>
+#include <pthread.h>
+
+int exceptionFun()
+{
+    pthread_exit((void *)0);    //会调用clean
+    //return 0;                 //会不会调用clean取决于exceptionFun外的pthread_cleanup_pop的参数
+    //exit(0);                  //不会调用clean
+    //_Exit(0);                 //不会调用clean
+}
+
+void clean(void *arg)
+{
+    printf("clean function\n");
+}
+
+void* thr1(void *arg)
+{
+    printf("thread 1 created\n");
+
+    pthread_cleanup_push(clean,NULL);
+
+        //pthread_exit((void *)0);  //会调用clean，第2个线程会启动
+        //return 0;                 //不会调用clean，且第2个线程不会启动
+        //exit(0);                  //不会调用clean，且第2个线程不会启动
+        //_Exit(0);                 //不会调用clean，且第2个线程不会启动
+
+    pthread_cleanup_pop(1);         //pthread_cleanup_pop(0)时，如果没有在push和pop之间退出，那么不会执行clean
+                                    //否则，根据退出时调用的是pthread_exit，return...决定
+}
+
+void* thr2(void *arg)
+{
+    printf("thread 2 created\n");
+
+    pthread_cleanup_push(clean,NULL);
+
+        exceptionFun();
+
+    pthread_cleanup_pop(1);
+}
+
+int main()
+{
+    pthread_t tid;
+    pthread_create(&tid,NULL,thr1,NULL);
+    pthread_join(tid,NULL);
+    pthread_create(&tid,NULL,thr2,NULL);
+    pthread_join(tid,NULL);
+    return 0;
+}
+```
 
 <br>
 
