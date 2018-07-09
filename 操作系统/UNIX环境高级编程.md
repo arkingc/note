@@ -130,7 +130,7 @@
         + [pthread_exit函数](#5pthread_exit函数)
         + [pthread_equal函数](#6pthread_equal函数)
         + [pthread_cancel函数](#7pthread_cancel函数)
-        + [pthread_cleanup_push和pthread_cleanup_pop函数](#pthread_cleanup_push和pthread_cleanup_pop函数)
+        + [pthread_cleanup_push和pthread_cleanup_pop函数](#8pthread_cleanup_push和pthread_cleanup_pop函数)
     - [2.线程同步](#2线程同步)
         + [2.1 互斥锁](#21-互斥锁)
         + [2.2 读写锁](#22-读写锁)
@@ -151,6 +151,9 @@
         + [3.3 条件变量属性](#33-条件变量属性)
         + [3.4 屏障属性](#34-屏障属性)
     - [4.线程特定数据](#4线程特定数据)
+        + [pthread_once和pthread_key_create函数](#1pthread_once和pthread_key_create函数)
+        + [pthread_getspecific和pthread_setspecific函数](#2pthread_getspecific和pthread_setspecific函数)
+        + [pthread_key_delete函数](#3pthread_key_delete函数)
     - [5.线程和信号](#5线程和信号)
         + [5.1 阻止信号发送](#51-阻止信号发送)
         + [5.2 等待信号](#52-等待信号)
@@ -2639,11 +2642,11 @@ thread 2 exit code 2
 
 * **status**：指定了线程的返回值。不能指向一个局部于调用线程的对象，因为线程终止时这样的对象也消失
 
-让一个线程终止的**另外两个**方法：
+让一个线程终止的**其它**方法：
 
 1. **线程执行的函数返回**，在`pthread_create`参数中，这个函数的返回值是一个void\*指针，它指向相应线程的终止状态
 2. **被同一进程的其它线程调用`pthread_cancel`取消**（该函数只是发起一个请求，目标线程可以选择忽略取消或控制如何被取消）
-3. **如果进程的main函数`return`或任何线程调用了`exit`、`_Exit`、`_exit`，整个进程就终止了，其中包括它的任何线程**
+3. **任何线程调用`return` `exit`、`_Exit`、`_exit`终止时，整个进程就终止了，其中包括它的任何线程**
 
 > 如果主线程调用了`pthread_exit`，而非`exit`或`return`，那么其它线程将继续运行
 
@@ -3348,11 +3351,11 @@ pKey数组的所有元素都被初始化为空指针。这128个指针是和进�
 一般步骤如下：
 
 * 定义了一个全局静态的`pthread_key_t`变量，表示键
-* 其中一个线程调用`pthread_key_create`从进程的`key`数组创建一个未使用的键
-* 所有线程可以使用这个新键通过`pthread_getspecific`索引自己的`pkey`数组的相应位置
-    - 如果返回一个空指针，说明相应的线程特定数据元素不存在，可以调用malloc分配，然后调用`pthread_setspecific`将这个新分配的线程特定数据的指针保存在`pkey`数组中
+* 其中一个线程调用pthread_key_create从进程的`key`数组创建一个未使用的键（为了防止被多次调用，可以使用pthread_once）
+* 所有线程可以使用这个新键通过pthread_getspecific索引自己的`pkey`数组的相应位置
+    - 如果返回一个空指针，说明相应的线程特定数据元素不存在，可以调用malloc分配，然后调用pthread_setspecific将这个新分配的线程特定数据的指针保存在`pkey`数组中
     - 如果返回一个非空指针，那么可以使用这个线程特定数据
-* 调用`pthread_key_create`函数时指定的析构函数会释放保存在每个线程`pkey`数组中的线程特定数据
+* 调用pthread_key_create函数时指定的析构函数会释放保存在每个线程`pkey`数组中的线程特定数据
 
 ### 1）pthread_once和pthread_key_create函数
 

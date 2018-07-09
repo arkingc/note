@@ -147,9 +147,12 @@
         - 5）[pthread_exit函数](#5pthread_exit函数)
         - 6）[pthread_equal函数](#6pthread_equal函数)
         - 7）[pthread_cancel函数](#7pthread_cancel函数)
-        - 8）[pthread_cleanup_push和pthread_cleanup_pop函数](#pthread_cleanup_push和pthread_cleanup_pop函数)
+        - 8）[pthread_cleanup_push和pthread_cleanup_pop函数](#8pthread_cleanup_push和pthread_cleanup_pop函数)
     * [2.线程安全的函数](#2线程安全的函数)
     * [3.线程特定数据](#3线程特定数据)
+        - 1）[pthread_once和pthread_key_create函数](#1pthread_once和pthread_key_create函数)
+        - 2）[pthread_getspecific和pthread_setspecific函数](#2pthread_getspecific和pthread_setspecific函数)
+        - 3）[pthread_key_delete函数](#3pthread_key_delete函数)
     * [4.互斥锁](#4互斥锁)
     * [5.条件变量](#5条件变量)
 
@@ -1866,11 +1869,13 @@ thread 2 exit code 2
 
 * **status**：不能指向一个局部于调用线程的对象，因为线程终止时这样的对象也消失
 
-让一个线程终止的**另外两个**方法：
+让一个线程终止的**其它**方法：
 
-1. **线程执行的函数返回**，在pthread_create参数中，这个函数的返回值是一个void\*指针，它指向相应线程的终止状态
+1. **线程执行的函数返回**，在`pthread_create`参数中，这个函数的返回值是一个void\*指针，它指向相应线程的终止状态
 2. **被同一进程的其它线程调用`pthread_cancel`取消**（该函数只是发起一个请求，目标线程可以选择忽略取消或控制如何被取消）
-3. **如果进程的main函数返回或任何线程调用了`exit`、`_Exit`、`_exit`，整个进程就终止了，其中包括它的任何线程**
+3. **任何线程调用`return` `exit`、`_Exit`、`_exit`终止时，整个进程就终止了，其中包括它的任何线程**
+
+> 如果主线程调用了`pthread_exit`，而非`exit`或`return`，那么其它线程将继续运行
 
 下列程序status指向一个栈上的结构，这个栈上的对象被后来的线程覆盖：
 
@@ -2098,16 +2103,38 @@ pKey数组的所有元素都被初始化为空指针。这128个指针是和进�
 
 [使用线程特定数据的readline函数](https://github.com/arkingc/unpv13e/blob/master/threads/readline.c)
 
+一般步骤如下：
+
+* 定义了一个全局静态的`pthread_key_t`变量，表示键
+* 其中一个线程调用pthread_key_create从进程的`key`数组创建一个未使用的键（为了防止被多次调用，可以使用pthread_once）
+* 所有线程可以使用这个新键通过pthread_getspecific索引自己的`pkey`数组的相应位置
+    - 如果返回一个空指针，说明相应的线程特定数据元素不存在，可以调用malloc分配，然后调用pthread_setspecific将这个新分配的线程特定数据的指针保存在`pkey`数组中
+    - 如果返回一个非空指针，那么可以使用这个线程特定数据
+* 调用pthread_key_create函数时指定的析构函数会释放保存在每个线程`pkey`数组中的线程特定数据
+
 ### 1）pthread_once和pthread_key_create函数
 
 <div align="center"> <img src="../pic/unp-thread-9.png"/> </div>
 
-pthread_key_create函数：
+**pthread_key_create函数**：
 
 * **keyptr**：创建一个新的线程特定数据元素时，系统搜索其Key结构数组找到第一个不在使用的元素，元素的索引（0~127）记录在keyptr成员中，**作为返回值**。随后，线程可以利用记录在keyptr中的索引，在Pthread结构pkey数组的对应索引位置处存储一个指针，这个指针指向malloc动态分配的内存
-* **destructor**：指向析构函数的函数指针，当一个线程终止时，系统扫描该线程的pKey数组，为每个非空的pkey指针调用相应的析构函数，释放其指向的动态内存
+* **destructor**：指向析构函数的函数指针，当一个线程终止时，系统扫描该线程的pKey数组，为每个非空的pkey指针调用相应的析构函数，释放其指向的动态内存。如果为NULL，表明没有析构函数与该键关联
 
-pthread_once函数：
+**下列情况会调用析构函数**：
+
+* 当线程调用`pthread_exit`时
+* 当线程执行返回，正常退出时
+* 线程取消时，只有在最后的清理处理程序返回之后，析构函数才会被调用
+
+**下列情况不会调用析构函数**：
+
+* 线程调用了`exit`、`_exit`、`_Exit`或`abort`时
+* 出现其他非正常的退出时
+
+线程退出时，线程特定数据的析构函数将按照操作系统实现中定义的顺序被调用。当所有的析构函数都调用完成之后，系统会检查是否还有非空的线程特定数据值与键关联，如果有的话，再次调用析构函数。这个过程将会一直重复到线程所有的键都为空，或者已经做了`PTHREAD_DESTRUCTOR_ITERATIONS`中定义的最大次数的尝试
+
+**pthread_once函数**：
 
 * **onceptr**：onceptr参数指向的变量中的值，确保init参数所指的函数在进程范围内只被调用一次
 * **init**：进程范围内，对于一个给定的键，pthread_key_create只能被调用一次。所以init可以指向一个pthread_key_create函数，通过onceptr参数确保只调用一次
@@ -2118,6 +2145,12 @@ pthread_once函数：
 
 * pthread_getspecific函数返回对应指定键的指针
 * pthread_setspecific函数在Pthread结构中把对应指定键的指针设置为指向分配的内存
+
+### 3）pthread_key_delete函数
+
+<div align="center"> <img src="../pic/apue-threadctr-21.png"/> </div>
+
+该函数用来取消键与线程特定数据值之间的关联。它并不会激活与键关联的析构函数。要释放任何与键关联的线程特定数据值的内存，需要在应用程序中采取额外的步骤
 
 ## 4.互斥锁
 
