@@ -1777,6 +1777,8 @@ pthread_join类似于进程中的waitpid，用于等待一个给定线程的终�
 * **tid**：等待终止的线程ID。和进程不同的是，无法等待任意线程，所以不能通过指定ID参数为-1来企图等待任意线程终止
 * **status**：如果该指针非空，来自所等待线程的返回值（一个指向某个对象的指针）将存入由status指向的位置
 
+对于一个非脱离状态的线程，如果没有其它线程调用pthread_join等待线程终止，那么线性终止后的资源无法回收，会造成资源浪费，进而影响同一进程创建的线程数量
+
 ```c++
 #include "apue.h"
 #include <pthread.h>
@@ -1835,7 +1837,7 @@ thread 2 exit code 2
 
 <div align="center"> <img src="../pic/unp-thread-3.png"/> </div>
 
-新线程不应该根据主线程调用`pthread_create`函数时传入的`tid`参数来获取自身ID，而是应该调用pthread_self，因为新线程可能在主线程调用`pthread_create`返回之前运行，如果读取`tid`，看到的是未经初始化的内容
+**新线程不应该根据主线程调用`pthread_create`函数时传入的`tid`参数来获取自身ID，而是应该调用pthread_self，因为新线程可能在主线程调用`pthread_create`返回之前运行，如果读取`tid`，看到的是未经初始化的内容**
 
 ### 4）pthread_detach函数
 
@@ -1961,13 +1963,13 @@ parent:
 
 <div align="center"> <img src="../pic/unp-thread-16.png"/> </div>
 
-`pthread_cleanup_push`可以为线程添加清理函数，下列情况会调用清理函数：
+`pthread_cleanup_push`可以为线程添加清理函数，**下列情况会调用清理函数**：
 
 * 线程调用`pthread_exit`时
 * 线程响应取消请求时
 * 用非零`execute`参数调用`pthread_cleanup_pop`时
 
-以下情况不会调用清理函数；
+**以下情况不会调用清理函数**；
 
 * 线程通过`return`终止时
 * `execute`参数为0时
@@ -1996,7 +1998,7 @@ POSIX未就网络编程API函数的线程安全性作出任何规定。表中最
 
 把一个未线程化的程序转换成使用线程的版本时，有时会碰到因其中有函数使用静态变量而引起同步问题，如使用[my_read函数](https://github.com/arkingc/unpv13e/blob/master/lib/readline.c#L21)的[readline函数](https://github.com/arkingc/unpv13e/blob/master/lib/readline.c#L45)，在my_read函数中为了加速性能而使用了3个静态变量。解决这个问题有下列方法：
 
-1. **使用线程特定数据**
+1. **使用线程特定数据**（使线程变为线程安全的一个常用技巧）
     * 优点
         - 调用顺序无需变动，所有变动都体现在库函数中而非调用这些函数的应用程序中
     * 缺点
