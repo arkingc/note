@@ -279,8 +279,8 @@ int memcmp(const void *ptr1,const void *ptr2,size_t nbytes);
 
 ### 2.3 字节序
 
-* **小端字节序**：低序字节存储在低地址
-* **大端字节序**：低序字节存储在高地址
+* **小端字节序**：高序字节存储在高地址，低序字节存储在低地址
+* **大端字节序**：高序字节存储在低地址，低序字节存储在高地址
 
 <div align="center"> <img src="../pic/unp-3-4.png"/> </div>
 
