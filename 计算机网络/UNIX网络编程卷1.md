@@ -2215,16 +2215,19 @@ pKey数组的所有元素都被初始化为空指针。这128个指针是和进�
         + 子进程执行的函数：[child_main](https://github.com/arkingc/unpv13e/blob/master/server/child02.c#L19) 
     - **4**）**TCP预先派生子进程服务器**，[accept使用文件上锁保护](#accept使用文件上锁保护)
         + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv03.c)
+        + 服务器派生子进程函数：[child_make](https://github.com/arkingc/unpv13e/blob/master/server/child03.c#L4)
         + 锁的初始化函数：[my_lock_init](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L9)
         + 上锁函数：[my_lock_wait](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L44)
         + 解锁函数：[my_lock_release](https://github.com/arkingc/unpv13e/blob/master/server/lock_fcntl.c#L57)
-    - **5**）**TCP预先派生子进程服务器**，[accept使用线程上锁保护](#accept使用线程上锁保护)
+    - **5**）**TCP预先派生子进程服务器**，[accept使用线程互斥锁上锁保护](#accept使用线程互斥锁上锁保护)
         + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv04.c)
+        + 服务器派生子进程函数：[child_make](https://github.com/arkingc/unpv13e/blob/master/server/child04.c#L4)
         + 锁的初始化函数：[my_lock_init](https://github.com/arkingc/unpv13e/blob/master/server/lock_pthread.c#L8)
         + 上锁函数：[my_lock_wait](https://github.com/arkingc/unpv13e/blob/master/server/lock_pthread.c#L32)
         + 解锁函数：[my_lock_release](https://github.com/arkingc/unpv13e/blob/master/server/lock_pthread.c#L38)
     - **6**）**TCP预先派生子进程服务器**，[传递描述符](#传递描述符)
         + [主程序](https://github.com/arkingc/unpv13e/blob/master/server/serv05.c)
+        + 服务器派生子进程函数：[child_make](https://github.com/arkingc/unpv13e/blob/master/server/child05.c#L15)
         + 为每个子进程维护的信息结构：[Child](https://github.com/arkingc/unpv13e/blob/master/server/child.h)
 * **多线程服务器**
     - **7**）**TCP并发服务器**，[每个客户一个线程](#每个客户一个线程)
@@ -2264,7 +2267,7 @@ pKey数组的所有元素都被初始化为空指针。这128个指针是和进�
     - 无须引入父进程执行fork的开销就能处理新到的客户
 * 缺点
     - 父进程必须在服务器启动阶段猜测需要预先派生多少子进程。如果某个时刻客户数恰好等于子进程总数，那么新到的客户将被忽略，直到至少有一个子进程重新可用
-    - 存在**惊群问题**：所有N个子进程均被唤醒，但其中只有最先运行的子进程获得客户连接，其余N-1个子进程继续恢复睡眠，这回引入CPU开销。惊群问题会随预先分配的子进程数量的增加而越突出
+    - 存在**惊群问题**：所有N个子进程均被唤醒，但其中只有最先运行的子进程获得客户连接，其余N-1个子进程继续恢复睡眠，这会引入CPU开销。惊群问题会随预先分配的子进程数量的增加而越突出
     - 允许多个进程在引用同一个监听套接字的描述符上调用accept的做法仅仅适用于在内核中实现accept的源自Berkeley的内核。作为一个库函数实现accept的System V内核可能不允许这么做
 
 惊群问题的规模与影响：
@@ -2279,7 +2282,7 @@ pKey数组的所有元素都被初始化为空指针。这128个指针是和进�
 
 <div align="center"> <img src="../pic/unp-design-1.png"/> </div>
 
-描述符只是本进程引用file结构的proc结构中一个数组中某个元素的小标而已。子进程中一个给定描述符引用的file结构正是父进程中同一个描述符引用的file结构。每个file结构都有一个引用计数
+描述符只是本进程引用file结构的proc结构中一个数组中某个元素的下标而已。子进程中一个给定描述符引用的file结构正是父进程中同一个描述符引用的file结构。每个file结构都有一个引用计数
 
 当打开一个文件或套接字时，内核将为之构造一个file结构，这个file结构被作为打开操作返回值的描述符引用，引用计数的初值为1；以后每当调用fork以派生子进程或对打开操作返回的描述符调用dup以赋复制描述符时，该file结构的引用计数就递增
 
@@ -2293,7 +2296,7 @@ pKey数组的所有元素都被初始化为空指针。这128个指针是和进�
     - 围绕accept的上锁增加了服务器的进程控制CPU时间
     - 上锁涉及文件系统操作，可能比较耗时
 
-### accept使用线程上锁保护
+### accept使用线程互斥锁上锁保护
 
 * 优点
     - 上锁不涉及文件系统操作，比上一版快
