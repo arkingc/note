@@ -1250,9 +1250,9 @@ dev = 8/3
     * `fp`：被打开的文件对象的指针
     * `buf`：指向缓冲区的指针（如果是setbuf，长度就是BUFSIZ，定义在`<stdio.h>`中）
     * `mode`：指定缓冲类型。可以为：
-        * `_IOFBF`：全缓冲。
-        * `_IOLBF`：行缓冲
-        * `_IONBF`：不带缓冲。此时忽略`buf`和`size`参数
+        * `_IOFBF`：**全缓冲**
+        * `_IOLBF`：**行缓冲**
+        * `_IONBF`：**不带缓冲**。此时忽略`buf`和`size`参数
     * `size`：缓冲的长度
 
 <div align="center"> <img src="../pic/apue-standardio-3.png"/> </div>
