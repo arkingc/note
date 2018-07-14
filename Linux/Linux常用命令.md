@@ -183,7 +183,7 @@ cat /etc/passwd | tr -d ':'
 last | tr '[a-z]' 'A-Z'
 
 #3.将'a'、'b'、'c'替换成'z'
-#cat test | tr “abc” 'z'
+cat test | tr “abc” 'z'
 
 #4.将连续的'a'压缩成'b'（单个或连续出现的多个‘a’会压缩成一个‘b’）
 cat test | tr -s 'a' 'b'
@@ -271,10 +271,10 @@ nl /etc/passwd | sed '2a aaa \
 > bbb' #在第2行后插入两行："aaa"和"bbb"
 
 #2.删除
-nl /etc/passwd | sed '2,5d' #删除2\~5行
+nl /etc/passwd | sed '2,5d' #删除2~5行
 sed '/^$/d' ip #将ip文件中的空行删除
 
-#3.打印2\~5行（安静模式，不使用安静模式2\~5行会打印2次）
+#3.打印2~5行（安静模式，不使用安静模式2~5行会打印2次）
 nl /etc/passwd | sed -n '2,5p'
 
 #4.替换
