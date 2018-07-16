@@ -3,7 +3,7 @@
     * 2）[static函数与普通函数的区别？](temp/C++.md#4static函数与普通函数的区别)
     * 3）两个文件中声明两个同名变量？（使用了与未使用extern？） 
     * 4）全局数组和局部数组的初始化？
-    * 5）指针和引用的区别？（代表意义、内存占用、初始化、指向是否可改）
+    * 5）[指针和引用的区别](https://www.nowcoder.com/ta/nine-chapter/review?page=11)？（代表意义、内存占用、初始化、指向是否可改、能否为空）
     * 6）[C/C++中的强制转换](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE27%E5%B0%BD%E9%87%8F%E5%B0%91%E5%81%9A%E8%BD%AC%E5%9E%8B%E5%8A%A8%E4%BD%9C)
     * 7）[如何修改const变量、const与volatile](https://blog.csdn.net/heyabo/article/details/8745942)
     * 8）静态类型获取与动态类型获取（[typeid](https://github.com/arkingc/llc/blob/master/cpp/RTTI/typeid.cpp#L4)、dynamic_cast:转换目标类型必须是引用类型）
@@ -55,6 +55,8 @@
     * 19）如何定义类内常量？（enum而不是static const [《Effective C++:条款2》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE02%E5%B0%BD%E9%87%8F%E4%BB%A5constenuminline%E6%9B%BF%E6%8D%A2define)）
     * 20）继承与组合(复合)之间如何选择？（[《Effective C++:条款38》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE38%E9%80%9A%E8%BF%87%E5%A4%8D%E5%90%88%E5%A1%91%E6%A8%A1%E5%87%BAhas-a%E6%88%96%E6%A0%B9%E6%8D%AE%E6%9F%90%E7%89%A9%E5%AE%9E%E7%8E%B0%E5%87%BA)）
     * 21）private继承？（[《Effective C++:条款39》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE39%E6%98%8E%E6%99%BA%E8%80%8C%E5%AE%A1%E6%85%8E%E5%9C%B0%E4%BD%BF%E7%94%A8private%E7%BB%A7%E6%89%BF)）
+    * 22）[如何定义一个只能在堆上（栈上）生成对象的类？](https://www.nowcoder.com/questionTerminal/0a584aa13f804f3ea72b442a065a7618)
+    * 23）[内联函数、构造函数、静态成员函数可以是虚函数吗？](https://www.nowcoder.com/ta/nine-chapter/review?page=24)
 * **四.内存管理**
     * 1）[C++内存分区](../C++/内存分区.md)
     * 2）[new](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#1new)和malloc的区别？（函数，运算符、类型安全、计算空间、步骤）
@@ -117,8 +119,8 @@
     * 1）extern？（extern "C"?、与static？、有什么问题？、extern的时候定义变量？）
     * 2）const？（修饰变量、修饰指针与引用、修饰成员函数 [《Effective C++:条款3》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE03%E5%B0%BD%E5%8F%AF%E8%83%BD%E4%BD%BF%E7%94%A8const)）
     * 3）mutable？
-    * 4）static？（修饰变量、类中使用）
-    * 5）define与const、enum、template inline？（[《Effective C++:条款2》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE02%E5%B0%BD%E9%87%8F%E4%BB%A5constenuminline%E6%9B%BF%E6%8D%A2define)、C中默认const是外部连接的，而C++中默认const是内部连接的）
+    * 4）[static](https://www.nowcoder.com/ta/nine-chapter/review?page=15)？（修饰变量、类中使用）
+    * 5）[define与const](https://www.nowcoder.com/questionTerminal/a60c01a7c4ab473e81218ed0b333b4e6)、enum、inline？（[《Effective C++:条款2》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE02%E5%B0%BD%E9%87%8F%E4%BB%A5constenuminline%E6%9B%BF%E6%8D%A2define)、C中默认const是外部连接的，而C++中默认const是内部连接的）
     * 6）explict?（抑制隐式转换、可通过显示转换或直接初始化解决、类外定义时不应重复出现）
     * 7）noexcept？（承诺不会抛出异常）
     * 8）default、delete?（显示要求编译器合成、不能被调用）
