@@ -1172,11 +1172,11 @@ func NewWorkSpace(volume, imageName, containerName string) {
 
 它又调用了下面4个函数：
 
-* [处理镜像层和容器层](#1处理镜像层和容器层)
+* 处理镜像层和容器层
     - CreateReadOnlyLayer：解压tar镜像到镜像层目录
     - CreateWriteLayer：创建容器的读写层目录
     - CreateMountPoint：创建容器的挂载目录，进行联合挂载
-* [处理volume卷](#2处理volume卷)
+* 处理volume卷
     - MountVolume
 
 以tar格式的busybox镜像为例，容器文件系统的创建流程如下图：
@@ -1300,9 +1300,9 @@ func DeleteWorkSpace(volume, containerName string) {
 基本上和联合挂载是一个相反的过程。它又调用了下面3个函数：
 
 
-* [处理volume卷](#2处理volume卷)
+* 处理volume卷
     - DeleteVolume
-* [处理镜像层和容器层](#1处理镜像层和容器层)
+* 处理镜像层和容器层
     - DeleteMountPoint：调用umount卸载已挂载到容器挂载目录下的联合文件系统，然后删除容器的挂载目录
     - DeleteWriteLayer：删除容器的读写（层）目录
 
