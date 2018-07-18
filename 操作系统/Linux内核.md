@@ -53,21 +53,21 @@
 
 ```c
 struct buffer_head {
-	unsigned long b_state;				/* buffer的状态位图 */
+	unsigned long b_state;			/* buffer的状态位图 */
 	struct buffer_head *b_this_page;	/* 该页buffer的循环链表 */
-	struct page *b_page;				/* 该buffer_head映射到的page */
+	struct page *b_page;			/* 该buffer_head映射到的page */
 
-	sector_t b_blocknr;					/* 起始块号 */
-	size_t b_size;						/* size of mapping */
-	char *b_data;						/* pointer to data within the page */
+	sector_t b_blocknr;			/* 起始块号 */
+	size_t b_size;				/* size of mapping */
+	char *b_data;				/* pointer to data within the page */
 
 	struct block_device *b_bdev;
 	bh_end_io_t *b_end_io;				/* I/O completion */
- 	void *b_private;					/* reserved for b_end_io */
+ 	void *b_private;				/* reserved for b_end_io */
 	struct list_head b_assoc_buffers;	/* associated with another mapping */
 	struct address_space *b_assoc_map;	/* mapping this buffer is
 						   associated with */
-	atomic_t b_count;					/* 引用计数 */
+	atomic_t b_count;			/* 引用计数 */
 };
 ```
 
@@ -75,10 +75,10 @@ struct buffer_head {
 * `b_count`：buffer的使用计数。这个值通过两个内联函数进行增加和减小，它们定义在`<linux/buffer_head.h>`中
 	```c
 	static inline void get_bh(struct buffer_head *bh) {
-	atomic_inc(&bh->b_count);
+		atomic_inc(&bh->b_count);
 	}
 	static inline void put_bh(struct buffer_head *bh) {
-	atomic_dec(&bh->b_count);
+		atomic_dec(&bh->b_count);
 	}
 	```
 	在操作一个buffer前，需要调用`get_bh()`增加这个buffer的使用计数，确保buffer不会意外释放。当操作完成后，调用`put_bh()`函数减小使用计数
