@@ -41,7 +41,7 @@
 
 扇区和块的关系下图：
 
-<div align="center"> <img src="../pic/kernel-blockio-1"/> </div>
+<div align="center"> <img src="../pic/kernel-blockio-1.png"/> </div>
 
 <br>
 
@@ -59,22 +59,27 @@ struct buffer_head {
 
 	sector_t b_blocknr;					/* 起始块号 */
 	size_t b_size;						/* size of mapping */
-	char *b_data;							/* pointer to data within the page */
+	char *b_data;						/* pointer to data within the page */
 
 	struct block_device *b_bdev;
-	bh_end_io_t *b_end_io;					/* I/O completion */
- 	void *b_private;							/* reserved for b_end_io */
-	struct list_head b_assoc_buffers;		/* associated with another mapping */
+	bh_end_io_t *b_end_io;				/* I/O completion */
+ 	void *b_private;					/* reserved for b_end_io */
+	struct list_head b_assoc_buffers;	/* associated with another mapping */
 	struct address_space *b_assoc_map;	/* mapping this buffer is
 						   associated with */
-	atomic_t b_count;		/* 引用计数 */
+	atomic_t b_count;					/* 引用计数 */
 };
 ```
 
 * `b_state`：buffer的状态。可能是下表中的值
 * `b_count`：buffer的使用计数。这个值通过两个内联函数进行增加和减小，它们定义在`<linux/buffer_head.h>`中
 	```c
-	static inline void get_bh(struct buffer_head *bh) {	atomic_inc(&bh->b_count);	}	static inline void put_bh(struct buffer_head *bh) {	atomic_dec(&bh->b_count);	}
+	static inline void get_bh(struct buffer_head *bh) {
+	atomic_inc(&bh->b_count);
+	}
+	static inline void put_bh(struct buffer_head *bh) {
+	atomic_dec(&bh->b_count);
+	}
 	```
 	在操作一个buffer前，需要调用`get_bh()`增加这个buffer的使用计数，确保buffer不会意外释放。当操作完成后，调用`put_bh()`函数减小使用计数
 * `b_bdev`：buffer对应的块设备
@@ -177,7 +182,7 @@ struct bio {
 
 下图描绘了bio、bio_vec、page三者间的关系：
 
-<div align="center"> <img src="../pic/kernel-blockio-2"/> </div>
+<div align="center"> <img src="../pic/kernel-blockio-2.png"/> </div>
 
 **总之，每个块I/O请求用一个bio结构表示，每个请求由一个或多个块组成(对应一个或多个buffer)，这些块通过bi\_io\_vec指向的bio\_vec链表串连起来。随着块I/O层提交片段，bi_idx域被更新指向当前段。**
 
@@ -246,7 +251,7 @@ Linux Elevator调度算法包括合并和排序操作
 * 此外，它还根据请求的类型将读请求和写请求分别插入到**read FIFO queue**和**write FIFO queue**。虽然sorted queue是按照物理磁盘访问顺序对请求进行排序，但是**read FIFO queue**和**write FIFO queue**严格保持先进先出的顺序。正常情况下，deadline从sorted queue头部取出一个请求，提交到分发队列(dispatch queue)，分发队列进一步将请求提交给磁盘。这保证了最小化寻道时间
 * 如果**read FIFO queue**或者**write FIFO queue**中的头部请求到期(也就是说，当前时间超过了请求的到期时间)，则deadline转为服务FIFO队列。这确保了不会有请求超过到期时间太多才完成
 
-<div align="center"> <img src="../pic/kernel-blockio-3"/> </div>
+<div align="center"> <img src="../pic/kernel-blockio-3.png"/> </div>
 
 > deadline并不保证请求的**完成**时间，它只保证在到期时间来临之前或者在到期时间来临时**提交**请求。这能够防止饥饿发生。同时，由于读请求的到期时间远小于写请求的到期时间，它也能防止写饥饿读。对读请求的照顾确保了最小化的读延迟
 
