@@ -62,8 +62,8 @@ struct buffer_head {
 	char *b_data;				/* pointer to data within the page */
 
 	struct block_device *b_bdev;
-	bh_end_io_t *b_end_io;				/* I/O completion */
- 	void *b_private;				/* reserved for b_end_io */
+	bh_end_io_t *b_end_io;			/* I/O completion */
+ 	void *b_private;			/* reserved for b_end_io */
 	struct list_head b_assoc_buffers;	/* associated with another mapping */
 	struct address_space *b_assoc_map;	/* mapping this buffer is
 						   associated with */
