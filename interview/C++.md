@@ -67,7 +67,8 @@
     * 7）[delete](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#1new)（步骤、delete与析构、可以delete空指针、可以delete动态const对象）
     * 8）为什么要内存对齐？([性能原因、平台原因](temp/C++.md/#1为什么要内存对齐))
     * 9）[struct内存对齐方式？](https://github.com/arkingc/llc/blob/master/cpp/alignment/struct.cpp#L1)
-    * 10）什么是内存泄露？如何检测与避免？（Mtrace，[valgrind](temp/C++.md/#2valgrind)）
+    * 10）如何取消内存对其？（添加预处理指令`#pragma pack(1)`）
+    * 11）什么是内存泄露？如何检测与避免？（Mtrace，[valgrind](temp/C++.md/#2valgrind)）
     * 11）[智能指针相关](https://mubu.com/doc/BGwWx-huk)
         * 种类、区别、原理、能否管理动态数组
         * shared_ptr（使用、计数的变化，get()函数要注意什么）
