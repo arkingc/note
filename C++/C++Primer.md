@@ -52,11 +52,11 @@
 
 * [内存管理](#内存管理)
     - [1.new和delete](#1new和delete)
-        + [1.1 new](11-new)
-        + [1.2 delete](12-delete)
-    - [2.智能指针](#智能指针)
-        + [2.1 通用操作](21通用操作)
-        + [2.2 shared_ptr](22-shared_ptr)
+        + [1.1 new](#11-new)
+        + [1.2 delete](#12-delete)
+    - [2.智能指针](#2智能指针)
+        + [2.1 通用操作](#21通用操作)
+        + [2.2 shared_ptr](#22-shared_ptr)
         + [2.3 unique_ptr](#23-unique_ptr)
         + [2.4 weak_ptr](#24-weak_ptr)
 
