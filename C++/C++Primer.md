@@ -55,7 +55,7 @@
         + [1.1 new](#11-new)
         + [1.2 delete](#12-delete)
     - [2.智能指针](#2智能指针)
-        + [2.1 通用操作](#21通用操作)
+        + [2.1 通用操作](#21-通用操作)
         + [2.2 shared_ptr](#22-shared_ptr)
         + [2.3 unique_ptr](#23-unique_ptr)
         + [2.4 weak_ptr](#24-weak_ptr)
@@ -1192,8 +1192,8 @@ int *p3 = new int[5]{1,2,3,4,5};
     - `make_shared<T>(args)`：推荐使用这种方式。args用于初始化指向的对象，不传参数时”值初始化“
         ```c++
         shared_ptr<int> p1 = make_shared<int>(42);​​​ //动态对象初始化为42
-    ​​​​​​​​​​​​​​​    shared_ptr<string> p2 = make_shared<string>(10,'9');   //动态对象初始化为"9999999999"
-        shared_ptr<int> p3 = make_shared<int>( ); //动态对象值初始化，0​​​​​​​
+        ​​​shared_ptr<string> p2 = make_shared<string>(10,'9');  //动态对象初始化为"9999999999"
+        shared_ptr<int> p3 = make_shared<int>(); //动态对象值初始化，0​​​​​​​
         ```
 * 使用构造函数
     - `shared_ptr<T> p(q)`
