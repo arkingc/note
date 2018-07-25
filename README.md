@@ -35,6 +35,7 @@
 * [《Effective C++》](C++/EffectiveC++.md)
 * [《深度探索C++对象模型》](C++/C++对象模型.md)
 * [《STL 源码剖析》](C++/STL源码剖析.md)
+* [《C++ Primer》](C++/C++Primer.md)
 
 <br>
 
