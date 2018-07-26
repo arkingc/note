@@ -659,7 +659,7 @@ obj.normalize();
 (*ptr->vptr[1])(ptr);
 ```
 
-那么通过obj调用时，会如何转化？如果类似ptr，虽然语意正确，却没有必要。上述经由origin调用的函数实例只可能是Point3d::normalize()。**“经由一个class object调用一个virtual function”，这种操作应该总是被编译器像对待一般nonstatic member function一样地解析**，因此转化如下：
+那么通过obj调用时，会如何转化？如果类似ptr，虽然语意正确，却没有必要。上述经由obj调用的函数实例只可能是Point3d::normalize()。**“经由一个class object调用一个virtual function”，这种操作应该总是被编译器像对待一般nonstatic member function一样地解析**，因此转化如下：
 
 ```c++
 normalize__7Point3dFv
@@ -770,7 +770,7 @@ protected:
 };
 ```
 
-在多重继承下，一个derived class内含n-1个额外的virtual tables，n表示其上一层base classes的个数（因此，单一继承将不会有额外的virtual tables）。对于上面的Derived类而言，会有2个virtual tables被编译器产生出来：
+在多重继承下，一个derived class内含n-1个"额外"的virtual tables，n表示其上一层base classes的个数（因此，单一继承将不会有额外的virtual tables）。对于上面的Derived类而言，会有2个virtual tables被编译器产生出来：
 
 1. 一个主要实例，与Base1(最左端base class)共享
 2. 一个次要实例，与Base2(第二个base class)有关
