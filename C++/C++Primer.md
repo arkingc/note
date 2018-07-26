@@ -286,12 +286,12 @@ int* p1, p2; //p1是一个int*，p2是一个int
 
 ### 4）顶层const与底层const
 
-* **顶层const**：无法修改指针本身
+* **顶层const**：无法修改指针本身（顶层是一种直接的关系）
     ```c++
     const int ci = 123; 
     int *const a = &b;
     ```
-* **底层const**：无法修改所指的对象
+* **底层const**：无法修改所指的对象（底层是一种间接的关系）
     * 用于声明引用的const都是底层const
 
 <br>
