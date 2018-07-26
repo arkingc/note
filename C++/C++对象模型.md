@@ -168,6 +168,17 @@ int main(){
 **编译器会对初始化列表一一处理并可能重新排序，以反映出成员的声明顺序。它会安插一些代码到构造函数体内，并置于任何显示用户代码(explicit user code)之前**
 
 > 和默认构造函数、拷贝构造函数相关的问题：是否可以使用memset来初始化一个对象、使用memcpy来拷贝一个对象？只有在”class不含任何由编译器产生的内部members“时才能有效运行。如果class声明一个或一个以上的virtual functions，或内含一个virtual base class，那么使用上述函数将会导致那些”被编译器产生的内部members“的初值被改写
+> 
+> ```c++
+> class Shape{
+> public:
+>   //会改变内部的vptr
+>   Shape() {memset(this,0,sizeof(Shape));}
+>   //当传入一个子类对象的地址时，vptr会指向子类的虚函数表
+>   Shape(const Shape &rhs) {memcpy(this,&rhs,sizeof(Shape));}
+>   virtual ~Shape();
+> };
+> ```
 
 <br>
 <br>
