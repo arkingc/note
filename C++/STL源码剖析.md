@@ -384,7 +384,7 @@ void * __malloc_alloc_template<inst>::oom_realloc(void *p, size_t n)
 ```
 
 * 以malloc()、free()、realloc()等C函数执行实际的内存分配、释放、重分配操作
-* 实现出类似C++ new-handler的机制（**C++ new-handler机制是，可以要求系统在内存分配需求无法被满足时，调用一个你所指定的函数。换句话说，一旦::operator new无法完成任务，在丢出std::bad_alloc异常状态之前，会先调用由客户指定的处理例程，该处理例程通常即被称为new-handler**），不能直接运用C++ new-handler机制，因为它并非使用::operator new来分配内存
+* 实现出类似C++ new-handler的机制（**C++ new-handler机制是，可以要求系统在内存分配需求无法被满足时，调用一个你所指定的函数。换句话说，一旦::operator new无法完成任务，在丢出std::bad_alloc异常状态之前，会先调用由客户指定的处理例程，该处理例程通常即被称为new-handler**），不能直接运用C++ new-handler机制，因为它并非使用::operator new来分配内存（[operator new的实现](C++对象模型.md#3operator-new和operator-delete的实现)）
 
 #### 3）第二级分配器__default_alloc_template
 
