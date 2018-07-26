@@ -1768,7 +1768,7 @@ private:
 
 ## 条款41：了解隐式接口和编译器多态
 
-面向对象设计中的类（class）考虑的是显式接口（explicit interface）和运行时多态， 而模板编程中的模板（template）考虑的是隐式接口（implicit interface）和编译期多态。
+面向对象设计中的类（class）考虑的是显式接口（explicit interface）和运行时多态， 而模板编程中的**模板（template）考虑的是隐式接口（implicit interface）和编译期多态**。
 
 * 对类而言，显式接口是由函数签名表征的，运行时多态由虚函数实现
 * 对模板而言，隐式接口是由表达式的合法性表征的，编译期多态由模板初始化和函数重载的解析实现
@@ -1992,7 +1992,7 @@ class Middle : public Top {...};
 class Bottom : public Middle {...};
 ```
 
-现在希望通过一个SmartPtr\<Bottom\>或SmartPtr\<Middle\>来初始化一个SmartPtr\<Top\>。如果不是指针，即Middle\*和Bottom\*可以隐式转换成Top\*，问题是：**同一个template的不同具现体之间不存在什么与生俱来的固有关系，即使具现体之间具有继承关系**。因此，SmartPtr\<Bottom\>或SmartPtr\<Middle\>并不能隐式转化成SmartPtr\<Top\>。因此，我们需要一个构造函数模板，来实现这种转换：
+现在希望通过一个SmartPtr\<Bottom\>或SmartPtr\<Middle\>来初始化一个SmartPtr\<Top\>。如果是指针，即Middle\*和Bottom\*可以隐式转换成Top\*，问题是：**同一个template的不同具现体之间不存在什么与生俱来的固有关系，即使具现体之间具有继承关系**。因此，SmartPtr\<Bottom\>或SmartPtr\<Middle\>并不能隐式转化成SmartPtr\<Top\>。因此，我们需要一个构造函数模板，来实现这种转换：
 
 ```c++
 template<typename T>
@@ -2020,7 +2020,7 @@ private:
 
 ## 条款46：需要类型转换时请为模板定义非成员函数
 
-**template实参推导过程中从不将隐式类型转换函数纳入考虑**，下列将[条款24]中的Rational和operator\*改成了template，混合运算会编译错误：
+**template实参推导过程中从不将隐式类型转换函数纳入考虑**，下列将[条款24](#条款24若所有参数皆需类型转换请为此采用non-member函数)中的Rational和operator\*改成了template，混合运算会编译错误：
 
 ```c++
 template<typename T>
@@ -2086,7 +2086,7 @@ public:
 ## 条款47：请使用traits classes表现类型信息
 
 * Traits classes使得“类型相关信息”在编译期可用。它们以templates和“templates特化”完成实现
-* 整合重载技术后，traits classes有可能在编译器对类型执行if...else测试
+* 整合重载技术后，traits classes有可能在编译期对类型执行if...else测试
 
 详细可参考[STL源码分析中对traits的介绍](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2traits%E7%BC%96%E7%A8%8B%E6%8A%80%E6%B3%95)
 
@@ -2094,7 +2094,7 @@ public:
 
 ## 条款48：认识template元编程
 
-* Template metaprogramming(TMP)是编写template-based C++程序并执行与编译期的过程
+* Template metaprogramming(TMP)是编写template-based C++程序并执行于编译期的过程
 * Template metaprogram(模板元程序)是以C++写成、执行于C++编译器内的程序
 
 **TMP的两个重要特点：1）基于template；2）编译期执行**
