@@ -1703,6 +1703,50 @@ Point *ptr = new Point3d[10];
 
 实施于数组上的destructor，是根据交给vec_delete()函数的”被删除的指针类型的destructor“——在本例中就是Point destructor，与我们的期望不符。此外，每一个元素的大小也一并被传递过去（本例中是Point class object的大小）。这就是vec_delete()如何迭代走过每一个数组元素的方式。因此整个过程失败了，不只是因为执行了错误的destructor，而且自从第一个元素之后，该destructor即被施行于不正确的内存区块中
 
+测试程序：
+
+```c++
+class base{
+public:
+    base() {cout << "base constructor" << endl;}
+    virtual ~base() {cout << "base destructor" << endl;}
+};
+
+class derived : public base{
+public:
+    derived() {cout << "derived constructor" << endl;}
+    virtual ~derived() {cout << "derived destructor" << endl;}
+};
+
+int main()
+{
+    base *arr = new derived[5];
+    delete [] arr;
+    return 0;
+}
+```
+
+输出如下：
+
+```
+//new时构造出了5个子类对象，delete时，调用的是基类的析构函数
+base constructor
+derived constructor
+base constructor
+derived constructor
+base constructor
+derived constructor
+base constructor
+derived constructor
+base constructor
+derived constructor
+base destructor
+base destructor
+base destructor
+base destructor
+base destructor
+```
+
 ## 6.3 临时性对象
 
 分析下列3个语句产生的临时对象：
