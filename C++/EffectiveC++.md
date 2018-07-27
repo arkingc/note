@@ -621,8 +621,8 @@ func1(p,func2());
         ...
     }
     ```
-    上面日期类的构造函数中，年月日都是int，那么很容易传入顺序错误的参数。因此，可以因为3个表示年月日的新类：Year、Month、Day。从而防止这种问题。更进一步，为了使得传入的数据有效，比如月份，可以设计生成12个月份对象的static成员函数。并将构造函数声明为explicit强制要求通过调用static成员函数得到月份对象。如果使用enums没有那么安全，enums可被拿来当作一个ints使用
-2. **除非有好的理由，否则应该尽量让你的type的行为与内置类型一致**：如```if(a * b = c)```d对内置类型来说不合法，那么你的type在实现operator\*时就应该返回一个const对象
+    上面日期类的构造函数中，年月日都是int，那么很容易传入顺序错误的参数。因此，可以因为3个表示年月日的新类：Year、Month、Day。从而防止这种问题。更进一步，为了使得传入的数据有效，比如月份，可以设计生成12个月份对象的static成员函数，并将构造函数声明为explicit强制要求通过调用static成员函数得到月份对象。使用enums没有那么安全，enums可被拿来当作一个ints使用
+2. **除非有好的理由，否则应该尽量让你的type的行为与内置类型一致**：如```if(a * b = c)```对内置类型来说不合法，那么你的type在实现operator\*时就应该返回一个const对象
 3. **提供一致的接口**：如C++ STL容器都提供size()返回容器大小，但是Java和.Net对于不同容器大小接口可能不同，这会增加使用负担
 4. **返回“资源管理对象”而不是原始资源**：如用shared_ptr管理资源时，客户可能会忘记使用智能指针，从而开启了忘记释放和重复释放的大门。通过修改接口的返回类型为智能指针，从而确保元素资源处于“资源管理对象”的掌控之中
 
@@ -747,7 +747,7 @@ protected成员变量和public成员变量的论点十分相同。“语法一�
 
 ## 条款23：宁以non-member、non-friend替换member函数
 
-假设有个浏览器类，包含一些功能用来清楚下载元素高速缓冲区、清楚访问过的URLs的历史记录、已经移除系统中的所有cookies：
+假设有个浏览器类，包含一些功能用来清除下载元素高速缓冲区、清除访问过的URLs的历史记录、以及移除系统中的所有cookies：
 
 ```c++
 class WebBrowser{
@@ -765,14 +765,14 @@ public:
 ```c++
 class WebBrowser{
 public:
-  //实现成成员函数
+  //实现成成员函数，能访问private成员
   void clearEverything(){
     clearCache();
     clearCookies();
     clearHistory();
   }
 }
-//或者实现成非成员函数：
+//或者实现成非成员函数，不能访问private成员
 void clearEverything(WebBrowser& wb){
   wb.clearCache();
   wb.clearCookies();
@@ -782,13 +782,13 @@ void clearEverything(WebBrowser& wb){
 
 问题是应该如何选择？这个问题主要在于**封装性**
 
-如果某些东西被封装，它就不再可见。越多东西被封装，越少人可以看到它。越少人看到它，就有越大的弹性去变化它，因为我们的改变仅仅直接影响看到改变的那些人事物。
+如果某些东西被封装，它就不再可见。越多东西被封装，越少人可以看到它。越少人看到它，就有越大的弹性去变化它，因为我们的改变仅仅直接影响看到改变的那些人事物
 
 因此，对于对象内的代码。越少代码可以看到数据（也就是访问它），越多的数据可被封装，我们也就越能自由地改变对象数据。作为一种粗糙的测量，越多函数可访问它，数据的封装性就越低
 
 条款22所说，成员变量应该是private。能够访问private成员变量的函数只有class的member函数加上friend函数而已。**如果要在一个member函数和一个non-member，non-friend函数之间做选择，而且两者提供相同机能，那么，导致较大封装性的是non-member，non-friend函数**，也就是本条款这样选择的原因
 
-一个扩展性的问题是——这些non-member，non-friend函数应该实现与何处?
+一个扩展性的问题是——这些non-member，non-friend函数应该实现于何处?
 
 一个像WebBrowser这样的class可能拥有大量便利函数，某些与书签有关，某些与打印有关，还有一些与cookie的管理有关...通常客户只对其中某些感兴趣。没道理一个只对书签相关便利函数感兴趣的客户却与一个cookie相关便利函数发生编译相依关系。分离它们的最直接做法就是将书签相关便利函数声明于一个头文件，将cookie相关便利函数声明于另一个头文件，再将打印相关...以此类推：
 
@@ -2325,7 +2325,7 @@ Derived *p = new Derived;    //这里调用的是Base::operator new
 ```c++
 void* Base::operator new(std::size_t size) throw(std::bad_alloc)
 {
-    if(Base != sizeof(Base))            //如果大小错误
+    if(size != sizeof(Base))            //如果大小错误
         return ::operator new(size);    //交给标准的operator new处理
     ...
 }
@@ -2375,7 +2375,7 @@ new会先调用operator new，然后构造对象。如果对象构造过程中�
 * 对于正常版本的operator new，匹配的operator delete就是不带额外参数的版本
 * 对于非正常版本的operator new(placement new)，匹配的operator delete是带相应参数的版本(placement delete)
 
-placement delete只有在“伴随placement new调用而触发的构造函数”出现异常时才会被调用。对着一个指针施行delete绝不会导致调用placement delete
+**placement delete只有在“伴随placement new调用而触发的构造函数”出现异常时才会被调用。对着一个指针施行delete绝不会导致调用placement delete**
 
 这意味着如果要对所有与placement new相关的内存泄露宣战，我们必须同时提供一个正常的operator delete（用于构造期间无任何异常被抛出）和一个placement版本（用于构造期间有异常被抛出）。后者的额外参数必须和operator new一样。只要这样做，就再也不会因为难以察觉的内存泄露而失眠
 
