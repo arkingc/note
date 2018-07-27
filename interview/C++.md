@@ -49,7 +49,7 @@
     * 13）为什么不要在构造、析构函数中调用虚函数？（子对象的base class构造期间，对象的类型是base class [《Effective C++:条款9》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE09%E7%BB%9D%E4%B8%8D%E5%9C%A8%E6%9E%84%E9%80%A0%E5%92%8C%E6%9E%90%E6%9E%84%E8%BF%87%E7%A8%8B%E4%B8%AD%E8%B0%83%E7%94%A8virtual%E5%87%BD%E6%95%B0)，[设置虚函数指针的时机](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#vptr%E7%9A%84%E8%AE%BE%E7%BD%AE)）
     * 14）[虚函数被覆盖？](https://github.com/arkingc/llc/blob/master/cpp/class/inheritance/virtual_function_hide.cpp#L1)
     * 15）virtual函数动态绑定，缺省参数值静态绑定（[《Effective C++:条款37》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE37%E7%BB%9D%E4%B8%8D%E9%87%8D%E6%96%B0%E5%AE%9A%E4%B9%89%E7%BB%A7%E6%89%BF%E8%80%8C%E6%9D%A5%E7%9A%84%E7%BC%BA%E7%9C%81%E5%8F%82%E6%95%B0%E5%80%BC)）
-    * 16）纯虚函数与抽象基类（关系、”=0“、必须在类内申明）
+    * 16）纯虚函数与抽象基类（[纯虚函数与虚函数、一般成员函数的选择](../C++/EffectiveC++.md#条款34区分接口继承和实现继承)）
     * 17）静态类型与动态类型（引用是否可实现动态绑定）
     * 18）浅拷贝与深拷贝（安全性、行为像值的类与行为像指针的类）
     * 19）如何定义类内常量？（enum而不是static const [《Effective C++:条款2》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE02%E5%B0%BD%E9%87%8F%E4%BB%A5constenuminline%E6%9B%BF%E6%8D%A2define)）
@@ -127,7 +127,7 @@
     * 7）noexcept？（承诺不会抛出异常）
     * 8）default、delete?（显示要求编译器合成、不能被调用）
     * 9）using？（用于命名空间？、用于类中？）
-    * 10）final？（修饰类？、修饰成员函数？）
+    * 10）final？（修饰类？、修饰成员函数？只有虚函数能使用final）
     * 11）auto(初始值为引用时类型为所引对象的类型、必须初始化、不能用于函数及模板)、decltype？
     * 12）volatile?（对象的值可能在程序的控制外被改变时，应将变量申明为volatile，告诉编译器不应对这样的对象进行优化，如果优化，从内存读取后CPU会优先访问数据在寄存器中的结果，但是内存中的数据可能在程序之外被改变、可以既是const又是volatile，const只是告诉程序不能试图去修改它.volatile是告诉编译器不要优化，因为变量可能在程序外部被改变）
 * **八.其它**
@@ -143,3 +143,4 @@
     * 10）gcc和g++的区别？（gcc代表GUN Compiler Collection，是一堆编译器的集合，包括g++）
     * 11）[运行时类型识别实现对象比较函数](https://github.com/arkingc/llc/blob/master/cpp/RTTI/RTTI.cpp#L9)
     * 12）[使用C++实现线程安全的单例模式](https://www.cnblogs.com/ccdev/archive/2012/12/19/2825355.html)
+    * 13）[什么是异常安全？](../C++/EffectiveC++.md#1异常安全的2个条件)
