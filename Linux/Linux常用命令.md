@@ -24,7 +24,7 @@
     * [2.进程监控：top](#2进程监控top)
     * [3.打开文件查询：lsof](#3打开文件查询lsof)
     * [4.内存使用量：free](#4内存使用量free)
-    * [5.shell进程的资源限制：ulimit](#5进程资源限制ulimit)
+    * [5.shell进程的资源限制：ulimit](#5shell进程的资源限制ulimit)
 * [四.网络工具](#四网络工具)
     * [1.网卡配置：ifconfig](#1网卡配置ifconfig)
     * [2.查看当前网络连接：netstat](#2查看当前网络连接netstat)
@@ -440,15 +440,15 @@ free [选项]
 #### 使用方法
 
 ```bash
-ulimit [选项]      #查看
-ulimit [选项] 新值 #修改
+ulimit [选项]       #查看
+ulimit [选项] 新值  #修改
 
 选项：
     -a：列出shell进程的所有资源限制情况（-a命令会列出查看某一资源限制的选项参数）
     ...
 ```
 
-使用`ulimit`修改资源限制只会对当前终端环境有效，如果想永久生效，可以修改文件**`/etc/security/limits.conf`**，该文件的内容如下；
+使用`ulimit`修改资源限制只会对当前终端环境有效，如果想永久生效，可以修改文件`/etc/security/limits.conf`，该文件的内容如下；
 
 ```bash
 # /etc/security/limits.conf
