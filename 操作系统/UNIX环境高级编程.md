@@ -2179,7 +2179,6 @@ Stack level 0, frame at 0x7ffe5f70daa0:
  Saved registers:
   rbp at 0x7ffe5f70da90, rip at 0x7ffe5f70da98
 ```
-```
 
 从上面可以看出,我们可以还原程序执行时的场景,并使用 where 可以查看当前程序调用函数栈帧, 还可以使用 gdb 中的命令查看寄存器,变量等信息
 
