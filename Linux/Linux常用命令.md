@@ -24,6 +24,7 @@
     * [2.进程监控：top](#2进程监控top)
     * [3.打开文件查询：lsof](#3打开文件查询lsof)
     * [4.内存使用量：free](#4内存使用量free)
+    * [5.shell进程的资源限制：ulimit](#5进程资源限制ulimit)
 * [四.网络工具](#四网络工具)
     * [1.网卡配置：ifconfig](#1网卡配置ifconfig)
     * [2.查看当前网络连接：netstat](#2查看当前网络连接netstat)
@@ -433,6 +434,102 @@ free [选项]
 * **+ buffers/cache**：可用内存。free+buffers+cached（在内存紧张时，buffers和cached可以回收）
 
 [详细结果说明](https://fixatom.com/linux-free-cmd-buffers-and-cached/)
+
+## 5.shell进程的资源限制：ulimit
+
+#### 使用方法
+
+```bash
+ulimit [选项]      #查看
+ulimit [选项] 新值 #修改
+
+选项：
+    -a：列出shell进程的所有资源限制情况（-a命令会列出查看某一资源限制的选项参数）
+    ...
+```
+
+使用`ulimit`修改资源限制只会对当前终端环境有效，如果想永久生效，可以修改文件**`/etc/security/limits.conf`**，该文件的内容如下；
+
+```bash
+# /etc/security/limits.conf
+#
+#Each line describes a limit for a user in the form:
+#
+#<domain>        <type>  <item>  <value>
+#
+#Where:
+#<domain> can be:
+#        - a user name
+#        - a group name, with @group syntax
+#        - the wildcard *, for default entry
+#        - the wildcard %, can be also used with %group syntax,
+#                 for maxlogin limit
+#        - NOTE: group and wildcard limits are not applied to root.
+#          To apply a limit to the root user, <domain> must be
+#          the literal username root.
+#
+#<type> can have the two values:
+#        - "soft" for enforcing the soft limits
+#        - "hard" for enforcing hard limits
+#
+#<item> can be one of the following:
+#        - core - limits the core file size (KB)
+#        - data - max data size (KB)
+#        - fsize - maximum filesize (KB)
+#        - memlock - max locked-in-memory address space (KB)
+#        - nofile - max number of open files
+#        - rss - max resident set size (KB)
+#        - stack - max stack size (KB)
+#        - cpu - max CPU time (MIN)
+#        - nproc - max number of processes
+#        - as - address space limit (KB)
+#        - maxlogins - max number of logins for this user
+#        - maxsyslogins - max number of logins on the system
+#        - priority - the priority to run user process with
+#        - locks - max number of file locks the user can hold
+#        - sigpending - max number of pending signals
+#        - msgqueue - max memory used by POSIX message queues (bytes)
+#        - nice - max nice priority allowed to raise to values: [-20, 19]
+#        - rtprio - max realtime priority
+#        - chroot - change root to directory (Debian-specific)
+#
+#<domain>      <type>  <item>         <value>
+#
+
+#*               soft    core            0
+#root            hard    core            100000
+#*               hard    rss             10000
+#@student        hard    nproc           20
+#@faculty        soft    nproc           20
+#@faculty        hard    nproc           50
+#ftp             hard    nproc           0
+#ftp             -       chroot          /ftp
+#@student        -       maxlogins       4
+
+# End of file
+```
+
+#### 示例
+
+```bash
+root@068ca8da6d06:/# ulimit -a
+core file size          (blocks, -c) 0
+data seg size           (kbytes, -d) unlimited
+scheduling priority             (-e) 0
+file size               (blocks, -f) unlimited
+pending signals                 (-i) 7863
+max locked memory       (kbytes, -l) 82000
+max memory size         (kbytes, -m) unlimited
+open files                      (-n) 1048576
+pipe size            (512 bytes, -p) 8
+POSIX message queues     (bytes, -q) 819200
+real-time priority              (-r) 0
+stack size              (kbytes, -s) 8192
+cpu time               (seconds, -t) unlimited
+max user processes              (-u) unlimited
+virtual memory          (kbytes, -v) unlimited
+file locks                      (-x) unlimited
+```
 
 # 四.网络工具
 

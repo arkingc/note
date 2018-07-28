@@ -98,6 +98,7 @@
     - [4.共享库](#4共享库)
     - [5.进程堆空间的管理](#5进程堆空间的管理)
     - [6.进程资源限制](#6进程资源限制)
+    - [7.Core Dump](#7core-dump)（外加）
 
 <h2 id="ch5"></h2>
 
@@ -1650,6 +1651,31 @@ int main(int argc,char* argv[]);
     * `argc`：命令行参数的数目（ISO C和POSIX.1都要求argv\[argc\]是一个空指针）
     * `argv`：由指向各命令行参数的指针所组成的数组。`ISOC`和`POSIX`都要求`argv[argc]`是一个空指针
 
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc,char* argv[])
+{
+    printf("%d parameters: \n",argc);
+    for(int i = 0;i < argc;i++){     //argv[argc]为NULL
+        printf("  %s\n",argv[i]);
+    }
+    return 0;
+}
+```
+
+上面的程序可以打印调用程序时的参数：
+
+```bash
+ chenximing@chenximingdeMacBook-Pro  ~  ./a.out hello ' ' world
+4 parameters:
+  ./a.out
+  hello
+
+  world
+```
+
 当内核通过`exec`函数执行 C 程序、在调用`main`之前先调用一个特殊的启动例程
 
 * 可执行程序文件将此启动例程指定为程序的其实地址（这是由链接器设置的，而链接器由C编译器调用）
@@ -2069,6 +2095,40 @@ struct rlimit{
 ```
 
 **资源限制影响到调用进程并由其子进程继承**
+
+<br>
+
+## 7.Core Dump
+
+### 7.1 Core Dump的概念及用途
+
+> Core Dump是一个文件，它记录了程序运行过程中异常终止或崩溃时的内存映像
+
+**概念**：当程序运行的过程中**异常终止**或**崩溃**，操作系统会将程序当时的内存状态记录下来，保存在一个文件中，这种行为就叫做Core Dump（中文有的翻译成“核心转储”)。可以认为 core dump 是“内存快照”，但实际上，除了内存信息之外，还有些关键的程序运行状态也会同时 dump 下来，例如寄存器信息（包括程序指针、栈指针等）、内存管理信息、其他处理器和操作系统状态和信息
+
+> **Dump**指的是拷贝一种存储介质中的部分内容到另一个存储介质，或者将内容打印、显示或者其它输出设备。dump 出来的内容是格式化的，可以使用一些工具来解析它
+
+**用途**：core dump 对于编程人员诊断和调试程序是非常有帮助的，因为对于有些程序错误是很难重现的，例如指针异常，而 core dump 文件可以再现程序出错时的情景
+
+### 7.2 何时产生Core Dump
+
+> `ulimit -c`可以查看shell进程产生的core dump文件大小，默认情况下为0，即不产生core dump文件，若要产生，使用`ulimit -c unlimited`开启core dump功能（也可以改成为某一值，注意这种修改方式只会对当前终端环境生效）
+
+常见的几种情况：调用abort()函数、访存错误、非法指令等
+
+以下列出几种会产生Core Dump的信号（不仅限于这几种）：
+
+|信号|动作|说明|
+|:--:|:--:|:--:|
+|SIGQUIT|终止+core|终端退出符(ctrl+\\)|
+|SIGILL|终止+core|非法硬件指令|
+|SIGABRT|终止+core|异常终止(abort)|
+|SIGSEGV|终止+core|无效内存引用|
+|SIGTRAP|终止+core|硬件故障|
+
+#### 1）ctrl+\
+
+#### 2）无效内存引用
 
 <br>
 <br>
