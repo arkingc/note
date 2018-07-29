@@ -4347,7 +4347,7 @@ struct msqid_ds{
 
 ### 5.5 获取消息
 
-<div align="center"> <img src="../pic/apue-ipc-12.png"/> </div>
+<div align="center"> <img src="../pic/apue-ipc-13.png"/> </div>
 
 * `msgrcv`：从队列中取消息（并不一定要以先进先出的顺序取消息，也可以按类型字段取消息）
     - `ptr`：与msgsnd中一样
