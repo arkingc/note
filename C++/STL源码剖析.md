@@ -693,8 +693,8 @@ SGI将STL的traits进一步扩大到迭代器以外，于是有了所谓的__typ
 
 * iterator_traits：负责萃取迭代器的特性
 * __type_traits：负责萃取类型的特性，包括：
-    - 该类型是否具备non-trivial defalt ctor
-    - 该类型是否具备non-trivial copt ctor
+    - 该类型是否具备non-trivial default ctor
+    - 该类型是否具备non-trivial copy ctor
     - 该类型是否具备non-trivial assignment operator
     - 该类型是否具备non-trivial dtor
 
