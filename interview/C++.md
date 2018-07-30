@@ -85,7 +85,7 @@
     * 2）[vector底层的实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#1vector)（迭代器类型为随机迭代器）？insert具体做了哪些事？[resize()](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_vector.h#L209)调用的是什么？
     * 3）vector的push_back要注意什么（大量调用会伴随大量的拷贝构造与析构，内存分配与释放）
     * 4）vector的resize()与[reserve()](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_vector.h#L129)（[测试程序](https://github.com/arkingc/llc/blob/master/cpp/container/vector/size.cpp#L5)）
-    * 5）[如何释放vector的空间？](https://blog.csdn.net/u014774781/article/details/48197891)（swap）、[vector的元素类型为指针？](https://blog.csdn.net/u014774781/article/details/48197891)（也可以使用智能指针来管理）
+    * 5）[如何释放vector的空间？](https://blog.csdn.net/u014774781/article/details/48197891)（swap）、[容器的元素类型为指针？](https://blog.csdn.net/u014774781/article/details/48197891)（会有内存泄露，[指针是trivial_destructor](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_construct.h#L72)；也可以使用智能指针来管理）
     * 6）[list的底层实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#23-list%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)（迭代器类型为双向迭代器）
     * 7）[deque的底层实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#33-deque%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)（迭代器类型为随机迭代器）
     * 8）vector与deque的区别？（deque能以常数时间在首尾插入元素；deque没有capacity的概念）
