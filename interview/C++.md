@@ -111,9 +111,9 @@
         - 数据成员的布局——[虚继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#5%E8%99%9A%E7%BB%A7%E6%89%BF)（虚基类子对象的偏移信息记录在虚函数表之前与使用一个额外指针来记录的对比？）
         - [指向数据成员的指针](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#35-%E6%8C%87%E5%90%91data-members%E7%9A%84%E6%8C%87%E9%92%88)
     * **函数成员**
-        - [Nonstatic成员函数的转换](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#41-member%E7%9A%84%E5%90%84%E7%A7%8D%E8%B0%83%E7%94%A8%E6%96%B9%E5%BC%8F)（目的是为了提供和一般非成员函数相同的效率）
+        - [nonstatic成员函数的转换](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#41-member%E7%9A%84%E5%90%84%E7%A7%8D%E8%B0%83%E7%94%A8%E6%96%B9%E5%BC%8F)（目的是为了提供和一般非成员函数相同的效率）
         - [重载成员函数的名字处理](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#%E6%88%90%E5%91%98%E5%87%BD%E6%95%B0%E9%87%8D%E8%BD%BD%E7%9A%84%E5%A4%84%E7%90%86)
-        - [Static成员函数的转换](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#2static-member-functions%E9%9D%99%E6%80%81%E6%88%90%E5%91%98%E5%87%BD%E6%95%B0)
+        - [static成员函数的转换](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#2static-member-functions%E9%9D%99%E6%80%81%E6%88%90%E5%91%98%E5%87%BD%E6%95%B0)
         - [编译器如何处理经由指针和经由‘.’进行的调用](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#3virtual-member-functions%E8%99%9A%E5%87%BD%E6%95%B0)
         - [指向函数成员的指针](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#43-%E6%8C%87%E5%90%91member-function%E7%9A%84%E6%8C%87%E9%92%88)
         - 虚函数的调用——[单继承](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#1%E5%8D%95%E7%BB%A7%E6%89%BF%E4%B8%AD%E7%9A%84%E8%99%9A%E5%87%BD%E6%95%B0)
