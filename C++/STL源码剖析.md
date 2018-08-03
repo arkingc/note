@@ -485,7 +485,7 @@ __default_alloc_template<threads, inst> ::free_list[__NFREELISTS] =
 
 * 空间分配函数[allocate()](tass-sgi-stl-2.91.57-source/stl_alloc.h#L403)
     - 若区块大于128bytes，就调用第一级分配器
-    - 若区块小于128bytes，检查对于的free-list
+    - 若区块小于128bytes，检查对应的free-list
         + 若free-list之内有可用的区块，则直接使用
         + 若free-list之内没有可用区块，将区块大小调至8倍数边界，调用refill()，准备为free-list重新填充空间
 
