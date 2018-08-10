@@ -86,20 +86,21 @@
     * 3）vector的push_back要注意什么（大量调用会伴随大量的拷贝构造与析构，内存分配与释放）
     * 4）vector的resize()与[reserve()](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_vector.h#L129)（[测试程序](https://github.com/arkingc/llc/blob/master/cpp/container/vector/size.cpp#L5)）
     * 5）[如何释放vector的空间？](https://blog.csdn.net/u014774781/article/details/48197891)（swap）、[容器的元素类型为指针？](https://blog.csdn.net/u014774781/article/details/48197891)（会有内存泄露，[指针是trivial_destructor](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_construct.h#L72)；也可以使用智能指针来管理）
-    * 6）[list的底层实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#23-list%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)（迭代器类型为双向迭代器）
-    * 7）[deque的底层实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#33-deque%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)（迭代器类型为随机迭代器）
-    * 8）vector与deque的区别？（deque能以常数时间在首尾插入元素；deque没有capacity的概念）
-    * 9）[map](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#3map)、[set](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2set)的实现原理（红黑树、对于set来说key和value合一，value就是key，map的元素是一个pair，包括key和value、set不支持[]，map(不包括multimap)支持[]）
-    * 10）set(map)和multiset(multimap)的区别？（set不允许key重复,其insert操作调用rb_tree的insert_unique函数，multiset允许key重复,其insert操作调用rb_tree的insert_equal函数）
-    * 11）set(multiset)和map(multimap)的迭代器（由于set(multiset)key和value合一，迭代器不允许修改key、map(multimap)除了key有data，迭代器允许修改data不允许修改key）
-    * 12）map与[unordered_map](https://blog.csdn.net/hk2291976/article/details/51037095)的区别？（hash_map需要hash函数及等于函数，map只需小于函数）
-    * 13）空间分配器allocator
+    * 6）[vector的clear](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_vector.h#L210)与[deque的clear](https://github.com/arkingc/note/blob/master/C%2B%2B/tass-sgi-stl-2.91.57-source/stl_deque.h#L774)（vector的erase和clear只会析构不会释放内存，deque的erase和clear不但会析构，还可能会释放缓冲区）
+    * 7）[list的底层实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#23-list%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)（迭代器类型为双向迭代器）
+    * 8）[deque的底层实现](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#33-deque%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)（迭代器类型为随机迭代器）
+    * 9）vector与deque的区别？（deque能以常数时间在首尾插入元素；deque没有capacity的概念）
+    * 10）[map](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#3map)、[set](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2set)的实现原理（红黑树、对于set来说key和value合一，value就是key，map的元素是一个pair，包括key和value、set不支持[]，map(不包括multimap)支持[]）
+    * 11）set(map)和multiset(multimap)的区别？（set不允许key重复,其insert操作调用rb_tree的insert_unique函数，multiset允许key重复,其insert操作调用rb_tree的insert_equal函数）
+    * 12）set(multiset)和map(multimap)的迭代器（由于set(multiset)key和value合一，迭代器不允许修改key、map(multimap)除了key有data，迭代器允许修改data不允许修改key）
+    * 13）map与[unordered_map](https://blog.csdn.net/hk2291976/article/details/51037095)的区别？（hash_map需要hash函数及等于函数，map只需小于函数）
+    * 14）空间分配器allocator
         - [将new和delete的2阶段操作分离](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#%E4%BA%8C%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D%E5%99%A8)（construct和destroy负责内存分配？allocate和deallocate负责对象构造析构？）
         - [SGI符合部分标准的空间分配器——std::allocator](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#%E4%BA%8C%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D%E5%99%A8)
         - [SGI特殊的空间分配器——std::alloc](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#3sgi%E7%89%B9%E6%AE%8A%E7%9A%84%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D%E5%99%A8stdalloc)（[对象构造与析构](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#31-%E5%AF%B9%E8%B1%A1%E6%9E%84%E9%80%A0%E4%B8%8E%E6%9E%90%E6%9E%84)、内存分配与释放——[两级分配器](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#1%E4%B8%A4%E7%BA%A7%E5%88%86%E9%85%8D%E5%99%A8)）
             + [第一级分配器](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2%E7%AC%AC%E4%B8%80%E7%BA%A7%E5%88%86%E9%85%8D%E5%99%A8__malloc_alloc_template)（如何仿真new-handler机制？不能直接用C++ new-handler，因为没有使用::operator new）
             + [第二级分配器](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#3%E7%AC%AC%E4%BA%8C%E7%BA%A7%E5%88%86%E9%85%8D%E5%99%A8__default_alloc_template)（为什么要二级分配器？内存池与16个free-list？空间分配和释放的步骤？）
-    * 14）[traits与迭代器相应类型](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2traits%E7%BC%96%E7%A8%8B%E6%8A%80%E6%B3%95)
+    * 15）[traits与迭代器相应类型](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2traits%E7%BC%96%E7%A8%8B%E6%8A%80%E6%B3%95)
 * **六.对象内存模型**
     * **数据成员**
         - [成员变量在类对象中的布局规则](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#32-data-member%E7%9A%84%E5%B8%83%E5%B1%80)
