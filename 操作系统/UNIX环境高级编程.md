@@ -1531,7 +1531,7 @@ rewind函数也可以将一个流设置到文件的起始位置
 
 <div align="center"> <img src="../pic/apue-standardio-21.png"/> </div>
 
-#### 2）格式化输出
+#### 2）格式化输入
 
 <div align="center"> <img src="../pic/apue-standardio-22.png"/> </div>
 
@@ -2131,7 +2131,7 @@ struct rlimit{
 |SIGSEGV|终止+core|无效内存引用|
 |SIGTRAP|终止+core|硬件故障|
 
-* **修改core dump文件名**：通过修改 `/proc/sys/kernel/core_uses_pid` 文件可以让生成 core 文件名是否自动加上 pid 号。例如 `echo 1 > /proc/sys/kernel/core_uses_pid`，生成的 core 文件名将会变成 core.pid，其中 pid 表示该进程的 PID
+* **修改core dump文件名**：通过修改 `/proc/sys/kernel/core_uses_pid` 文件可以让生成 core 文件名自动加上 pid 号。例如 `echo 1 > /proc/sys/kernel/core_uses_pid`，生成的 core 文件名将会变成 core.pid，其中 pid 表示该进程的 PID
 * **修改core dump文件的保存位置及文件名格式**：例如可以用 `echo "/tmp/core-%e-%p-%t" > /proc/sys/kernel/core_pattern` 设置生成的 core 文件保存在 “/tmp/corefile” 目录下，文件名格式为 “core-命令名-pid-时间戳”
 
 ### 7.3 调试Core Dump
@@ -2143,7 +2143,14 @@ struct rlimit{
 #### 1）无效内存引用
 
 ```c
+#include <stdio.h>
 
+int main()
+{
+    int *p = NULL;
+    int x = *p;
+    return 0;
+}
 ```
 
 生成core dump：
