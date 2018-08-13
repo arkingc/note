@@ -94,13 +94,14 @@
     * 11）set(map)和multiset(multimap)的区别？（set不允许key重复,其insert操作调用rb_tree的insert_unique函数，multiset允许key重复,其insert操作调用rb_tree的insert_equal函数）
     * 12）set(multiset)和map(multimap)的迭代器（由于set(multiset)key和value合一，迭代器不允许修改key、map(multimap)除了key有data，迭代器允许修改data不允许修改key）
     * 13）map与[unordered_map](https://blog.csdn.net/hk2291976/article/details/51037095)的区别？（hash_map需要hash函数及等于函数，map只需小于函数）
-    * 14）空间分配器allocator
+    * 14）set(multiset)和map(multimap)的迭代器[++操作、--操作的时间复杂度](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#12-rb-tree%E7%9A%84%E8%BF%AD%E4%BB%A3%E5%99%A8)？
+    * 15）空间分配器allocator
         - [将new和delete的2阶段操作分离](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#%E4%BA%8C%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D%E5%99%A8)（construct和destroy负责内存分配？allocate和deallocate负责对象构造析构？）
         - [SGI符合部分标准的空间分配器——std::allocator](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#%E4%BA%8C%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D%E5%99%A8)
         - [SGI特殊的空间分配器——std::alloc](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#3sgi%E7%89%B9%E6%AE%8A%E7%9A%84%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D%E5%99%A8stdalloc)（[对象构造与析构](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#31-%E5%AF%B9%E8%B1%A1%E6%9E%84%E9%80%A0%E4%B8%8E%E6%9E%90%E6%9E%84)、内存分配与释放——[两级分配器](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#1%E4%B8%A4%E7%BA%A7%E5%88%86%E9%85%8D%E5%99%A8)）
             + [第一级分配器](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2%E7%AC%AC%E4%B8%80%E7%BA%A7%E5%88%86%E9%85%8D%E5%99%A8__malloc_alloc_template)（如何仿真new-handler机制？不能直接用C++ new-handler，因为没有使用::operator new）
             + [第二级分配器](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#3%E7%AC%AC%E4%BA%8C%E7%BA%A7%E5%88%86%E9%85%8D%E5%99%A8__default_alloc_template)（为什么要二级分配器？内存池与16个free-list？空间分配和释放的步骤？）
-    * 15）[traits与迭代器相应类型](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2traits%E7%BC%96%E7%A8%8B%E6%8A%80%E6%B3%95)
+    * 16）[traits与迭代器相应类型](https://github.com/arkingc/note/blob/master/C++/STL%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90.md#2traits%E7%BC%96%E7%A8%8B%E6%8A%80%E6%B3%95)
 * **六.对象内存模型**
     * **数据成员**
         - [成员变量在类对象中的布局规则](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#32-data-member%E7%9A%84%E5%B8%83%E5%B1%80)
