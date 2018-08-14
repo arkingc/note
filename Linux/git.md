@@ -25,7 +25,7 @@ git config --global user.email       # 查看
 git config --global user.email 邮箱   # 修改
 ```
 
-
+<br>
 
 # 二.仓库
 
@@ -38,7 +38,7 @@ git init        #将一个项目转化为使用git管理（创建.git目录）
 
 示例：
 
-<div align="center"> <img src="../pic/git-1.png"/> </div>
+![](../pic/git-1.png)
 
 目录结构：
 
