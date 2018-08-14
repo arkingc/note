@@ -29,6 +29,7 @@
 ## Linux管理
 
 * [Linux常用命令](Linux/Linux常用命令.md)
+* 版本控制：[git](Linux/git.md)
 
 ## C++
 
