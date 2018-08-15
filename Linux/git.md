@@ -7,6 +7,13 @@
 	- [2.查看仓库状态](#2查看仓库状态)
 	- [3.远程仓库](#3远程仓库)
     - [4.协同工作](#4协同工作)
+    - [5.使用GitHub](#5使用github)
+* [三.版本控制](#三版本控制)
+    - [1.添加或删除修改](#1添加或删除修改)
+    - [2.提交版本](#2提交版本)
+    - [3.改动查询](#3改动查询)
+    - [4.版本回退](#4版本回退)
+    - [5.查看历史提交](#5查看历史提交)
 
 <br>
 <br>
@@ -56,6 +63,8 @@ project
             |--------refs
 ```
 
+> 隐藏目录`.git`不算工作区，而是Git的版本库
+
 ### 2.查看仓库状态
 
 ```bash
@@ -92,6 +101,7 @@ git status
     git remote add origin https://github.com/用户名/仓库名
     ```
     * **删除本地仓库的远程仓库信息**：`git remote remove origin`
+    * **修改远端地址**：`git remote set-url 新地址`
     * **查看远程仓库信息**：`git remote -v`
 3. **将本地git仓库push到远程仓库**
     ```bash
@@ -126,3 +136,107 @@ git checkout -b dev
 ```bash
 git branch --set-upstream dev origin/dev
 ```
+
+### 5.使用GitHub
+
+Bootstrap的官方仓库twbs/bootstrap、你在GitHub上克隆的仓库my/bootstrap，以及你自己克隆到本地电脑的仓库，他们的关系就像下图显示的那样：
+
+![](../pic/git-2.png)
+
+如果你想修复bootstrap的一个bug，或者新增一个功能，立刻就可以开始干活，干完后，往自己的仓库推送
+
+**如果你希望bootstrap的官方库能接受你的修改，你就可以在GitHub上发起一个pull request。当然，对方是否接受你的pull request就不一定了**
+
+<br>
+
+# 三.版本控制
+
+隐藏目录`.git`不算工作区，而是Git的版本库。版本库里存了很多东西，其中最重要的就是**称为stage（或者叫index）的暂存区**。还有Git为我们自动创建的第一个分支`master`，以及指向`master`的一个指针叫`HEAD`
+
+![](../pic/git-3.png)
+
+### 1.添加或删除修改
+
+将修改添加到暂存区：
+
+```bash
+git add 文件/目录
+```
+
+从暂存区删除修改：
+
+```bash
+git rm --cached 文件/目录
+```
+
+以下命令可以将暂存区的修改重置，暂存区的改变会被移除到工作区：
+
+```bash
+git rest HEAD [文件名]
+```
+
+以下命令可以丢弃工作区的修改：
+
+```bash
+git checkout -- [文件名]
+```
+
+如果刚对一个文件进行了编辑，可以撤销文件的改变，回到编辑开始。命令其实起到“一键恢复”的作用，还可用于“误删恢复”。可以在 `git reset HEAD [文件名]` 后使用
+
+### 2.提交版本
+
+如果修改了readme.txt，添加了文件LICENSE，并将2者添加到暂存区后，暂存区的状态就变成这样：
+
+![](../pic/git-4.png)
+
+使用commit提交修改，实际上就是把暂存区的所有内容提交到当前分支：
+
+```bash
+git commit -m '信息'
+```
+
+![](../pic/git-5.png)
+
+> commit相当于游戏里面一次存档。对应一个版本
+
+### 3.改动查询
+
+```bash
+git diff [选项]           # 查看工作区中的修改
+git diff [选项] --staged   # 查看已添加到暂存区的修改
+git diff [选项] HEAD       # 查看当前所有未提交的修改
+
+选项：
+    --color-words： 颜色
+    --stat：        不显示具体修改，只显示修改了的文件
+```
+
+### 4.版本回退
+
+```bash
+git reset --hard 版本ID/HEAD形式的版本
+
+git reset --hard HEAD      # 当前版本
+git reset --hard HEAD^     # 上一个版本
+git reset --hard HEAD^^    # 上上个版本
+git reset --hard HEAD~n    # 前n个版本
+```
+
+如果回到过去的版本，想要回到原来新的版本：
+
+* 如果终端未关，可以找到新版本的id，通过上述命令回去新版本
+* 如果终端已关，`git reflog`查看版本，再通过上述命令回去新版本
+
+### 5.查看历史提交
+
+```bash
+git log [选项]
+
+选项：
+    --online：只显示提交提示信息
+    --stat：添加每次提交包含的文件信息
+    --path：查看每次提交改变的内容
+    --graph
+```
+
+**加文件名可以显示具体文件相关的所有提交信息**
