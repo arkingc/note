@@ -1187,6 +1187,26 @@ func NewWorkSpace(volume, imageName, containerName string) {
 
 #### 1）处理镜像层和容器层
 
+```bash
+/root
+  |
+  |-------/镜像1      #镜像层
+  |-------/镜像2      #镜像层
+  |--------镜像3.tar  #原始镜像
+  |--------...
+  |
+  |-------/writeLayer
+  |           |
+  |           |--------/容器1  #读写层
+  |           |--------/容器2  #读写层
+  |           |--------...
+  |
+  |------/mnt    
+  |        |
+  |        |----------/容器1  #联合挂点点
+  |        |----------/容器2  #联合挂载点
+```
+
 ```go
 //解压tar镜像到/root/imageName/目录，以该目录作为容器的只读层（镜像层）
 func CreateReadOnlyLayer(imageName string) error {
