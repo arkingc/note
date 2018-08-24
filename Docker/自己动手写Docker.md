@@ -41,7 +41,7 @@
 
 <div align="center"> <img src="../pic/docker-1-1.png"/> </div>
 
-* **虚拟机**：包含用户程序、必要的函数库、整个客户操作系统，所以这些差不多需要占用几个GB的空间
+* **虚拟机**：包含用户程序、必要的函数库、整个客户操作系统，所有这些差不多需要占用几个GB的空间
 * **容器**：：包含用户程序和所有的依赖，但是容器之间共享内核。各个容器在宿主机上相互隔离，在用户态下运行
 
 <br>
@@ -90,7 +90,7 @@ Namesapce 的API主要使用三个系统调用
 
 * **clone()**：创建新进程。根据系统调用参数来判断哪种类型的namespace被创建，而且它们的子进程也会被包含到namespace中
 * **unshare()**：将进程**移出**某个namespace
-* **setns()**：将进程**加入**到namesp中
+* **setns()**：将进程**加入**到namespace中
 
 ### 查看进程的namespace信息
 
@@ -462,7 +462,7 @@ cgroup                 0       0         0    - /sys/fs/cgroup/systemd
 
 * `/sys/fs/cgroup`下的每个目录及其子目录构成了一个**hierarchy(层级)**
 * 在每个**root cgroup(根控制组)**下可以创建目录，比如在`blkio`目录下新建一个`docker`，每个创建的目录就对应一个**cgroup(控制组)**
-* 每个**root cgroup(根控制组)**下的`tasks`文件包含了创建**root cgroup(根控制组)**时，系统中的所有进程。新建一个**cgroup(控制组)**时，新**cgroup(控制组)**中`tasks`文件中不包含任务
+* 每个**root cgroup**(**根控制组**)下的`tasks`文件包含了创建**root cgroup**(**根控制组**)时，系统中的所有进程。新建一个**cgroup**(**控制组**)时，新**cgroup**(**控制组**)中`tasks`文件中不包含任务
 
 <br>
 <br>
@@ -827,7 +827,7 @@ func RunContainerInitProcess() error {
 
     setUpMount()
     //调用exec.LookPath ，可以在系统的PATH 里面寻找命令的绝对路径
-    //因此可以不必麻烦的将命令写完成。比如“docker run ... /bin/ls” 
+    //因此可以不必麻烦的将命令写完整。比如“docker run ... /bin/ls” 
     //可以改成“docker run ... ls” 
     path, err := exec.LookPath(cmdArray[0])
     if err != nil {
@@ -1076,8 +1076,6 @@ func FindCgroupMountpoint(subsystem string) string {
 }
 ```
 
-> 注意，函数GetCgroupPath
-
 ### 4.3 管理每个cgroup
 
 每个cgroup通过一个`CgroupManager`类型的对象来管理
@@ -1185,7 +1183,7 @@ func NewWorkSpace(volume, imageName, containerName string) {
 
 下图是volume的挂载流程，volumeUrlExtract函数实现在了NewWorkSpace函数中：
 
-<div align="center"> <img src="../pic/docker-4-1.png"/> </div>
+<div align="center"> <img src="../pic/docker-4-2.png"/> </div>
 
 #### 1）处理镜像层和容器层
 
