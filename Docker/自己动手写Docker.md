@@ -1253,7 +1253,7 @@ func CreateMountPoint(containerName, imageName string) error {
     tmpImageLocation := RootUrl + "/" + imageName              //镜像层目录
     mntURL := fmt.Sprintf(MntUrl, containerName)               //挂载目录
     dirs := "dirs=" + tmpWriteLayer + ":" + tmpImageLocation   //联合挂载目录字符串
-    //执行挂载
+    //执行挂载，aufs
     _, err := exec.Command("mount", "-t", "aufs", "-o", dirs, "none", mntURL).CombinedOutput()
     if err != nil {
         log.Errorf("Run command for creating mount point failed %v", err)
