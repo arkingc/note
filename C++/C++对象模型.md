@@ -28,6 +28,7 @@
 <!-- GFM-TOC -->
 
 <br>https://github.com/lys19xx/note/blob/master/C%2B%2B/C%2B%2B%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#22-%E6%8B%B7%E8%B4%9D%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E7%9A%84%E6%9E%84%E9%80%A0%E6%93%8D%E4%BD%9C
+2.2 拷贝构造函数的构造操作
 <br>
 <br>
 <br>
