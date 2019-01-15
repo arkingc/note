@@ -38,6 +38,6 @@
 
 使Linux2.6内核具有可抢占的特性无需对支持非抢占的旧内核在设计上做太大的改变，当被`current_thread_info()`宏所引用的`thread_info`描述符的`preempt_count`字段大于`0`时，就禁止内核抢占。下列宏处理`preempt_count`字段的抢占计数器：
 
-<div align="center"> <img src="pic/table-5-1.png" style="zoom:60%"/> </div>
+<div align="center"> <img src="pic/table-5-1.png" width="70%" height="70%"/> </div>
 
 **内核抢占会引起不容忽视的开销。Linux2.6独具特色地允许用户在编译内核时通过设置选项来禁用或启用内核抢占**
