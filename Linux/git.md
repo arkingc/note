@@ -288,19 +288,19 @@ git log [选项]
 
 当创建一个分支时，如`dev`，Git创建一个指针`dev`，指向`master`相同的提交，再把`HEAD`指向`dev`，就表示当前分支在`dev`上：
 
-<div align="center"> <img src="../pic/git-6.png" width="100%" height="100%"/> </div>
+<div align="center"> <img src="../pic/git-6.png" width="60%" height="60%"/> </div>
 
 从现在开始，对工作区的修改和提交就是针对`dev`分支了，比如新提交一次后，`dev`指针往前移动一步，而`master`指针不变：
 
-<div align="center"> <img src="../pic/git-7.png" width="100%" height="100%"/> </div>
+<div align="center"> <img src="../pic/git-7.png" width="70%" height="70%"/> </div>
 
 假如我们在`dev`上的工作完成了，就可以把`dev`合并到`master`上。最简单的方法，就是直接把`master`指向`dev`的当前提交，就完成了合并：
 
-<div align="center"> <img src="../pic/git-8.png" width="100%" height="100%"/> </div>
+<div align="center"> <img src="../pic/git-8.png" width="70%" height="70%"/> </div>
 
 合并完分支后，甚至可以删除`dev`分支。删除`dev`分支就是把`dev`指针给删掉，删掉后，我们就剩下了一条`master`分支：
 
-<div align="center"> <img src="../pic/git-9.png" width="100%" height="100%"/> </div>
+<div align="center"> <img src="../pic/git-9.png" width="70%" height="70%"/> </div>
 
 上面的合并使用的是**Fast forward**。这种模式下，删除分支后，会丢掉分支信息。如果要强制禁用**Fast forward**模式，Git就会在merge时生成一个新的提交，这样，从分支历史上就可以看出分支信息。通过在`git merge`命令中使用`--no-ff`选项禁用**Fast forward**模式。比如在合并`dev`时：
 
@@ -310,7 +310,7 @@ git merge --no-ff -m "merge with no-ff" dev
 
 由于会生成一个新的提交，所以需要使用`-m`指明新提交的信息。此时分支情况如下：
 
-<div align="center"> <img src="../pic/git-12.png" width="100%" height="100%"/> </div>
+<div align="center"> <img src="../pic/git-12.png" width="70%" height="70%"/> </div>
 
 相关命令如下：
 
@@ -326,7 +326,7 @@ git merge --no-ff -m "merge with no-ff" dev
 
 如果两个分支修改了同一文件，合并时会发生冲突。比如`master`分支和`feature1`分支都修改了`readme.txt`文件，各自都有新的提交：
 
-<div align="center"> <img src="../pic/git-10.png" width="100%" height="100%"/> </div>
+<div align="center"> <img src="../pic/git-10.png" width="70%" height="70%"/> </div>
 
 这种情况下，Git无法执行“快速合并”，只能试图把各自的修改合并起来，但这种合并就可能会有冲突。此时`readme.txt`文件会变成如下形式：
 
@@ -344,7 +344,7 @@ Creating a new branch is quick AND simple.
 
 Git用`<<<<<<<`，`=======`，`>>>>>>>`标记出不同分支的内容，此时需要手动修改后保存。然后再使用`git commit`进行一次提交。分支会变成如下：
 
-<div align="center"> <img src="../pic/git-11.png" width="100%" height="100%"/> </div>
+<div align="center"> <img src="../pic/git-11.png" width="70%" height="70%"/> </div>
 
 ### 3.分支管理策略
 
@@ -358,7 +358,7 @@ Git用`<<<<<<<`，`=======`，`>>>>>>>`标记出不同分支的内容，此时�
 
 所以，团队合作的分支看起来就像这样：
 
-<div align="center"> <img src="../pic/git-13.png" width="100%" height="100%"/> </div>
+<div align="center"> <img src="../pic/git-13.png" width="70%" height="70%"/> </div>
 
 当你从远程仓库克隆时，实际上Git自动把本地的`master`分支和远程的`master`分支对应起来了，并且，远程仓库的默认名称是`origin`
 
