@@ -3,10 +3,19 @@
          将局部变量声明为static改变了它的生存周期，是从程序的开始到结束；将全局变量声明为static改变了它的作用域，只能作用于声明的文件。static变量默认初始化为0。
     * 2）[static函数与普通函数的区别？](temp/C++.md#4static函数与普通函数的区别)  
          作用域不同，static函数只能被本文件中的函数调用。
-    * 3）两个文件中声明两个同名变量？（使用了与未使用extern？） 
-    * 4）全局数组和局部数组的初始化？
-    * 5）[指针和引用的区别](https://www.nowcoder.com/ta/nine-chapter/review?page=11)？（代表意义、内存占用、初始化、指向是否可改、能否为空）
-    * 6）[C/C++中的强制转换](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE27%E5%B0%BD%E9%87%8F%E5%B0%91%E5%81%9A%E8%BD%AC%E5%9E%8B%E5%8A%A8%E4%BD%9C)
+    * 3）两个文件中声明两个同名变量？（使用了与未使用extern？）  
+         未使用extern会造成重定义，使用extern告诉编译器该变量在其他文件中定义，在编译时不报错，交给链接器处理。
+    * 4）全局数组和局部数组的初始化？  
+         全局数组会执行默认初始化，全部元素由0填充；局部数组不会默认初始化，元素由随机数填充。
+    * 5）[指针和引用的区别](https://www.nowcoder.com/ta/nine-chapter/review?page=11)？（代表意义、内存占用、初始化、指向是否可改、能否为空）  
+    指针是地址，需要分配内存空间；引用是别名，不需要分配内存空间。  
+    指针定义时不一定要初始化，运行过程中指向可改变；引用定义时一定要初始化，指向不可改。  
+    指针可以为空；引用不能为空。
+    * 6）[C/C++中的强制转换](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE27%E5%B0%BD%E9%87%8F%E5%B0%91%E5%81%9A%E8%BD%AC%E5%9E%8B%E5%8A%A8%E4%BD%9C)  
+    static_cast:用于基本类型之间的转换，如int to float，void* to double*。在继承体系中，向上转换安全，向下转换不安全，因为只在编译时类型检查，没有运行时类型检查。  
+    const_cast:用于给变量去除或添加const属性，如将一个const类型的变量传给接受非const类型变量的函数。
+    reinterpret_cast:~~为运算对象的位模式提供较低层次上的解释。~~  
+    dynamic_cast:用于安全的将基类指针或引用转换为指向派生类类型的指针或引用，通过虚函数表进行运行时类型检查。失败时返回0或bad_cast异常。
     * 7）[如何修改const变量、const与volatile](https://blog.csdn.net/heyabo/article/details/8745942)
     * 8）静态类型获取与动态类型获取（[typeid](https://github.com/arkingc/llc/blob/master/cpp/RTTI/typeid.cpp#L4)、dynamic_cast:转换目标类型必须是引用类型）
     * 9）[如何比较浮点数大小？](https://blog.csdn.net/jk110333/article/details/8902707)（[直接使用==比较出现错误的例子](https://stackoverflow.com/questions/26261466/in-current-c-and-java-double-type-and-float-type-if-x-0-0-is-correct)）
