@@ -11,9 +11,15 @@
 * [三.版本控制](#三版本控制)
     - [1.添加或删除修改](#1添加或删除修改)
     - [2.提交版本](#2提交版本)
-    - [3.改动查询](#3改动查询)
-    - [4.版本回退](#4版本回退)
-    - [5.查看历史提交](#5查看历史提交)
+    - [3.文件删除](#3文件删除)
+    - [4.工作现场保存与恢复](#4工作现场保存与恢复)
+    - [5.改动查询](#5改动查询)
+    - [6.版本回退](#6版本回退)
+    - [7.查看历史提交](#7查看历史提交)
+* [四.分支管理](#四分支管理)
+    - [1.创建与合并分支](#1创建与合并分支)
+    - [2.分支合并冲突](#2分支合并冲突)
+    - [3.分支管理策略](#3分支管理策略)
 
 <br>
 <br>
@@ -172,7 +178,7 @@ git rm --cached 文件/目录
 以下命令可以将暂存区的修改重置，暂存区的改变会被移除到工作区：
 
 ```bash
-git rest HEAD [文件名]
+git reset HEAD [文件名]
 ```
 
 以下命令可以丢弃工作区的修改：
@@ -199,7 +205,38 @@ git commit -m '信息'
 
 > commit相当于游戏里面一次存档。对应一个版本
 
-### 3.改动查询
+### 3.文件删除
+
+`rm`做出的删除不会被暂存，`git rm`做出的改变会被暂存。如果使用`rm`删除掉，能使用`git rm`来暂存。`git rm`不在意文件已经不存在了
+
+* 删除(暂存)单个文件
+
+    ```bash
+    git rm
+    ```
+
+* 删除(暂存)多个文件（一般情况下，更可能是对大量文件进行管理。可能同时会删除很多文件，不可能使用`git rm`一个个删除）
+
+    ```bash
+    # 它会变量当前目录，将所有删除暂存
+    git add -u .
+    ```
+
+如果有文件被误删，可以使用`git checkout -- 文件名`恢复
+
+### 4.工作现场保存与恢复
+
+有时候在修复bug或某项任务还未完成，但是需要紧急处理另外一个问题。此时可以先保存工作现场，当问题处理完成后，再恢复bug或任务的进度
+
+* 保存工作现场：`git stash`
+* 查看保存的工作现场：`git stash list`
+* 恢复工作现场：`git stash apply`
+* 删除stash内容：`git stash drop`
+* 恢复工作现场并删除stash内容（相当于上面2步合并）：`git stash pop`
+
+
+
+### 5.改动查询
 
 ```bash
 git diff [选项]           # 查看工作区中的修改
@@ -211,7 +248,7 @@ git diff [选项] HEAD       # 查看当前所有未提交的修改
     --stat：        不显示具体修改，只显示修改了的文件
 ```
 
-### 4.版本回退
+### 6.版本回退
 
 ```bash
 git reset --hard 版本ID/HEAD形式的版本
@@ -227,7 +264,7 @@ git reset --hard HEAD~n    # 前n个版本
 * 如果终端未关，可以找到新版本的id，通过上述命令回去新版本
 * 如果终端已关，`git reflog`查看版本，再通过上述命令回去新版本
 
-### 5.查看历史提交
+### 7.查看历史提交
 
 ```bash
 git log [选项]
@@ -240,3 +277,115 @@ git log [选项]
 ```
 
 **加文件名可以显示具体文件相关的所有提交信息**
+
+<br>
+
+# 四.分支管理
+
+### 1.创建与合并分支
+
+每次`commit`相当于一次存档，对应一个版本。Git都把它们串成一条时间线，这条时间线就是一个分支。`master`就是主分支。`HEAD`指向当前分支，而`master`指向主分支的最近提交。每次提交，`master`分支都会向前移动一步
+
+当创建一个分支时，如`dev`，Git创建一个指针`dev`，指向`master`相同的提交，再把`HEAD`指向`dev`，就表示当前分支在`dev`上：
+
+<div align="center"> <img src="../pic/git-6.png" width="60%" height="60%"/> </div>
+
+从现在开始，对工作区的修改和提交就是针对`dev`分支了，比如新提交一次后，`dev`指针往前移动一步，而`master`指针不变：
+
+<div align="center"> <img src="../pic/git-7.png" width="70%" height="70%"/> </div>
+
+假如我们在`dev`上的工作完成了，就可以把`dev`合并到`master`上。最简单的方法，就是直接把`master`指向`dev`的当前提交，就完成了合并：
+
+<div align="center"> <img src="../pic/git-8.png" width="70%" height="70%"/> </div>
+
+合并完分支后，甚至可以删除`dev`分支。删除`dev`分支就是把`dev`指针给删掉，删掉后，我们就剩下了一条`master`分支：
+
+<div align="center"> <img src="../pic/git-9.png" width="70%" height="70%"/> </div>
+
+上面的合并使用的是**Fast forward**。这种模式下，删除分支后，会丢掉分支信息。如果要强制禁用**Fast forward**模式，Git就会在merge时生成一个新的提交，这样，从分支历史上就可以看出分支信息。通过在`git merge`命令中使用`--no-ff`选项禁用**Fast forward**模式。比如在合并`dev`时：
+
+```bash
+git merge --no-ff -m "merge with no-ff" dev
+```
+
+由于会生成一个新的提交，所以需要使用`-m`指明新提交的信息。此时分支情况如下：
+
+<div align="center"> <img src="../pic/git-12.png" width="70%" height="70%"/> </div>
+
+相关命令如下：
+
+* (创建分支并)切换到新分支：`git checkout -b 新分支`
+* 创建分支：`git branch 新分支`
+* 切换分支：`git checkout 欲切换到的分支`
+* 查看当前分支：`git branch`
+* 合并某分支到当前分支：`git merge 欲合并到当前分支的分支`
+* 查看历史分支情况：`git log --graph --pretty=oneline --abbrev-commit`
+* 删除未合并的分支：`git branch -D 分支`
+
+### 2.分支合并冲突
+
+如果两个分支修改了同一文件，合并时会发生冲突。比如`master`分支和`feature1`分支都修改了`readme.txt`文件，各自都有新的提交：
+
+<div align="center"> <img src="../pic/git-10.png" width="70%" height="70%"/> </div>
+
+这种情况下，Git无法执行“快速合并”，只能试图把各自的修改合并起来，但这种合并就可能会有冲突。此时`readme.txt`文件会变成如下形式：
+
+```
+Git is a distributed version control system.
+Git is free software distributed under the GPL.
+Git has a mutable index called stage.
+Git tracks changes of files.
+<<<<<<< HEAD
+Creating a new branch is quick & simple.
+=======
+Creating a new branch is quick AND simple.
+>>>>>>> feature1
+```
+
+Git用`<<<<<<<`，`=======`，`>>>>>>>`标记出不同分支的内容，此时需要手动修改后保存。然后再使用`git commit`进行一次提交。分支会变成如下：
+
+<div align="center"> <img src="../pic/git-11.png" width="70%" height="70%"/> </div>
+
+### 3.分支管理策略
+
+在实际开发中，我们应该按照几个基本原则进行分支管理
+
+首先，`master`分支应该是非常稳定的，也就是仅用来发布新版本，平时不能在上面干活
+
+干活都在`dev`分支上，也就是说，`dev`分支是不稳定的，到某个时候，比如1.0版本发布时，再把`dev`分支合并到`master`上，在`master`分支发布1.0版本
+
+你和你的小伙伴们每个人都在`dev`分支上干活，每个人都有自己的分支，时不时地往`dev`分支上合并就可以了
+
+所以，团队合作的分支看起来就像这样：
+
+<div align="center"> <img src="../pic/git-13.png" width="70%" height="70%"/> </div>
+
+当你从远程仓库克隆时，实际上Git自动把本地的`master`分支和远程的`master`分支对应起来了，并且，远程仓库的默认名称是`origin`
+
+要查看远程库的信息，用`git remote`：
+
+```bash
+$ git remote
+origin
+```
+
+或者，用`git remote -v`显示更详细的信息：
+
+```bash
+$ git remote -v
+origin  git@github.com:michaelliao/learngit.git (fetch)
+origin  git@github.com:michaelliao/learngit.git (push)
+```
+
+上面显示了可以抓取和推送的`origin`的地址。如果没有推送权限，就看不到push的地址
+
+#### 推送分支
+
+```bash
+git push origin 欲推送的分支
+```
+
+* `master`分支是主分支，因此要时刻与远程同步
+* `dev`分支是开发分支，团队所有成员都需要在上面工作，所以也需要与远程同步
+* `bug`分支只用于在本地修复bug，就没必要推到远程了，除非老板要看看你每周到底修复了几个bug
+* `feature`分支是否推到远程，取决于你是否和你的小伙伴合作在上面开发
