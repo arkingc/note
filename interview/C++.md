@@ -1,18 +1,18 @@
 * **一.变量**
     * 1）全局变量与static变量？（作用域、生存周期）  
-         将局部变量声明为static改变了它的生存周期，是从程序的开始到结束；将全局变量声明为static改变了它的作用域，只能作用于声明的文件。static变量默认初始化为0。
+         >将局部变量声明为static改变了它的生存周期，是从程序的开始到结束；将全局变量声明为static改变了它的作用域，只能作用于声明的文件。static变量默认初始化为0。
     * 2）[static函数与普通函数的区别？](temp/C++.md#4static函数与普通函数的区别)  
-         作用域不同，static函数只能被本文件中的函数调用。
+         >作用域不同，static函数只能被本文件中的函数调用。
     * 3）两个文件中声明两个同名变量？（使用了与未使用extern？）  
-         未使用extern会造成重定义，使用extern告诉编译器该变量在其他文件中定义，在编译时不报错，交给链接器处理。
+         >未使用extern会造成重定义，使用extern告诉编译器该变量在其他文件中定义，在编译时不报错，交给链接器处理。
     * 4）全局数组和局部数组的初始化？  
-         全局数组会执行默认初始化，全部元素由0填充；局部数组不会默认初始化，元素由随机数填充。
+         >全局数组会执行默认初始化，全部元素由0填充；局部数组不会默认初始化，元素由随机数填充。
     * 5）[指针和引用的区别](https://www.nowcoder.com/ta/nine-chapter/review?page=11)？（代表意义、内存占用、初始化、指向是否可改、能否为空）  
-    指针是地址，需要分配内存空间；引用是别名，不需要分配内存空间。  
-    指针定义时不一定要初始化，运行过程中指向可改变；引用定义时一定要初始化，指向不可改。  
-    指针可以为空；引用不能为空。
+         >指针是地址，需要分配内存空间；引用是别名，不需要分配内存空间。  
+         >指针定义时不一定要初始化，运行过程中指向可改变；引用定义时一定要初始化，指向不可改。  
+         >指针可以为空；引用不能为空。
     * 6）[C/C++中的强制转换](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE27%E5%B0%BD%E9%87%8F%E5%B0%91%E5%81%9A%E8%BD%AC%E5%9E%8B%E5%8A%A8%E4%BD%9C)  
-    static_cast:用于基本类型之间的转换，如int to float，void* to double*。在继承体系中，向上转换安全，向下转换不安全，因为只在编译时类型检查，没有运行时类型检查。  
+         >static_cast:用于基本类型之间的转换，如int to float，void* to double*。在继承体系中，向上转换安全，向下转换不安全，因为只在编译时类型检查，没有运行时类型检查。  
     const_cast:用于给变量去除或添加const属性，如将一个const类型的变量传给接受非const类型变量的函数。
     reinterpret_cast:~~为运算对象的位模式提供较低层次上的解释。~~  
     dynamic_cast:用于安全的将基类指针或引用转换为指向派生类类型的指针或引用，通过虚函数表进行运行时类型检查。失败时返回0或bad_cast异常。
@@ -23,34 +23,34 @@
     * 1）重载（[参数必须不同(const修饰形参)](https://github.com/arkingc/llc/blob/master/cpp/overload/main.cpp#L9)、重载与作用域、继承中的重载\(using\)、重载与const成员函数） 
 * **三.类**
     * 1）面向对象的三大特性（封装、继承、多态）  
-    封装：public、private、protected访问控制  
+         >封装：public、private、protected访问控制  
     继承：单继承、多继承  
     多态：静态多态：通过重载、模板，编译时确定调用函数的类型；动态多态：通过虚函数在运行时确定调用哪个函数。  
     * 2）struct和class的区别？  
-    struct：默认访问说明符是public，作为子类继承时默认继承访问权限是public；  
+         >struct：默认访问说明符是public，作为子类继承时默认继承访问权限是public；  
     class：默认访问说明符是private，作为子类继承时默认继承访问权限是private。  
     * 3）[访问权限说明符](temp/C++.md/#3访问控制说明符)？（目的是加强类的封装性）
     * 4）类的静态成员（所属？静态成员函数不能声明成const、类类型的成员、定义时不能重复使用static、具有类内初始值的静态成员定义时不可再设初值）
     * 5）构造函数相关
         - 有哪些构造函数（默认、委托、拷贝、移动）
         - 合成的默认拷贝构造函数（默认行为？什么情况下不会合成？怎么解决？如果成员包含类内初始值，合成默认构造函数会使用该成员的类内初始值初始化该成员）  
-        如果有类内初始值，则用它来初始化成员；否则，执行默认初始化。  
+            >如果有类内初始值，则用它来初始化成员；否则，执行默认初始化。  
         已经定义了其他的构造函数。  
         A() = default;  
         - 拷贝构造函数（调用时机、合成版的行为、explict？、为何第一个参数必须是引用类型）  
-        拷贝初始化；将对象作为实参传递给非引用类型的形参；从返回类型为非引用类型的函数返回对象；用花括号列表初始化数组中的元素。  
+            >拷贝初始化；将对象作为实参传递给非引用类型的形参；从返回类型为非引用类型的函数返回对象；用花括号列表初始化数组中的元素。  
         将参数的成员逐个拷贝到正在创建的对象中。  
         会被隐式使用，不应该是explicit的。  
         函数调用过程中，非引用类型的参数要进行拷贝初始化，如果不是引用类型，会造成无限循环。  
         - 移动拷贝构造函数（非拷贝而是窃取资源、与noexcept?、何时合成）  
-        不分配新内存，一般不会抛出异常，声明为noexpect。  
+            >不分配新内存，一般不会抛出异常，声明为noexpect。  
         没有定义任何拷贝控制成员，且所有数据成员都能移动构造时，才会自动合成。  
         - 可否通过对象或对象的引用(指针或引用)调用
     * 6）初始值列表（顺序、效率(内置类型不进行隐式初始化故无所谓,但..)、无默认构造函数的成员,const成员,引用成员必须通过初始值列表初始化）  
-    初始化顺序与再类定义中出现的顺序一致，与初始值列表中的顺序无关。  
+            >初始化顺序与再类定义中出现的顺序一致，与初始值列表中的顺序无关。  
     * 7）赋值运算符相关
         - 拷贝赋值运算符（合成版的行为？、与delete？、自定义时要注意自赋值，参数与返回类型、大部分组合了拷贝构造函数与析构函数的工作）  
-        将右侧运算对象的每个非static成员赋予左侧运算对象的对应成员。  
+            >将右侧运算对象的每个非static成员赋予左侧运算对象的对应成员。  
         加 = delete 用于阻止拷贝。  
         销毁左侧运算对象资源之前拷贝右侧运算对象。  
         - 阻止拷贝（某些对象应该独一无二(比方说人)、C++11前:private并且不定义(试图拷贝会报链接错误)，C++11:=delete [《Effective C++:条款6》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE06%E8%8B%A5%E4%B8%8D%E6%83%B3%E4%BD%BF%E7%94%A8%E7%BC%96%E8%AF%91%E5%99%A8%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E7%9A%84%E5%87%BD%E6%95%B0%E5%B0%B1%E8%AF%A5%E6%98%8E%E7%A1%AE%E6%8B%92%E7%BB%9D)）
@@ -62,30 +62,41 @@
         - 为什么析构函数中不能抛出异常？（不能是指“不应该”，C++本身并不禁止[《Effective C++:条款8》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE08%E5%88%AB%E8%AE%A9%E5%BC%82%E5%B8%B8%E9%80%83%E7%A6%BB%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0)）
         - 如果析构函数中包含可能抛出异常的代码怎么办？（Effective C++:条款8》）
         - 可否通过对象或对象的引用(指针或引用)调用
-        - 为什么将继承体系中基类的析构函数声明为虚函数？（[《Effective C++:条款7》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE07%E4%B8%BA%E5%A4%9A%E6%80%81%E5%9F%BA%E7%B1%BB%E5%A3%B0%E6%98%8Evirtual%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0)）
+        - 为什么将继承体系中基类的析构函数声明为虚函数？（[《Effective C++:条款7》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE07%E4%B8%BA%E5%A4%9A%E6%80%81%E5%9F%BA%E7%B1%BB%E5%A3%B0%E6%98%8Evirtual%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0)）  
+            >基类指针可以指向派生类对象，当删除该指针时，就会调用派生类的析构函数，派生类的析构函数又自动调用基类的析构函数；如果没有声明为虚函数，删除基类指针时，只会调用基类的析构函数，派生类对象就析构不完全。  
         - 不应该将非继承体系中的类的虚函数声明为虚函数（[《Effective C++:条款7》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE07%E4%B8%BA%E5%A4%9A%E6%80%81%E5%9F%BA%E7%B1%BB%E5%A3%B0%E6%98%8Evirtual%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0)）
+            >引入虚函数指针增加开销。  
         - 不应该继承析构函数非虚的类（[《Effective C++:条款7》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE07%E4%B8%BA%E5%A4%9A%E6%80%81%E5%9F%BA%E7%B1%BB%E5%A3%B0%E6%98%8Evirtual%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0)，final防止继承）
         - [防止继承的方式](https://blog.twofei.com/672/)
     * 9）[删除的合成函数](https://github.com/arkingc/llc/blob/master/cpp/class/delete/README.md)（一般函数而言不想调用的话不定义就好）
     * 10）继承相关
         - 继承体系中的构造、拷贝、析构顺序？（派生类只负责自己成员的拷贝控制，可以(换而言之非必须，如果不显示调用，会调用父类合成的默认版本)在初始值列表或函数体中调用基类相应函数）
+          >构造：先初始化基类部分，按声明顺序初始化派生类成员；  
+          析构：先执行派生类析构函数，再执行基类析构函数。  
         - 继承中的名字查找（作用域嵌套、从子类到父类查找；[成员名字的处理](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#%E5%90%8D%E7%A7%B0%E7%9A%84%E7%89%B9%E6%AE%8A%E5%A4%84%E7%90%86)）
         - [成员函数体内、成员函数的参数列表的名字解析时机](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#31-data-member%E7%9A%84%E7%BB%91%E5%AE%9A)（因此，务必将“内嵌的类型声明”放在class起始处）
         - 同名名字隐藏（如何解决？(域作用符，从指示的类开始查找)、不同作用域无法重载、using的作用？除此之外呢？） 
         - 虚继承（解决什么问题？(多继承中的子对象冗余)）
     * 11）多态的实现？
     * 12）[虚函数的实现原理？对类大小的影响？](https://www.cnblogs.com/malecrab/p/5572730.html)（vtbl是一个由函数指针组成的数组，无论pb指向哪种类型的对象，只要能够确定被调函数在虚函数中的偏移值，待运行时，能够确定具体类型，并能找到相应vptr，进一步能找出真正应该调用的函数）
-    * 13）为什么不要在构造、析构函数中调用虚函数？（子对象的base class构造期间，对象的类型是base class [《Effective C++:条款9》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE09%E7%BB%9D%E4%B8%8D%E5%9C%A8%E6%9E%84%E9%80%A0%E5%92%8C%E6%9E%90%E6%9E%84%E8%BF%87%E7%A8%8B%E4%B8%AD%E8%B0%83%E7%94%A8virtual%E5%87%BD%E6%95%B0)，[设置虚函数指针的时机](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#vptr%E7%9A%84%E8%AE%BE%E7%BD%AE)）
+    * 13）为什么不要在构造、析构函数中调用虚函数？（子对象的base class构造期间，对象的类型是base class [《Effective C++:条款9》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE09%E7%BB%9D%E4%B8%8D%E5%9C%A8%E6%9E%84%E9%80%A0%E5%92%8C%E6%9E%90%E6%9E%84%E8%BF%87%E7%A8%8B%E4%B8%AD%E8%B0%83%E7%94%A8virtual%E5%87%BD%E6%95%B0)，[设置虚函数指针的时机](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#vptr%E7%9A%84%E8%AE%BE%E7%BD%AE)）  
+         >派生类的构造函数中，基类部分先构造，如果在基类构造函数中调用虚函数，对象的类型会被视为是基类，否则会访问派生类未被初始化的成员。  
+      析构时，派生类成员先被析构，进入基类构造函数时，对象就被视为是基类对象。  
     * 14）[虚函数被覆盖？](https://github.com/arkingc/llc/blob/master/cpp/class/inheritance/virtual_function_hide.cpp#L1)
     * 15）virtual函数动态绑定，缺省参数值静态绑定（[《Effective C++:条款37》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE37%E7%BB%9D%E4%B8%8D%E9%87%8D%E6%96%B0%E5%AE%9A%E4%B9%89%E7%BB%A7%E6%89%BF%E8%80%8C%E6%9D%A5%E7%9A%84%E7%BC%BA%E7%9C%81%E5%8F%82%E6%95%B0%E5%80%BC)）
     * 16）纯虚函数与抽象基类（[纯虚函数与虚函数、一般成员函数的选择](../C++/EffectiveC++.md#条款34区分接口继承和实现继承)）
     * 17）静态类型与动态类型（引用是否可实现动态绑定）
-    * 18）浅拷贝与深拷贝（安全性、行为像值的类与行为像指针的类）
+    * 18）浅拷贝与深拷贝（安全性、行为像值的类与行为像指针的类）  
+         >浅拷贝：副本和原对象使用相同的底层数据，改变其中一个也会改变另一个。  
+      深拷贝：副本开辟新的空间存放原对象复制的数据，完全独立。  
     * 19）如何定义类内常量？（enum而不是static const [《Effective C++:条款2》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE02%E5%B0%BD%E9%87%8F%E4%BB%A5constenuminline%E6%9B%BF%E6%8D%A2define)）
     * 20）继承与组合(复合)之间如何选择？（[《Effective C++:条款38》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE38%E9%80%9A%E8%BF%87%E5%A4%8D%E5%90%88%E5%A1%91%E6%A8%A1%E5%87%BAhas-a%E6%88%96%E6%A0%B9%E6%8D%AE%E6%9F%90%E7%89%A9%E5%AE%9E%E7%8E%B0%E5%87%BA)）
     * 21）private继承？（[《Effective C++:条款39》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE39%E6%98%8E%E6%99%BA%E8%80%8C%E5%AE%A1%E6%85%8E%E5%9C%B0%E4%BD%BF%E7%94%A8private%E7%BB%A7%E6%89%BF)）
     * 22）[如何定义一个只能在堆上（栈上）生成对象的类？](https://www.nowcoder.com/questionTerminal/0a584aa13f804f3ea72b442a065a7618)
-    * 23）[内联函数、构造函数、静态成员函数可以是虚函数吗？](https://www.nowcoder.com/ta/nine-chapter/review?page=24)
+    * 23）[内联函数、构造函数、静态成员函数可以是虚函数吗？](https://www.nowcoder.com/ta/nine-chapter/review?page=24)  
+         >内联函数是在编译时展开，虚函数是运行时动态绑定；  
+      构造函数在调用时也不需要动态绑定；  
+      静态成员函数是与类相关的，与对象无关，虚函数是与对象动态绑定的。  
 * **四.内存管理**
     * 1）[C++内存分区](../C++/内存分区.md)
     * 2）[new](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#1new)和malloc的区别？（函数，运算符、类型安全、计算空间、步骤，[operator new的实现](../C++/C++对象模型.md#3operator-new和operator-delete的实现)）
