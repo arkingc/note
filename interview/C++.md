@@ -98,12 +98,25 @@
       构造函数在调用时也不需要动态绑定；  
       静态成员函数是与类相关的，与对象无关，虚函数是与对象动态绑定的。  
 * **四.内存管理**
-    * 1）[C++内存分区](../C++/内存分区.md)
-    * 2）[new](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#1new)和malloc的区别？（函数，运算符、类型安全、计算空间、步骤，[operator new的实现](../C++/C++对象模型.md#3operator-new和operator-delete的实现)）
+    * 1）[C++内存分区](../C++/内存分区.md)  
+      >沿虚拟地址递增方向  
+      文本段：存放程序的机器语言指令；  
+      初始化数据段：存放显式初始化的全局变量和静态变量；  
+      未初始化数据段：存放未显式初始化的全局变量和静态变量，会默认初始化为0；  
+      堆：用于存放运行时动态申请的内存空间，由用户通过malloc/new申请内存，free/delete释放内存，若不进行手动释放，会由系统在程序结束后回收内存，生命周期为程序的生命周期。  
+      栈：用于保存局部变量、参数、返回值，函数退出后系统自动释放栈区内存。地址由高到低增长。  
+    * 2）[new](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#1new)和malloc的区别？（函数，运算符、类型安全、计算空间、步骤，[operator new的实现](../C++/C++对象模型.md#3operator-new和operator-delete的实现)）  
+      >属性：new是C++关键字，malloc是库函数；  
+      参数：new分配空间的大小由编译器根据对象类型的大小自动计算，malloc需要显式指定分配空间的大小；  
+      类型安全：new成功分配时返回的是对象类型的指针，malloc返回的是void* ，需要强制类型转换为需要的类型；  
+      步骤：new先调用operator new函数申请内存，再调用类型的构造函数，初始化成员变量，最后返回该对象的指针；malloc只能分配内存。  
     * 3）[new[]与delete[]？](../C++/C++对象模型.md#4针对数组的new语意)（步骤：如何分配内存，构建对象、如何析构与释放内存？[构造与析构](../C++/C++对象模型.md#3对象数组)）
     * 4）new带括号和不带的区别？（无自定义构造函数时，不带括号的new只分配内存，带括号的new会初始化为0）
     * 5）new时内存不足？（[《Effective C++:条款49》](https://github.com/arkingc/note/blob/master/C++/EffectiveC++.md#%E6%9D%A1%E6%AC%BE49%E4%BA%86%E8%A7%A3new-handler%E7%9A%84%E8%A1%8C%E4%B8%BA)）(new-handler)
-    * 6）[malloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[calloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[realloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[alloca](https://blog.csdn.net/lan120576664/article/details/38078855)，malloc的实现？
+    * 6）[malloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[calloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[realloc](https://github.com/arkingc/note/blob/master/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/UNIX%E7%8E%AF%E5%A2%83%E9%AB%98%E7%BA%A7%E7%BC%96%E7%A8%8B.md#5%E5%AD%98%E5%82%A8%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D)、[alloca](https://blog.csdn.net/lan120576664/article/details/38078855)，malloc的实现？  
+         >calloc会将分配的内存初始化为0；  
+         realloc对malloc分配的内存大小进行调整；  
+         alloca在栈上分配内存。  
     * 7）调用malloc函数之后，OS会马上分配内存空间吗？（不会，只会返回一个虚拟地址，待用户要使用内存时，OS会发出一个缺页中断，此时，内存管理模块才会为程序分配真正内存）
     * 8）[delete](https://github.com/arkingc/note/blob/master/C++/C++%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B.md#1new)（步骤、delete与析构、可以delete空指针、可以delete动态const对象）
     * 9）为什么要内存对齐？([性能原因、平台原因](temp/C++.md/#1为什么要内存对齐))
