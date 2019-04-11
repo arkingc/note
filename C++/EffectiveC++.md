@@ -978,7 +978,7 @@ result = 2 * oneHalf;                  // Error
 
 ### 1）增加封装性
 
-如果成员函数返回hadles，那么相当于成员变量的封装性从private上升到public。这与[条款22](#条款22将成员变量声明为private)相悖
+如果成员函数返回handles，那么相当于成员变量的封装性从private上升到public。这与[条款22](#条款22将成员变量声明为private)相悖
 
 ### 2）使得“通过const修改对象的数据”成为可能
 
