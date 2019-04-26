@@ -12,7 +12,7 @@
     * 1）重载（[参数必须不同(const修饰形参)](https://github.com/arkingc/llc/blob/master/cpp/overload/main.cpp#L9)、重载与作用域、继承中的重载\(using\)、重载与const成员函数） 
 * **三.类**
     * 1）面向对象的三大特性（封装、继承、多态）
-    * 2）struct和class的区别？
+    * 2）[struct和class的区别？](https://blog.csdn.net/qq_37964547/article/details/81835488)
     * 3）[访问权限说明符](temp/C++.md/#3访问控制说明符)？（目的是加强类的封装性）
     * 4）类的静态成员（所属？静态成员函数不能声明成const、类类型的成员、定义时不能重复使用static、具有类内初始值的静态成员定义时不可再设初值）
     * 5）构造函数相关
