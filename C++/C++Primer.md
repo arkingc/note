@@ -1034,7 +1034,7 @@ sp->~string( );​​
 
 ​const可以将this指针修改为指向常量的常量指针。故，类的常量对象和类常量对象的常量引用可以调用这些函数，也只能调用这些函数​
 
-类的非常量对象能调用常量成员，但是这种情况下，只能返回一个常量引用，因此不能使用返回结果再进一步调用非常量成员函数。可以通过重载一个与常量成员函数对应的非常量成员函数来解决：[代码](https://github.com/arkingc/llc/blob/master/cpp/class/overload.cpp​)
+类的非常量对象能调用常量成员，但是这种情况下，只能返回一个常量引用，因此不能使用返回结果再进一步调用非常量成员函数。可以通过重载一个与常量成员函数对应的非常量成员函数来解决：[代码](https://github.com/arkingc/llc/blob/master/cpp/class/overload.cpp)
 
 #### 5）=default与=delete
 
