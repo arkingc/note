@@ -147,7 +147,7 @@
     - [2.三个顺序容器适配器](#2三个顺序容器适配器)
         + [2.1 stack](#21-stack)
         + [2.2 queue](#22-queue)
-        + [2.3 priority_queue](#23-priorityqueue)
+        + [2.3 priority_queue](#23-priority_queue)
 
 <h2 id="ch2"></h2>
 
