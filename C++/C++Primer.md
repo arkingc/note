@@ -3900,9 +3900,9 @@ strm.str(s); //将s拷贝到string流中
 
 > 每个流最多同时关联一个输出流
 
-`istream.tie()`：返回istream关联的输出流的指针，如果没有返回空指针
-`istream.tie(&ostream)`：将istream关联到ostream，返回一个指向ostream的指针。
-由于每个流最多关联一个输出流，所以可以传入nullptr来解除关联
+`istream.tie()`：返回`istream`关联的输出流的指针，如果没有返回空指针
+`istream.tie(&ostream)`：将`istream`关联到`ostream`，返回一个指向`ostream`的指针。
+由于每个流最多关联一个输出流，所以可以传入`nullptr`来解除关联
 
 ### 6.2 未格式化I/O操作
 
