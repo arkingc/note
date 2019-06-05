@@ -2617,7 +2617,7 @@ priority_queue操作：
 * 某些泛型算法只能接受某种谓词，谓词限制了参数个数
 * 为了对序列执行某一操作，可能需要的参数大于谓词的限制
 
-`[capture list] (parameter list) -> return type {function body}`
+**形式**：`[capture list] (parameter list) -> return type {function body}`
 
 * **捕获列表**（**必须有**）
     - 捕获列表就是用于向lambda传递我们原本想使用的参数。这些参数在函数体中会用到
@@ -2670,7 +2670,7 @@ lambda对象可以作为返回值，如果函数返回一个lambda，则与函�
 * 与lambda相同
 * 解决谓词参数限制的另一种途径
 
-`auto newCallable = bind(callable,arg_list)`
+**形式**：`auto newCallable = bind(callable,arg_list)`
 
 * `callable`为参数受限（受泛型算法限制）的谓词（谓词为可调用表达式，如函数）
 
